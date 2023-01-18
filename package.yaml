@@ -18,6 +18,9 @@ extra-source-files:
 description: Please see the README on GitHub at <https://github.com/ungrichtepfl/tichu-bot#readme>
 dependencies:
   - base >= 4.7 && < 5
+  - random == 1.2.1.1
+  - MonadRandom == 0.5.3
+  - tf-random == 0.5
 ghc-options:
   - -Wall
   - -Wcompat
