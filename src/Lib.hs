@@ -17,6 +17,18 @@ data TichuCard = PokerCard (Value, Color) | Dragon | Phoenix | Mahjong | Dog
 
 type TichuCards = [TichuCard]
 
+data ComboType = Single | Pair | Tripple | Straight5 | Straight6 | Straight7 | Straight8
+    | Straight9 | Straight10 | Straight11 | Straight12 | Straight13 | Straight14 | FullHouse
+    | Stair2 | Stair3 | Stair4 | Stair5 | Stair6 | Stair7 | LittleBomb | BigBomb5 | BigBomb6
+    | BigBomb7 | BigBomb8 | BigBomb9 | BigBomb10 | BigBomb11 | BigBomb12 | BigBomb13 | Dog
+  deriving (Show, Eq)
+
+data Combo = Combo
+  { comboType :: ComboType
+  , level :: Int --should equal TWICE the Value uf the highest card involved, so that the phoenix can fit in between
+  , cards :: TichuCards
+  }
+
 type PlayerName = String
 type TeamName = String
 
