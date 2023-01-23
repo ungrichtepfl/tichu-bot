@@ -58,6 +58,31 @@ data Game = Game
   , scoreLimit :: Int
   }
 
+
+-- Lukas' try
+data GameRound_ = GameRound_
+  { hand1 :: TichuCards
+  , hand2 :: TichuCards
+  , hand3 :: TichuCards
+  , hand4 :: TichuCards
+  , trick1 :: TichuCards
+  , trick2 :: TichuCards
+  , trick3 :: TichuCards
+  , trick4 :: TichuCards
+  , table :: (TichuCards, Combo)
+  , tichu1 :: Boolean
+  , tichu2 :: Boolean
+  , tichu3 :: Boolean
+  , tichu4 :: Boolean
+  , gtichu1 :: Boolean
+  , gtichu2 :: Boolean
+  , gtichu3 :: Boolean
+  , gtichu4 :: Boolean
+  , hasRoundEnded :: Boolean
+  , nextPlayer :: Int
+  }
+
+
 -- Random: https://stackoverflow.com/questions/59619690/generate-a-random-list-of-custom-data-type-where-values-provided-to-data-constr
 someFunc :: IO ()
 someFunc = putStrLn "someFunc"
