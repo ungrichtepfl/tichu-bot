@@ -4,7 +4,7 @@ module Lib where
 
 import Control.Monad (forM)
 import Data.Array.IO (IOArray, newListArray, readArray, writeArray)
-import Data.List (elemIndex)
+import Data.List (elemIndex, nub)
 import Data.Map (Map)
 import Data.Map qualified as Map
 import Data.Maybe (fromJust)
@@ -39,6 +39,43 @@ data Color = Spades | Hearts | Diamonds | Clubs
 data TichuCard = PokerCard (Value, Color) | Dragon | Phoenix | Mahjong | Dog
   deriving (Show, Eq)
 
+color :: TichuCard -> Maybe Color
+color (PokerCard (_, c)) = Just c
+color _ = Nothing
+
+value :: TichuCard -> Maybe Value
+value (PokerCard (v, _)) = Just v
+value _ = Nothing
+
+nonPhoenixCards :: TichuCards -> TichuCards
+nonPhoenixCards = filter (/= Phoenix)
+
+containsSpecialCards :: TichuCards -> Bool
+containsSpecialCards cards = any (`elem` cards) [Dragon, Phoenix, Mahjong, Dog]
+
+noNothings :: Eq a => [Maybe a] -> Bool
+noNothings = all (`notElem` Nothing)
+
+isNOfAKind :: Int -> TichuCards -> Bool
+isNOfAKind _ [Phoenix] = False
+isNOfAKind nb cards
+  | Phoenix `elem` cards =
+      let cards' = nonPhoenixCards cards
+       in check cards' (nb - 1)
+  | otherwise = check cards nb
+ where
+  check [] _ = False
+  check cards'' n = let values = map value cards'' in noNothings values && length (filter (== head values) values) == n
+
+isThreeOfAKind :: TichuCards -> Bool
+isThreeOfAKind = isNOfAKind 3
+
+isPair :: TichuCards -> Bool
+isPair = isNOfAKind 2
+
+hasSameColor :: TichuCards -> Bool
+hasSameColor cards = let colors = map color cards in noNothings colors && length (nub colors) == 1
+
 type TichuCards = [TichuCard]
 
 type PlayerName = String
@@ -54,8 +91,11 @@ data GameConfig = GameConfig
   }
   deriving (Show, Eq)
 
-class Player player where
-  play :: player -> Game -> IO PlayerAction
+class Playable p where
+  play :: p -> IO PlayerAction
+
+class Distributable d where
+  distribute :: d -> IO (Map PlayerName d)
 
 type Distribution = Map PlayerName (Map PlayerName TichuCard)
 
