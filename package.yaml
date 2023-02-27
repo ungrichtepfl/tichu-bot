@@ -20,6 +20,7 @@ dependencies:
   - base >= 4.7 && < 5
   - random == 1.2.1.1
   - array == 0.5.4.0
+  - containers == 0.6.5.1
 ghc-options:
   - -Wall
   - -Wcompat

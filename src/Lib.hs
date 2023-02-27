@@ -1,10 +1,34 @@
-module Lib (
-  playTichu,
-) where
+{-# LANGUAGE ImportQualifiedPost #-}
 
-import Control.Monad
-import Data.Array.IO
-import System.Random
+module Lib where
+
+import Control.Monad (forM)
+import Data.Array.IO (IOArray, newListArray, readArray, writeArray)
+import Data.List (elemIndex)
+import Data.Map (Map)
+import Data.Map qualified as Map
+import Data.Maybe (fromJust)
+import System.Random (randomRIO)
+
+setEmpty :: Map k [a] -> Map k [a]
+setEmpty = Map.map (const [])
+
+setFalse :: Map k Bool -> Map k Bool
+setFalse = Map.map (const False)
+
+shuffle :: [a] -> IO [a]
+shuffle xs = do
+  ar <- newArray' n xs
+  forM [1 .. n] $ \i -> do
+    j <- randomRIO (i, n)
+    vi <- readArray ar i
+    vj <- readArray ar j
+    writeArray ar j vi
+    return vj
+ where
+  n = length xs
+  newArray' :: Int -> [a] -> IO (IOArray Int a)
+  newArray' n' = newListArray (1, n')
 
 data Value = Two | Three | Four | Five | Six | Seven | Eight | Nine | Ten | Jack | Queen | King | Ace
   deriving (Show, Eq, Ord, Enum, Bounded)
@@ -30,44 +54,36 @@ data GameConfig = GameConfig
   }
   deriving (Show, Eq)
 
-playerNames :: GameConfig -> [PlayerName]
-playerNames = sittingOrder
-
 class Player player where
-  play :: player -> Game -> IO TichuAction
+  play :: player -> Game -> IO PlayerAction
 
-newtype Distribution = Distribution [(PlayerName, [(PlayerName, TichuCard)])]
+type Distribution = Map PlayerName (Map PlayerName TichuCard)
+
+emptyDistribution :: [PlayerName] -> Distribution
+emptyDistribution pns = Map.fromList [(pn, Map.empty) | pn <- pns]
+
+data GameRound = Dealing TichuCards | Distributing Distribution | Playing [PlayerAction] | Counting
   deriving (Show, Eq)
 
-data GameRound = Dealing PlayerName | Distributing Distribution | Playing [TichuAction] | Counting
-  deriving (Show, Eq)
-
-shuffle :: [a] -> IO [a]
-shuffle xs = do
-  ar <- newArray' n xs
-  forM [1 .. n] $ \i -> do
-    j <- randomRIO (i, n)
-    vi <- readArray ar i
-    vj <- readArray ar j
-    writeArray ar j vi
-    return vj
- where
-  n = length xs
-  newArray' :: Int -> [a] -> IO (IOArray Int a)
-  newArray' n' = newListArray (1, n')
-
-data TichuAction = Play TichuCards | Pass | Tichu | GrandTichu
+data PlayerAction = Play TichuCards | Pass | Tichu | GrandTichu
   deriving (Show, Eq)
 
 data Game = Game
   { gameConfig :: GameConfig
-  , hands :: [(PlayerName, TichuCards)]
-  , tricks :: [(PlayerName, TichuCards)]
+  , hands :: Map PlayerName TichuCards
+  , tricks :: Map PlayerName TichuCards
   , tichuRound :: GameRound
-  , tichus :: [(PlayerName, Bool)]
-  , deck :: TichuCards
+  , tichus :: Map PlayerName Bool
+  , scores :: Map TeamName Score
+  , currentDealer :: PlayerName
   }
   deriving (Show, Eq)
+
+playerNames :: GameConfig -> [PlayerName]
+playerNames = sittingOrder
+
+playerNames' :: Game -> [PlayerName]
+playerNames' = sittingOrder . gameConfig
 
 orderedDeck :: TichuCards
 orderedDeck = [PokerCard (v, c) | v <- [Two .. Ace], c <- [Spades .. Clubs]] ++ [Dragon, Phoenix, Mahjong, Dog]
@@ -75,32 +91,92 @@ orderedDeck = [PokerCard (v, c) | v <- [Two .. Ace], c <- [Spades .. Clubs]] ++ 
 shuffledDeck :: IO TichuCards
 shuffledDeck = shuffle orderedDeck
 
-initialHands :: [PlayerName] -> [(PlayerName, TichuCards)]
-initialHands names = [(n, []) | n <- names]
+initialHands :: [PlayerName] -> Map PlayerName TichuCards
+initialHands names = Map.fromList [(n, []) | n <- names]
 
-initialTricks :: [PlayerName] -> [(PlayerName, TichuCards)]
-initialTricks names = [(n, []) | n <- names]
+initialTricks :: [PlayerName] -> Map PlayerName TichuCards
+initialTricks names = Map.fromList [(n, []) | n <- names]
 
-initialTichus :: [PlayerName] -> [(PlayerName, Bool)]
-initialTichus names = [(n, False) | n <- names]
+initialTichus :: [PlayerName] -> Map PlayerName Bool
+initialTichus names = Map.fromList [(n, False) | n <- names]
 
-initialGame :: GameConfig -> IO Game
-initialGame gameConfig = do
+initialScores :: [TeamName] -> Map TeamName Score
+initialScores names = Map.fromList [(n, 0) | n <- names]
+
+newGame :: GameConfig -> IO Game
+newGame config = do
   initialDeck <- shuffledDeck
-  shuffledPlayers <- shuffle $ playerNames gameConfig
+  shuffledPlayers <- shuffle $ playerNames config
   let randomPlayer = head shuffledPlayers
-  let orderedPlayers = sittingOrder gameConfig
   return $
     Game
-      { gameConfig = gameConfig
-      , hands = initialHands orderedPlayers
-      , tricks = initialTricks orderedPlayers
-      , tichuRound = Dealing randomPlayer
-      , tichus = initialTichus orderedPlayers
-      , deck = initialDeck
+      { gameConfig = config
+      , hands = initialHands $ playerNames config
+      , tricks = initialTricks $ playerNames config
+      , tichuRound = Dealing initialDeck
+      , tichus = initialTichus $ playerNames config
+      , scores = initialScores $ teamNames config
+      , currentDealer = randomPlayer
       }
+
+resetGame :: Game -> IO Game
+resetGame game = do
+  initialDeck <- shuffledDeck
+  return $
+    game
+      { hands = setEmpty $ hands game
+      , tricks = setEmpty $ tricks game
+      , tichuRound = Dealing initialDeck
+      , tichus = setFalse $ tichus game
+      , currentDealer = newDealer
+      }
+ where
+  newDealer =
+    let playerList = playerNames' game
+     in playerList !! nextDealerIndex game
+
+currentDealerIndex :: Game -> Int
+currentDealerIndex game = fromJust $ elemIndex (currentDealer game) (playerNames' game)
+
+nextDealerIndex :: Game -> Int
+nextDealerIndex game = if currentDealerIndex game == length (playerNames' game) - 1 then 0 else currentDealerIndex game + 1
+
+dealCard :: PlayerName -> TichuCards -> Map PlayerName TichuCards -> (Map PlayerName TichuCards, TichuCards)
+dealCard pn deck playerHands = (Map.insert pn (head deck : playerHands Map.! pn) playerHands, tail deck)
+
+dealXCards' :: [PlayerName] -> TichuCards -> Map PlayerName TichuCards -> (Map PlayerName TichuCards, TichuCards)
+dealXCards' pns deck playerHands = foldl (\(hands', deck') pn -> dealCard pn deck' hands') (playerHands, deck) pns
+
+dealXCards :: Game -> Int -> Game
+dealXCards game nb = case tichuRound game of
+  Dealing deck ->
+    let (hands', deck') = dealXCards' dealPlayerOrder deck (hands game)
+     in game{hands = hands', tichuRound = Dealing deck'}
+  r -> error $ "Wrong round: " ++ show r
+ where
+  dealPlayerOrder =
+    let playerList = playerNames' game
+        i = currentDealerIndex game
+        reorderedPlayerList = drop (i + 1) playerList ++ take (i + 1) playerList
+     in concat $ replicate nb reorderedPlayerList
+
+dealAllCards :: Game -> Game
+dealAllCards game = case tichuRound game of
+  Dealing deck ->
+    let nb = if length deck `mod` length (playerNames' game) == 0 then length deck `div` length (playerNames' game) else error $ "Wrong number of cards in deck: " ++ show (length deck) ++ ". There are " ++ show (length (playerNames' game)) ++ " players in game."
+        game' = dealXCards game nb
+     in game'{tichuRound = Distributing $ emptyDistribution (playerNames' game')}
+  r -> error $ "Wrong round: " ++ show r
 
 playTichu :: IO ()
 playTichu = do
-  game <- initialGame $ GameConfig ["Alice", "Bob", "Charlie", "David"] ["Team 1", "Team 2"] 1000
+  game <- newGame $ GameConfig ["Alice", "Bob", "Charlie", "David"] ["Team 1", "Team 2"] 1000
   print game
+  putStrLn "--------------------------------------------"
+  let game' = dealAllCards game
+  print game'
+  putStrLn "--------------------------------------------"
+  game'' <- resetGame game'
+  putStrLn "--------------------------------------------"
+  print game''
+  putStrLn "--------------------------------------------"
