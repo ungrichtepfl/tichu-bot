@@ -30,7 +30,20 @@ shuffle xs = do
   newArray' :: Int -> [a] -> IO (IOArray Int a)
   newArray' n' = newListArray (1, n')
 
-data Value = Two | Three | Four | Five | Six | Seven | Eight | Nine | Ten | Jack | Queen | King | Ace
+data Value
+  = Two
+  | Three
+  | Four
+  | Five
+  | Six
+  | Seven
+  | Eight
+  | Nine
+  | Ten
+  | Jack
+  | Queen
+  | King
+  | Ace
   deriving (Show, Eq, Ord, Enum, Bounded)
 
 data Color = Spades | Hearts | Diamonds | Clubs
@@ -65,7 +78,11 @@ isNOfAKind nb cards
   | otherwise = check cards nb
  where
   check [] _ = False
-  check cards'' n = let values = map value cards'' in noNothings values && length (filter (== head values) values) == n
+  check cards'' n
+    | length cards'' /= n = False
+    | otherwise =
+        let values = map value cards''
+         in noNothings values && length (filter (== head values) values) == n
 
 isThreeOfAKind :: TichuCards -> Bool
 isThreeOfAKind = isNOfAKind 3
@@ -74,7 +91,9 @@ isPair :: TichuCards -> Bool
 isPair = isNOfAKind 2
 
 hasSameColor :: TichuCards -> Bool
-hasSameColor cards = let colors = map color cards in noNothings colors && length (nub colors) == 1
+hasSameColor cards =
+  let colors = map color cards
+   in noNothings colors && length (nub colors) == 1
 
 type TichuCards = [TichuCard]
 
@@ -102,7 +121,11 @@ type Distribution = Map PlayerName (Map PlayerName TichuCard)
 emptyDistribution :: [PlayerName] -> Distribution
 emptyDistribution pns = Map.fromList [(pn, Map.empty) | pn <- pns]
 
-data GameRound = Dealing TichuCards | Distributing Distribution | Playing [PlayerAction] | Counting
+data GameRound
+  = Dealing TichuCards
+  | Distributing Distribution
+  | Playing [PlayerAction]
+  | Counting
   deriving (Show, Eq)
 
 data PlayerAction = Play TichuCards | Pass | Tichu | GrandTichu
@@ -126,7 +149,10 @@ playerNames' :: Game -> [PlayerName]
 playerNames' = sittingOrder . gameConfig
 
 orderedDeck :: TichuCards
-orderedDeck = [PokerCard (v, c) | v <- [Two .. Ace], c <- [Spades .. Clubs]] ++ [Dragon, Phoenix, Mahjong, Dog]
+orderedDeck =
+  [ PokerCard (v, c) | v <- [Two .. Ace], c <- [Spades .. Clubs]
+  ]
+    ++ [Dragon, Phoenix, Mahjong, Dog]
 
 shuffledDeck :: IO TichuCards
 shuffledDeck = shuffle orderedDeck
@@ -176,16 +202,32 @@ resetGame game = do
      in playerList !! nextDealerIndex game
 
 currentDealerIndex :: Game -> Int
-currentDealerIndex game = fromJust $ elemIndex (currentDealer game) (playerNames' game)
+currentDealerIndex game =
+  fromJust $ elemIndex (currentDealer game) (playerNames' game)
 
 nextDealerIndex :: Game -> Int
-nextDealerIndex game = if currentDealerIndex game == length (playerNames' game) - 1 then 0 else currentDealerIndex game + 1
+nextDealerIndex game =
+  if currentDealerIndex game == length (playerNames' game) - 1
+    then 0
+    else currentDealerIndex game + 1
 
-dealCard :: PlayerName -> TichuCards -> Map PlayerName TichuCards -> (Map PlayerName TichuCards, TichuCards)
-dealCard pn deck playerHands = (Map.insert pn (head deck : playerHands Map.! pn) playerHands, tail deck)
+dealCard ::
+  PlayerName ->
+  TichuCards ->
+  Map PlayerName TichuCards ->
+  (Map PlayerName TichuCards, TichuCards)
+dealCard pn deck playerHands =
+  ( Map.insert pn (head deck : playerHands Map.! pn) playerHands
+  , tail deck
+  )
 
-dealXCards' :: [PlayerName] -> TichuCards -> Map PlayerName TichuCards -> (Map PlayerName TichuCards, TichuCards)
-dealXCards' pns deck playerHands = foldl (\(hands', deck') pn -> dealCard pn deck' hands') (playerHands, deck) pns
+dealXCards' ::
+  [PlayerName] ->
+  TichuCards ->
+  Map PlayerName TichuCards ->
+  (Map PlayerName TichuCards, TichuCards)
+dealXCards' pns deck playerHands =
+  foldl (\(hands', deck') pn -> dealCard pn deck' hands') (playerHands, deck) pns
 
 dealXCards :: Game -> Int -> Game
 dealXCards game nb = case tichuRound game of
@@ -203,11 +245,21 @@ dealXCards game nb = case tichuRound game of
 dealAllCards :: Game -> Game
 dealAllCards game = case tichuRound game of
   Dealing deck ->
-    let nb = if length deck `mod` length (playerNames' game) == 0 then length deck `div` length (playerNames' game) else error $ "Wrong number of cards in deck: " ++ show (length deck) ++ ". There are " ++ show (length (playerNames' game)) ++ " players in game."
+    let nb =
+          if length deck `mod` length (playerNames' game) == 0
+            then length deck `div` length (playerNames' game)
+            else
+              error $
+                "Wrong number of cards in deck: "
+                  ++ show (length deck)
+                  ++ ". There are "
+                  ++ show (length (playerNames' game))
+                  ++ " players in game."
         game' = dealXCards game nb
      in game'{tichuRound = Distributing $ emptyDistribution (playerNames' game')}
   r -> error $ "Wrong round: " ++ show r
 
+-- TODO: implement real game logic
 playTichu :: IO ()
 playTichu = do
   game <- newGame $ GameConfig ["Alice", "Bob", "Charlie", "David"] ["Team 1", "Team 2"] 1000
