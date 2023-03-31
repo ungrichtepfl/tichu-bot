@@ -1,9 +1,9 @@
 {-# LANGUAGE ImportQualifiedPost #-}
 
 import Data.Map qualified as Map
-import Tichu
 import Test.Tasty
 import Test.Tasty.HUnit
+import Tichu
 
 main :: IO ()
 main = do
@@ -32,6 +32,8 @@ main = do
         , testStraight9
         , testStraight10
         , testStraight11
+        , testStraight12
+        , testStraight13
         ]
     )
 

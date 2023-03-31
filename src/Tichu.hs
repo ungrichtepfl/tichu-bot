@@ -117,17 +117,18 @@ isStraight :: TichuCards -> Bool
 isStraight cards
   | length cards < 5 = False
   | Mahjong `elem` cards && Just Two `elem` map value cards = isStraight' $ filter (/= Mahjong) cards
-  | containsSpecialCardsNoPhoenix cards = False
   | otherwise = isStraight' cards
  where
-  isStraight' cards' =
-    let cardsNonPhoenix = nonPhoenixCards cards'
-        values = map (fromJust . value) cardsNonPhoenix
-        minVal = minimum values
-        maxVal = maximum values
-        values' = [minVal .. maxVal]
-        values'' = values' \\ values
-     in length values'' <= 1
+  isStraight' cards'
+    | containsSpecialCardsNoPhoenix cards' = False
+    | otherwise =
+        let cardsNonPhoenix = nonPhoenixCards cards'
+            values = map (fromJust . value) cardsNonPhoenix
+            minVal = minimum values
+            maxVal = maximum values
+            values' = [minVal .. maxVal]
+            values'' = values' \\ values
+         in length values'' <= 1
 
 type TichuCards = [TichuCard]
 
