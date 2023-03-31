@@ -34,6 +34,14 @@ main = do
         , testStraight11
         , testStraight12
         , testStraight13
+        , testBomb
+        , testBomb1
+        , testBomb2
+        , testBomb3
+        , testBomb4
+        , testBomb5
+        , testBomb6
+        , testBomb7
         ]
     )
 
@@ -152,6 +160,7 @@ testIsNotNOfAKind =
           , PokerCard (Two, Clubs)
           ]
      in assertEqual "Not four of a kind" False (isNOfAKind 4 cards)
+
 testIsNotNOfAKind' :: TestTree
 testIsNotNOfAKind' =
   testCase "isNotNOfAKind'" $
@@ -357,3 +366,96 @@ testStraight13 =
           , Dragon
           ]
      in assertEqual "Straight" False (isStraight cards)
+
+testBomb :: TestTree
+testBomb =
+  testCase "isBomb 4 cards true" $
+    let cards =
+          [ PokerCard (Two, Spades)
+          , PokerCard (Two, Hearts)
+          , PokerCard (Two, Diamonds)
+          , PokerCard (Two, Clubs)
+          ]
+     in assertEqual "Bomb" True (isBomb cards)
+
+testBomb1 :: TestTree
+testBomb1 =
+  testCase "isBomb 4 cards False" $
+    let cards =
+          [ PokerCard (Two, Spades)
+          , PokerCard (Two, Hearts)
+          , PokerCard (Three, Diamonds)
+          , PokerCard (Two, Clubs)
+          ]
+     in assertEqual "Bomb" False (isBomb cards)
+
+testBomb2 :: TestTree
+testBomb2 =
+  testCase "isBomb 5 cards straight true" $
+    let cards =
+          [ PokerCard (Two, Clubs)
+          , PokerCard (Six, Clubs)
+          , PokerCard (Four, Clubs)
+          , PokerCard (Three, Clubs)
+          , PokerCard (Five, Clubs)
+          ]
+     in assertEqual "Bomb" True (isBomb cards)
+
+testBomb3 :: TestTree
+testBomb3 =
+  testCase "isBomb 5 cards straight wrong number false" $
+    let cards =
+          [ PokerCard (Two, Clubs)
+          , PokerCard (Eight, Clubs)
+          , PokerCard (Four, Clubs)
+          , PokerCard (Five, Clubs)
+          , PokerCard (Six, Clubs)
+          ]
+     in assertEqual "Bomb" False (isBomb cards)
+
+testBomb4 :: TestTree
+testBomb4 =
+  testCase "isBomb 5 cards straight Phoenix false" $
+    let cards =
+          [ PokerCard (Two, Clubs)
+          , PokerCard (Four, Clubs)
+          , PokerCard (Five, Clubs)
+          , Phoenix
+          , PokerCard (Six, Clubs)
+          ]
+     in assertEqual "Bomb" False (isBomb cards)
+
+testBomb5 :: TestTree
+testBomb5 =
+  testCase "isBomb 4 cards Phoenix false" $
+    let cards =
+          [ PokerCard (Two, Spades)
+          , PokerCard (Two, Diamonds)
+          , Phoenix
+          , PokerCard (Two, Clubs)
+          ]
+     in assertEqual "Bomb" False (isBomb cards)
+
+testBomb6 :: TestTree
+testBomb6 =
+  testCase "isBomb 5 cards straight Dragon false" $
+    let cards =
+          [ PokerCard (Two, Clubs)
+          , Dragon
+          , PokerCard (Four, Clubs)
+          , PokerCard (Five, Clubs)
+          , PokerCard (Three, Clubs)
+          ]
+     in assertEqual "Bomb" False (isBomb cards)
+
+testBomb7 :: TestTree
+testBomb7 =
+  testCase "isBomb 5 cards straight wrong color false" $
+    let cards =
+          [ PokerCard (Two, Clubs)
+          , PokerCard (Six, Spades)
+          , PokerCard (Four, Clubs)
+          , PokerCard (Five, Clubs)
+          , PokerCard (Three, Clubs)
+          ]
+     in assertEqual "Bomb" False (isBomb cards)

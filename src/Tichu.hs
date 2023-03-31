@@ -105,6 +105,9 @@ isNOfAKind nb cards
 isThreeOfAKind :: TichuCards -> Bool
 isThreeOfAKind = isNOfAKind 3
 
+isFourOfAKind :: TichuCards -> Bool
+isFourOfAKind = isNOfAKind 4
+
 isPair :: TichuCards -> Bool
 isPair = isNOfAKind 2
 
@@ -129,6 +132,15 @@ isStraight cards
             values' = [minVal .. maxVal]
             values'' = values' \\ values
          in length values'' <= 1
+
+isBomb :: TichuCards -> Bool
+isBomb cards
+  | containsSpecialCards cards = False
+  | otherwise = isFourOfAKind cards || isSameColorStraight
+ where
+  isSameColorStraight =
+    let colors = map color cards
+     in noNothings colors && length (nub colors) == 1 && isStraight cards
 
 type TichuCards = [TichuCard]
 
