@@ -1,6 +1,6 @@
 module Main (main) where
 
-import Lib (playTichu)
+import Tichu (playTichu)
 
 main :: IO ()
 main = playTichu

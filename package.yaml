@@ -45,7 +45,7 @@ executables:
       - tichu-bot
 tests:
   tichu-bot-test:
-    main: Spec.hs
+    main: Combinations.hs
     source-dirs: test
     ghc-options:
       - -threaded

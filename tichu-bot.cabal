@@ -25,7 +25,7 @@ source-repository head
 
 library
   exposed-modules:
-      Lib
+      Tichu
   other-modules:
       Paths_tichu_bot
   hs-source-dirs:
@@ -55,7 +55,7 @@ executable tichu-bot
 
 test-suite tichu-bot-test
   type: exitcode-stdio-1.0
-  main-is: Spec.hs
+  main-is: Combinations.hs
   other-modules:
       Paths_tichu_bot
   hs-source-dirs:

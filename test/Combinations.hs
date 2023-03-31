@@ -1,7 +1,7 @@
 {-# LANGUAGE ImportQualifiedPost #-}
 
 import Data.Map qualified as Map
-import Lib
+import Tichu
 import Test.Tasty
 import Test.Tasty.HUnit
 
