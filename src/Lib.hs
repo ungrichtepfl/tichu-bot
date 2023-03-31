@@ -4,7 +4,7 @@ module Lib where
 
 import Control.Monad (forM)
 import Data.Array.IO (IOArray, newListArray, readArray, writeArray)
-import Data.List (elemIndex, nub)
+import Data.List (elemIndex, nub, (\\))
 import Data.Map (Map)
 import Data.Map qualified as Map
 import Data.Maybe (fromJust)
@@ -52,6 +52,21 @@ data Color = Spades | Hearts | Diamonds | Clubs
 data TichuCard = PokerCard (Value, Color) | Dragon | Phoenix | Mahjong | Dog
   deriving (Show, Eq)
 
+instance Ord TichuCard where
+  compare (PokerCard (v1, _)) (PokerCard (v2, _)) = compare v1 v2
+  compare Dragon Dragon = EQ
+  compare Phoenix Phoenix = EQ
+  compare Mahjong Mahjong = EQ
+  compare Dog Dog = EQ
+  compare Dragon _ = GT
+  compare _ Dragon = LT
+  compare Phoenix _ = GT
+  compare _ Phoenix = LT
+  compare Dog _ = LT -- Dog needs to be before Mahjong, is lower than any card
+  compare _ Dog = LT
+  compare Mahjong _ = LT
+  compare _ Mahjong = LT
+
 color :: TichuCard -> Maybe Color
 color (PokerCard (_, c)) = Just c
 color _ = Nothing
@@ -65,6 +80,9 @@ nonPhoenixCards = filter (/= Phoenix)
 
 containsSpecialCards :: TichuCards -> Bool
 containsSpecialCards cards = any (`elem` cards) [Dragon, Phoenix, Mahjong, Dog]
+
+containsSpecialCardsNoPhoenix :: TichuCards -> Bool
+containsSpecialCardsNoPhoenix cards = any (`elem` cards) [Dragon, Mahjong, Dog]
 
 noNothings :: Eq a => [Maybe a] -> Bool
 noNothings = all (`notElem` Nothing)
@@ -94,6 +112,22 @@ hasSameColor :: TichuCards -> Bool
 hasSameColor cards =
   let colors = map color cards
    in noNothings colors && length (nub colors) == 1
+
+isStraight :: TichuCards -> Bool
+isStraight cards
+  | length cards < 5 = False
+  | Mahjong `elem` cards && Just Two `elem` map value cards = isStraight' $ filter (/= Mahjong) cards
+  | containsSpecialCardsNoPhoenix cards = False
+  | otherwise = isStraight' cards
+ where
+  isStraight' cards' =
+    let cardsNonPhoenix = nonPhoenixCards cards'
+        values = map (fromJust . value) cardsNonPhoenix
+        minVal = minimum values
+        maxVal = maximum values
+        values' = [minVal .. maxVal]
+        values'' = values' \\ values
+     in length values'' <= 1
 
 type TichuCards = [TichuCard]
 
