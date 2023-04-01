@@ -48,6 +48,12 @@ main = do
         , testFullHouse3
         , testFullHouse4
         , testFullHouse5
+        , testStairs
+        , testStairs1
+        , testStairs2
+        , testStairs3
+        , testStairs4
+        , testStairs5
         ]
     )
 
@@ -537,3 +543,73 @@ testFullHouse5 =
           , PokerCard (Three, Hearts)
           ]
      in assertEqual "FullHouse" False (isFullHouse cards)
+
+testStairs :: TestTree
+testStairs =
+  testCase "isStairs 4 cards true" $
+    let cards =
+          [ PokerCard (Two, Spades)
+          , PokerCard (Three, Diamonds)
+          , PokerCard (Two, Hearts)
+          , PokerCard (Three, Clubs)
+          ]
+     in assertEqual "Stairs" True (isStairs cards)
+
+testStairs1 :: TestTree
+testStairs1 =
+  testCase "isStairs 4 cards Phoenix true" $
+    let cards =
+          [ PokerCard (Two, Spades)
+          , PokerCard (Three, Clubs)
+          , Phoenix
+          , PokerCard (Two, Hearts)
+          ]
+     in assertEqual "Stairs" True (isStairs cards)
+
+testStairs2 :: TestTree
+testStairs2 =
+  testCase "isStairs 3 cards false" $
+    let cards =
+          [ PokerCard (Two, Spades)
+          , Phoenix
+          , PokerCard (Two, Hearts)
+          ]
+     in assertEqual "Stairs" False (isStairs cards)
+
+testStairs3 :: TestTree
+testStairs3 =
+  testCase "isStairs 5 cards false" $
+    let cards =
+          [ PokerCard (Two, Spades)
+          , PokerCard (Three, Diamonds)
+          , PokerCard (Four, Clubs)
+          , PokerCard (Two, Hearts)
+          , PokerCard (Three, Clubs)
+          ]
+     in assertEqual "Stairs" False (isStairs cards)
+
+testStairs4 :: TestTree
+testStairs4 =
+  testCase "isStairs 6 cards true" $
+    let cards =
+          [ PokerCard (Two, Spades)
+          , PokerCard (Four, Clubs)
+          , PokerCard (Three, Diamonds)
+          , PokerCard (Two, Hearts)
+          , PokerCard (Three, Clubs)
+          , PokerCard (Four, Hearts)
+          ]
+     in assertEqual "Stairs" True (isStairs cards)
+
+testStairs5 :: TestTree
+testStairs5 =
+  testCase "isStairs 6 cards false" $
+    let cards =
+          [ PokerCard (Two, Spades)
+          , PokerCard (Three, Diamonds)
+          , PokerCard (Two, Hearts)
+          , PokerCard (Five, Clubs)
+          , PokerCard (Three, Clubs)
+          , PokerCard (Five, Hearts)
+          ]
+     in assertEqual "Stairs" True (isStairs cards)

@@ -4,7 +4,7 @@ module Tichu where
 
 import Control.Monad (forM)
 import Data.Array.IO (IOArray, newListArray, readArray, writeArray)
-import Data.List (elemIndex, nub, sort, (\\))
+import Data.List (elemIndex, nub, nubBy, sort, (\\))
 import Data.Map (Map)
 import Data.Map qualified as Map
 import Data.Maybe (fromJust)
@@ -121,8 +121,11 @@ hasSameColor cards =
    in noNothings colors && length (nub colors) == 1
 
 isStraight :: TichuCards -> Bool
-isStraight cards
-  | length cards < 5 = False
+isStraight = isNstraight 5
+
+isNstraight :: Int -> TichuCards -> Bool
+isNstraight n cards
+  | length cards < n = False
   | Mahjong `elem` cards && Just Two `elem` map value cards = isStraight' $ filter (/= Mahjong) cards
   | otherwise = isStraight' cards
  where
@@ -154,6 +157,14 @@ isFullHouse cards
   | otherwise =
       let triples = drawKfromN (sort cards) 3
        in any (\triple -> isThreeOfAKind triple && isPair (cards \\ triple)) triples
+
+isStairs :: TichuCards -> Bool
+isStairs cards
+  | length cards < 4 = False
+  | containsSpecialCardsNoPhoenix cards = False
+  | otherwise =
+      let uniqueValues = nubBy (\c1 c2 -> value c1 == value c2) (nonPhoenixCards cards)
+       in length cards == 2 * length uniqueValues && isNstraight (length uniqueValues) uniqueValues
 
 type TichuCards = [TichuCard]
 
