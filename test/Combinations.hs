@@ -42,6 +42,12 @@ main = do
         , testBomb5
         , testBomb6
         , testBomb7
+        , testFullHouse
+        , testFullHouse1
+        , testFullHouse2
+        , testFullHouse3
+        , testFullHouse4
+        , testFullHouse5
         ]
     )
 
@@ -459,3 +465,75 @@ testBomb7 =
           , PokerCard (Three, Clubs)
           ]
      in assertEqual "Bomb" False (isBomb cards)
+
+testFullHouse :: TestTree
+testFullHouse =
+  testCase "isFullHouse 5 cards true" $
+    let cards =
+          [ PokerCard (Two, Spades)
+          , PokerCard (Two, Hearts)
+          , PokerCard (Two, Diamonds)
+          , PokerCard (Three, Clubs)
+          , PokerCard (Three, Hearts)
+          ]
+     in assertEqual "FullHouse" True (isFullHouse cards)
+
+testFullHouse1 :: TestTree
+testFullHouse1 =
+  testCase "isFullHouse 5 cards false" $
+    let cards =
+          [ PokerCard (Two, Spades)
+          , PokerCard (Three, Clubs)
+          , PokerCard (Two, Diamonds)
+          , PokerCard (Two, Hearts)
+          , Dragon
+          ]
+     in assertEqual "FullHouse" False (isFullHouse cards)
+
+testFullHouse2 :: TestTree
+testFullHouse2 =
+  testCase "isFullHouse 5 cards Phoenix true" $
+    let cards =
+          [ PokerCard (Two, Spades)
+          , PokerCard (Three, Clubs)
+          , PokerCard (Two, Hearts)
+          , Phoenix
+          , PokerCard (Three, Hearts)
+          ]
+     in assertEqual "FullHouse" True (isFullHouse cards)
+
+testFullHouse3 :: TestTree
+testFullHouse3 =
+  testCase "isFullHouse 4 cards false" $
+    let cards =
+          [ PokerCard (Two, Spades)
+          , PokerCard (Three, Clubs)
+          , PokerCard (Two, Hearts)
+          , PokerCard (Four, Hearts)
+          ]
+     in assertEqual "FullHouse" False (isFullHouse cards)
+
+testFullHouse4 :: TestTree
+testFullHouse4 =
+  testCase "isFullHouse 6 cards false" $
+    let cards =
+          [ PokerCard (Two, Spades)
+          , PokerCard (Two, Hearts)
+          , PokerCard (Two, Diamonds)
+          , PokerCard (Three, Clubs)
+          , PokerCard (Three, Hearts)
+          , PokerCard (Three, Diamonds)
+          ]
+     in assertEqual "FullHouse" False (isFullHouse cards)
+
+testFullHouse5 :: TestTree
+testFullHouse5 =
+  testCase "isFullHouse 5 cards Phoenix false" $
+    let cards =
+          [ Dog
+          , PokerCard (Three, Clubs)
+          , PokerCard (Four, Hearts)
+          , Phoenix
+          , PokerCard (Three, Hearts)
+          ]
+     in assertEqual "FullHouse" False (isFullHouse cards)

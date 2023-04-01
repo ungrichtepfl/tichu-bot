@@ -4,7 +4,7 @@ module Tichu where
 
 import Control.Monad (forM)
 import Data.Array.IO (IOArray, newListArray, readArray, writeArray)
-import Data.List (elemIndex, nub, (\\))
+import Data.List (elemIndex, nub, sort, (\\))
 import Data.Map (Map)
 import Data.Map qualified as Map
 import Data.Maybe (fromJust)
@@ -88,6 +88,7 @@ noNothings :: Eq a => [Maybe a] -> Bool
 noNothings = all (`notElem` Nothing)
 
 isNOfAKind :: Int -> TichuCards -> Bool
+isNOfAKind 1 [_] = True
 isNOfAKind _ [Phoenix] = False
 isNOfAKind nb cards
   | Phoenix `elem` cards =
@@ -102,14 +103,17 @@ isNOfAKind nb cards
         let values = map value cards''
          in noNothings values && length (filter (== head values) values) == n
 
+isSigleCard :: TichuCards -> Bool
+isSigleCard = isNOfAKind 1
+
+isPair :: TichuCards -> Bool
+isPair = isNOfAKind 2
+
 isThreeOfAKind :: TichuCards -> Bool
 isThreeOfAKind = isNOfAKind 3
 
 isFourOfAKind :: TichuCards -> Bool
 isFourOfAKind = isNOfAKind 4
-
-isPair :: TichuCards -> Bool
-isPair = isNOfAKind 2
 
 hasSameColor :: TichuCards -> Bool
 hasSameColor cards =
@@ -138,9 +142,18 @@ isBomb cards
   | containsSpecialCards cards = False
   | otherwise = isFourOfAKind cards || isSameColorStraight
  where
-  isSameColorStraight =
-    let colors = map color cards
-     in noNothings colors && length (nub colors) == 1 && isStraight cards
+  isSameColorStraight = hasSameColor cards && isStraight cards
+
+drawKfromN :: Eq a => [a] -> Int -> [[a]]
+drawKfromN xs k = nub $ mapM (const xs) [1 .. k]
+
+isFullHouse :: TichuCards -> Bool
+isFullHouse cards
+  | length cards /= 5 = False
+  | containsSpecialCardsNoPhoenix cards = False
+  | otherwise =
+      let triples = drawKfromN (sort cards) 3
+       in any (\triple -> isThreeOfAKind triple && isPair (cards \\ triple)) triples
 
 type TichuCards = [TichuCard]
 
