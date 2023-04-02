@@ -4,10 +4,10 @@ module Tichu where
 
 import Control.Monad (forM)
 import Data.Array.IO (IOArray, newListArray, readArray, writeArray)
-import Data.List (elemIndex, nub, nubBy, sort, (\\))
+import Data.List (elemIndex, nub, nubBy, sort, tails, (\\))
 import Data.Map (Map)
 import Data.Map qualified as Map
-import Data.Maybe (fromJust)
+import Data.Maybe (fromJust, mapMaybe)
 import System.Random (randomRIO)
 
 setEmpty :: Map k [a] -> Map k [a]
@@ -132,13 +132,12 @@ isNstraight n cards
   isStraight' cards'
     | containsSpecialCardsNoPhoenix cards' = False
     | otherwise =
-        let cardsNonPhoenix = nonPhoenixCards cards'
-            values = map (fromJust . value) cardsNonPhoenix
+        let values = mapMaybe value cards'
             minVal = minimum values
             maxVal = maximum values
             values' = [minVal .. maxVal]
             values'' = values' \\ values
-         in length values'' <= 1
+         in length values'' <= 1 && nub values == values
 
 isBomb :: TichuCards -> Bool
 isBomb cards
@@ -147,8 +146,10 @@ isBomb cards
  where
   isSameColorStraight = hasSameColor cards && isStraight cards
 
-drawKfromN :: Eq a => [a] -> Int -> [[a]]
-drawKfromN xs k = nub $ mapM (const xs) [1 .. k]
+drawKfromN :: [a] -> Int -> [[a]]
+drawKfromN _ 0 = [[]]
+drawKfromN xs n =
+  [y : ys | y : xs' <- tails xs, ys <- drawKfromN xs' (n - 1)]
 
 isFullHouse :: TichuCards -> Bool
 isFullHouse cards
@@ -173,6 +174,49 @@ type PlayerName = String
 type TeamName = String
 
 type Score = Int
+
+data TichuCombination
+  = SingleCard TichuCards
+  | Pair TichuCards Value
+  | ThreeOfAKind TichuCards Value
+  | Straight TichuCards Value
+  | FullHouse TichuCards Value
+  | Stairs TichuCards Value
+  | Bomb TichuCards Value
+  deriving (Show, Eq)
+
+possibleCombinations :: TichuCards -> [TichuCombination]
+possibleCombinations cards = concatMap combinationsLengthK [1 .. length cards]
+ where
+  combinationsLengthK :: Int -> [TichuCombination]
+  combinationsLengthK k =
+    let combinations = drawKfromN cards k
+     in mapMaybe toTichuCombination combinations
+
+toTichuCombination :: TichuCards -> Maybe TichuCombination
+toTichuCombination cards
+  | isSigleCard cards = Just $ SingleCard cards
+  | isPair cards = Just $ Pair cards maximumValue
+  | isFullHouse cards = Just $ FullHouse cards maximumValueFullHouse
+  | isStraight cards = Just $ Straight cards maximumValueStraight
+  | isBomb cards = Just $ Bomb cards maximumValue
+  | isStairs cards = Just $ Stairs cards maximumValue
+  | isThreeOfAKind cards = Just $ ThreeOfAKind cards maximumValue
+  | otherwise = Nothing
+ where
+  maximumValue :: Value
+  maximumValue = maximum $ mapMaybe value cards
+  maximumValueStraight :: Value
+  maximumValueStraight
+    | Phoenix `notElem` cards = maximumValue
+    | otherwise -- FIXME: Phoenix as the lowerst card not possible
+      =
+        let cardsNonPhoenix = nonPhoenixCards cards
+         in if isStraight cardsNonPhoenix then succ maximumValue else maximumValue
+  maximumValueFullHouse :: Value
+  maximumValueFullHouse =
+    let triple = filter isThreeOfAKind (drawKfromN cards 3)
+     in maximum $ mapMaybe ((value . head) . filter (/= Phoenix)) triple
 
 data GameConfig = GameConfig
   { sittingOrder :: [PlayerName]
@@ -199,7 +243,7 @@ data GameRound
   | Counting
   deriving (Show, Eq)
 
-data PlayerAction = Play TichuCards | Pass | Tichu | GrandTichu
+data PlayerAction = Play TichuCombination | Pass | Tichu | GrandTichu
   deriving (Show, Eq)
 
 data Game = Game
@@ -274,7 +318,7 @@ resetGame game = do
 
 currentDealerIndex :: Game -> Int
 currentDealerIndex game =
-  fromJust $ elemIndex (currentDealer game) (playerNames' game)
+  fromJust $ elemIndex (currentDealer game) (playerNames' game) -- TODO: handle Nothing
 
 nextDealerIndex :: Game -> Int
 nextDealerIndex game =
