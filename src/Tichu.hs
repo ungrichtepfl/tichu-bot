@@ -1,14 +1,16 @@
 {-# LANGUAGE ImportQualifiedPost #-}
+{-# LANGUAGE LambdaCase #-}
 
 module Tichu where
 
 import Control.Monad (forM)
 import Data.Array.IO (IOArray, newListArray, readArray, writeArray)
-import Data.List (elemIndex, nub, nubBy, sort, tails, (\\))
+import Data.List (elemIndex, foldl', nub, nubBy, sort, tails, (\\))
 import Data.Map (Map)
 import Data.Map qualified as Map
 import Data.Maybe (fromJust, mapMaybe)
 import System.Random (randomRIO)
+import Text.Read (readMaybe)
 
 setEmpty :: Map k [a] -> Map k [a]
 setEmpty = Map.map (const [])
@@ -44,13 +46,13 @@ data Value
   | Queen
   | King
   | Ace
-  deriving (Show, Eq, Ord, Enum, Bounded)
+  deriving (Show, Eq, Ord, Enum, Bounded, Read)
 
 data Color = Spades | Hearts | Diamonds | Clubs
-  deriving (Show, Eq, Enum)
+  deriving (Show, Eq, Enum, Read)
 
 data TichuCard = PokerCard (Value, Color) | Dragon | Phoenix | Mahjong | Dog
-  deriving (Show, Eq)
+  deriving (Show, Eq, Read)
 
 instance Ord TichuCard where
   compare (PokerCard (v1, _)) (PokerCard (v2, _)) = compare v1 v2
@@ -89,8 +91,8 @@ noNothings = all (`notElem` Nothing)
 
 isNOfAKind :: Int -> TichuCards -> Bool
 isNOfAKind 1 [_] = True
-isNOfAKind _ [Phoenix] = False
 isNOfAKind nb cards
+  | containsSpecialCardsNoPhoenix cards = False
   | Phoenix `elem` cards =
       let cards' = nonPhoenixCards cards
        in check cards' (nb - 1)
@@ -121,11 +123,11 @@ hasSameColor cards =
    in noNothings colors && length (nub colors) == 1
 
 isStraight :: TichuCards -> Bool
-isStraight = isNstraight 5
+isStraight tichuCards = any (isNstraight tichuCards) [5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
 
-isNstraight :: Int -> TichuCards -> Bool
-isNstraight n cards
-  | length cards < n = False
+isNstraight :: TichuCards -> Int -> Bool
+isNstraight cards n
+  | length cards /= n = False
   | Mahjong `elem` cards && Just Two `elem` map value cards = isStraight' $ filter (/= Mahjong) cards
   | otherwise = isStraight' cards
  where
@@ -165,7 +167,7 @@ isStairs cards
   | containsSpecialCardsNoPhoenix cards = False
   | otherwise =
       let uniqueValues = nubBy (\c1 c2 -> value c1 == value c2) (nonPhoenixCards cards)
-       in length cards == 2 * length uniqueValues && isNstraight (length uniqueValues) uniqueValues
+       in length cards == 2 * length uniqueValues && isNstraight uniqueValues (length uniqueValues)
 
 type TichuCards = [TichuCard]
 
@@ -183,7 +185,16 @@ data TichuCombination
   | FullHouse TichuCards Value
   | Stairs TichuCards Value
   | Bomb TichuCards Value
-  deriving (Show, Eq)
+  deriving (Show, Eq, Read)
+
+cardsFromCombination :: TichuCombination -> TichuCards
+cardsFromCombination (SingleCard cards) = cards
+cardsFromCombination (Pair cards _) = cards
+cardsFromCombination (ThreeOfAKind cards _) = cards
+cardsFromCombination (Straight cards _) = cards
+cardsFromCombination (FullHouse cards _) = cards
+cardsFromCombination (Stairs cards _) = cards
+cardsFromCombination (Bomb cards _) = cards
 
 possibleCombinations :: TichuCards -> [TichuCombination]
 possibleCombinations cards = concatMap combinationsLengthK [1 .. length cards]
@@ -195,15 +206,16 @@ possibleCombinations cards = concatMap combinationsLengthK [1 .. length cards]
 
 toTichuCombination :: TichuCards -> Maybe TichuCombination
 toTichuCombination cards
-  | isSigleCard cards = Just $ SingleCard cards
-  | isPair cards = Just $ Pair cards maximumValue
-  | isFullHouse cards = Just $ FullHouse cards maximumValueFullHouse
-  | isStraight cards = Just $ Straight cards maximumValueStraight
-  | isBomb cards = Just $ Bomb cards maximumValue
-  | isStairs cards = Just $ Stairs cards maximumValue
-  | isThreeOfAKind cards = Just $ ThreeOfAKind cards maximumValue
+  | isSigleCard cards = Just $ SingleCard sortedCards
+  | isPair cards = Just $ Pair sortedCards maximumValue
+  | isFullHouse cards = Just $ FullHouse sortedCards maximumValueFullHouse
+  | isStraight cards = Just $ Straight sortedCards maximumValueStraight
+  | isBomb cards = Just $ Bomb sortedCards maximumValue
+  | isStairs cards = Just $ Stairs sortedCards maximumValue
+  | isThreeOfAKind cards = Just $ ThreeOfAKind sortedCards maximumValue
   | otherwise = Nothing
  where
+  sortedCards = sort cards
   maximumValue :: Value
   maximumValue = maximum $ mapMaybe value cards
   maximumValueStraight :: Value
@@ -225,35 +237,39 @@ data GameConfig = GameConfig
   }
   deriving (Show, Eq)
 
-class Playable p where
-  play :: p -> IO PlayerAction
-
-class Distributable d where
-  distribute :: d -> IO (Map PlayerName d)
-
 type Distribution = Map PlayerName (Map PlayerName TichuCard)
+
+nextInOrder :: Game -> PlayerName -> PlayerName
+nextInOrder game pn =
+  let pns = sittingOrder $ gameConfig game
+   in pns !! (fromJust (elemIndex pn pns) + 1 `mod` length pns)
 
 emptyDistribution :: [PlayerName] -> Distribution
 emptyDistribution pns = Map.fromList [(pn, Map.empty) | pn <- pns]
 
-data GameRound
-  = Dealing TichuCards
-  | Distributing Distribution
-  | Playing [PlayerAction]
-  | Counting
+data GamePhase
+  = Starting
+  | Dealing TichuCards
+  | Distributing
+  | Playing PlayerName
+  | Scoring
+  | NextRound
+  | Finished
   deriving (Show, Eq)
 
-data PlayerAction = Play TichuCombination | Pass | Tichu | GrandTichu
-  deriving (Show, Eq)
+data PlayerAction = Start | Distribute (Map PlayerName TichuCard) | Play TichuCombination | Pass | Tichu | GrandTichu | Stop
+  deriving (Show, Eq, Read)
 
 data Game = Game
   { gameConfig :: GameConfig
   , hands :: Map PlayerName TichuCards
   , tricks :: Map PlayerName TichuCards
-  , tichuRound :: GameRound
+  , board :: [TichuCards]
+  , gamePhase :: GamePhase
   , tichus :: Map PlayerName Bool
   , scores :: Map TeamName Score
   , currentDealer :: PlayerName
+  , stop :: Bool
   }
   deriving (Show, Eq)
 
@@ -284,30 +300,39 @@ initialTichus names = Map.fromList [(n, False) | n <- names]
 initialScores :: [TeamName] -> Map TeamName Score
 initialScores names = Map.fromList [(n, 0) | n <- names]
 
-newGame :: GameConfig -> IO Game
-newGame config = do
+newGame :: GameConfig -> Game
+newGame config =
+  Game
+    { gameConfig = config
+    , hands = initialHands $ playerNames config
+    , tricks = initialTricks $ playerNames config
+    , board = []
+    , gamePhase = Starting
+    , tichus = initialTichus $ playerNames config
+    , scores = initialScores $ teamNames config
+    , currentDealer = head $ playerNames config
+    , stop = False
+    }
+
+startGame :: Game -> IO Game
+startGame game = do
   initialDeck <- shuffledDeck
-  shuffledPlayers <- shuffle $ playerNames config
+  shuffledPlayers <- shuffle $ playerNames' game
   let randomPlayer = head shuffledPlayers
   return $
-    Game
-      { gameConfig = config
-      , hands = initialHands $ playerNames config
-      , tricks = initialTricks $ playerNames config
-      , tichuRound = Dealing initialDeck
-      , tichus = initialTichus $ playerNames config
-      , scores = initialScores $ teamNames config
+    game
+      { gamePhase = Dealing initialDeck
       , currentDealer = randomPlayer
       }
 
-resetGame :: Game -> IO Game
-resetGame game = do
+nextRound :: Game -> IO Game
+nextRound game = do
   initialDeck <- shuffledDeck
   return $
     game
       { hands = setEmpty $ hands game
       , tricks = setEmpty $ tricks game
-      , tichuRound = Dealing initialDeck
+      , gamePhase = Dealing initialDeck
       , tichus = setFalse $ tichus game
       , currentDealer = newDealer
       }
@@ -342,13 +367,13 @@ dealXCards' ::
   Map PlayerName TichuCards ->
   (Map PlayerName TichuCards, TichuCards)
 dealXCards' pns deck playerHands =
-  foldl (\(hands', deck') pn -> dealCard pn deck' hands') (playerHands, deck) pns
+  foldl' (\(hands', deck') pn -> dealCard pn deck' hands') (playerHands, deck) pns
 
 dealXCards :: Game -> Int -> Game
-dealXCards game nb = case tichuRound game of
+dealXCards game nb = case gamePhase game of
   Dealing deck ->
     let (hands', deck') = dealXCards' dealPlayerOrder deck (hands game)
-     in game{hands = hands', tichuRound = Dealing deck'}
+     in game{hands = hands', gamePhase = Dealing deck'}
   r -> error $ "Wrong round: " ++ show r
  where
   dealPlayerOrder =
@@ -358,7 +383,7 @@ dealXCards game nb = case tichuRound game of
      in concat $ replicate nb reorderedPlayerList
 
 dealAllCards :: Game -> Game
-dealAllCards game = case tichuRound game of
+dealAllCards game = case gamePhase game of
   Dealing deck ->
     let nb =
           if length deck `mod` length (playerNames' game) == 0
@@ -371,19 +396,135 @@ dealAllCards game = case tichuRound game of
                   ++ show (length (playerNames' game))
                   ++ " players in game."
         game' = dealXCards game nb
-     in game'{tichuRound = Distributing $ emptyDistribution (playerNames' game')}
+     in game'{gamePhase = Distributing}
   r -> error $ "Wrong round: " ++ show r
 
--- TODO: implement real game logic
+-- From https://hackage.haskell.org/package/monad-loops-0.4.3/docs/src/Control-Monad-Loops.html
+iterateUntilM :: (Monad m) => (a -> Bool) -> (a -> m a) -> a -> m a
+iterateUntilM p f v
+  | p v = return v
+  | otherwise = f v >>= iterateUntilM p f
+
+getGameConfig :: IO GameConfig
+getGameConfig = do
+  players <- getPlayers
+  teamNames <- getTeamNames
+  GameConfig players teamNames <$> getMaxScore
+
+getMaxScore :: IO Int
+getMaxScore = do
+  putStrLn "Enter max score:"
+  userInput <- readMaybe <$> getLine
+  case userInput of
+    Just x -> return x
+    Nothing -> putStrLn "Wrong input should be a positive number." >> getMaxScore
+
+getTeamNames :: IO [TeamName]
+getTeamNames = do
+  putStrLn "Enter team names, separated by spaces:"
+  teamNames <- words <$> getLine
+  if length teamNames == 2
+    then return teamNames
+    else putStrLn "Wrong number of teams, should be 2." >> getTeamNames
+
+getPlayers :: IO [PlayerName]
+getPlayers = do
+  putStrLn "Enter player names, separated by spaces:"
+  userInput <- words <$> getLine
+  if length userInput == 4
+    then return userInput
+    else putStrLn "Wrong number of players, should be 4." >> getPlayers
+
+possiblePlayerActions :: Game -> PlayerName -> [PlayerAction]
+possiblePlayerActions game pn =
+  let defaultActions = [Stop, Pass]
+   in case gamePhase game of
+        Playing playerPlaying ->
+          let combinations = possibleCombinations $ hands game Map.! pn
+           in defaultActions
+                ++ if pn == playerPlaying
+                  then map Play combinations
+                  else
+                    map Play $
+                      filter
+                        ( \case
+                            Bomb _ _ -> True
+                            _ -> False
+                        )
+                        combinations
+        Dealing _ -> defaultActions
+        Distributing -> defaultActions
+        _ -> []
+
+askForPlayerAction :: [PlayerAction] -> IO PlayerAction
+askForPlayerAction possibleActions = do
+  putStrLn "Possible actions:"
+  -- TODO: Let player chose by number instead of name
+  mapM_ print possibleActions
+  putStrLn "Enter action:"
+  action <- (\x -> if x == "" then Pass else read x) <$> getLine
+  if action `elem` possibleActions
+    then return action
+    else
+      putStrLn "Invalid action"
+        >> askForPlayerAction possibleActions
+
+getPlayerActions :: Game -> PlayerName -> IO (Map PlayerName PlayerAction)
+getPlayerActions game playerPlaying = do
+  let otherPlayers = filter (/= playerPlaying) $ playerNames' game
+  playerAction <- askForPlayerAction $ possiblePlayerActions game playerPlaying
+  otherPlayerActions <- mapM (askForPlayerAction . possiblePlayerActions game) otherPlayers
+  return $ Map.fromList $ (playerPlaying, playerAction) : zip otherPlayers otherPlayerActions
+
+update :: Game -> IO Game
+update game =
+  case gamePhase game of
+    Starting -> startGame game
+    Dealing _ -> return $ dealAllCards game
+    Distributing -> distribute game
+    Playing playerPlaying -> play game playerPlaying
+    NextRound -> nextRound game
+    Scoring -> return $ score game
+    Finished -> finish game
+
+applyPlayerAction :: Game -> PlayerName -> PlayerAction -> Game
+applyPlayerAction game playerPlaying playerAction =
+  -- TODO: Finish implementation
+  case playerAction of
+    Play combination ->
+      let playerHand = hands game Map.! playerPlaying
+          cards = cardsFromCombination combination
+          newPlayerHand = playerHand \\ cards
+          newHands = Map.insert playerPlaying newPlayerHand $ hands game
+       in game{hands = newHands, board = cards : board game}
+    Stop -> game{stop = True}
+    _ -> game
+
+play :: Game -> PlayerName -> IO Game
+play game playerPlaying = do
+  -- TODO: Finish implementation
+  playerActions <- getPlayerActions game playerPlaying
+  let newPlayerPlaying = nextInOrder game playerPlaying
+  let game' = foldl' (\g (pn, pa) -> applyPlayerAction g pn pa) game $ Map.toList playerActions
+  return game'{gamePhase = Playing newPlayerPlaying}
+
+distribute :: Game -> IO Game
+distribute game = return game{gamePhase = Playing $ startingPlayer $ hands game} -- TODO: Implement
+
+startingPlayer :: Map PlayerName TichuCards -> PlayerName
+startingPlayer = head . Map.keys . Map.filter (elem Mahjong)
+
+display :: Game -> IO ()
+display = print -- TODO: Implement
+
+score :: Game -> Game
+score game = game -- TODO: Implement
+
+finish :: Game -> IO Game
+finish game = return game -- TODO: Implement
+
+run :: Game -> IO Game
+run game = display game >> update game
+
 playTichu :: IO ()
-playTichu = do
-  game <- newGame $ GameConfig ["Alice", "Bob", "Charlie", "David"] ["Team 1", "Team 2"] 1000
-  print game
-  putStrLn "--------------------------------------------"
-  let game' = dealAllCards game
-  print game'
-  putStrLn "--------------------------------------------"
-  game'' <- resetGame game'
-  putStrLn "--------------------------------------------"
-  print game''
-  putStrLn "--------------------------------------------"
+playTichu = getGameConfig >>= return . newGame >>= iterateUntilM stop run >>= display
