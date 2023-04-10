@@ -1,16 +1,40 @@
 {-# LANGUAGE ImportQualifiedPost #-}
 {-# LANGUAGE LambdaCase #-}
 
+-- Useful debug infos:
+-- Enabling assertions: https://stackoverflow.com/questions/45777703/turning-on-assertions-while-compiling-with-haskells-stack-build-system
+--  i.e. stack clean && stack build --fast && stack run
+-- Profil build: https://stackoverflow.com/questions/32123475/profiling-builds-with-stack
+--  i.e. stack run --profile -- +RTS -xc
+
 module Tichu where
 
+import Control.Exception (assert)
 import Control.Monad (forM)
 import Data.Array.IO (IOArray, newListArray, readArray, writeArray)
 import Data.List (elemIndex, foldl', nub, nubBy, sort, tails, (\\))
 import Data.Map (Map)
 import Data.Map qualified as Map
-import Data.Maybe (fromJust, mapMaybe)
+import Data.Maybe (fromJust, isJust, mapMaybe)
+import System.Exit (exitSuccess)
 import System.Random (randomRIO)
 import Text.Read (readMaybe)
+
+----- CONSTANTS -------
+
+quitSymbol :: String
+quitSymbol = "q"
+
+defaultPlayerNames :: [PlayerName]
+defaultPlayerNames = ["P1", "P2", "P3", "P4"]
+
+defaultTeamNames :: [TeamName]
+defaultTeamNames = ["Team 1", "Team 2"]
+
+defaultScoreLimit :: Int
+defaultScoreLimit = 1000
+
+-----------------------
 
 setEmpty :: Map k [a] -> Map k [a]
 setEmpty = Map.map (const [])
@@ -52,7 +76,22 @@ data Color = Spades | Hearts | Diamonds | Clubs
   deriving (Show, Eq, Enum, Read)
 
 data TichuCard = PokerCard (Value, Color) | Dragon | Phoenix | Mahjong | Dog
-  deriving (Show, Eq, Read)
+  deriving (Eq, Read)
+
+instance Show TichuCard where
+  show (PokerCard (v, c)) = [pokerCardUnicodeMatrix !! fromEnum c !! fromEnum v]
+  show Dragon = "Dragon"
+  show Phoenix = "Phoenix"
+  show Mahjong = "Mahjong"
+  show Dog = "Dog"
+
+pokerCardUnicodeMatrix :: [[Char]]
+pokerCardUnicodeMatrix =
+  [ ['\x1F0A2', '\x1F0A3', '\x1F0A4', '\x1F0A5', '\x1F0A6', '\x1F0A7', '\x1F0A8', '\x1F0A9', '\x1F0AA', '\x1F0AB', '\x1F0AD', '\x1F0AE', '\x1F0A1']
+  , ['\x1F0B2', '\x1F0B3', '\x1F0B4', '\x1F0B5', '\x1F0B6', '\x1F0B7', '\x1F0B8', '\x1F0B9', '\x1F0BA', '\x1F0BB', '\x1F0BD', '\x1F0BE', '\x1F0B1']
+  , ['\x1F0C2', '\x1F0C3', '\x1F0C4', '\x1F0C5', '\x1F0C6', '\x1F0C7', '\x1F0C8', '\x1F0C9', '\x1F0CA', '\x1F0CB', '\x1F0CD', '\x1F0CE', '\x1F0C1']
+  , ['\x1F0D2', '\x1F0D3', '\x1F0D4', '\x1F0D5', '\x1F0D6', '\x1F0D7', '\x1F0D8', '\x1F0D9', '\x1F0DA', '\x1F0DB', '\x1F0DD', '\x1F0DE', '\x1F0D1']
+  ]
 
 instance Ord TichuCard where
   compare (PokerCard (v1, _)) (PokerCard (v2, _)) = compare v1 v2
@@ -221,6 +260,7 @@ toTichuCombination cards
   maximumValueStraight :: Value
   maximumValueStraight
     | Phoenix `notElem` cards = maximumValue
+    | maximumValue == Ace = Ace
     | otherwise -- FIXME: Phoenix as the lowerst card not possible
       =
         let cardsNonPhoenix = nonPhoenixCards cards
@@ -242,7 +282,9 @@ type Distribution = Map PlayerName (Map PlayerName TichuCard)
 nextInOrder :: Game -> PlayerName -> PlayerName
 nextInOrder game pn =
   let pns = sittingOrder $ gameConfig game
-   in pns !! (fromJust (elemIndex pn pns) + 1 `mod` length pns)
+      index = fromJust (assert (pn `elem` pns) elemIndex pn pns)
+      newIndex = (index + 1) `mod` length pns
+   in pns !! assert (newIndex < length pns) newIndex
 
 emptyDistribution :: [PlayerName] -> Distribution
 emptyDistribution pns = Map.fromList [(pn, Map.empty) | pn <- pns]
@@ -334,22 +376,13 @@ nextRound game = do
       , tricks = setEmpty $ tricks game
       , gamePhase = Dealing initialDeck
       , tichus = setFalse $ tichus game
-      , currentDealer = newDealer
+      , currentDealer = nextInOrder game (currentDealer game)
       }
- where
-  newDealer =
-    let playerList = playerNames' game
-     in playerList !! nextDealerIndex game
 
 currentDealerIndex :: Game -> Int
 currentDealerIndex game =
-  fromJust $ elemIndex (currentDealer game) (playerNames' game) -- TODO: handle Nothing
-
-nextDealerIndex :: Game -> Int
-nextDealerIndex game =
-  if currentDealerIndex game == length (playerNames' game) - 1
-    then 0
-    else currentDealerIndex game + 1
+  let index = elemIndex (currentDealer game) (sittingOrder $ gameConfig game)
+   in assert (isJust index) fromJust index
 
 dealCard ::
   PlayerName ->
@@ -408,32 +441,72 @@ iterateUntilM p f v
 getGameConfig :: IO GameConfig
 getGameConfig = do
   players <- getPlayers
-  teamNames <- getTeamNames
-  GameConfig players teamNames <$> getMaxScore
-
-getMaxScore :: IO Int
-getMaxScore = do
-  putStrLn "Enter max score:"
-  userInput <- readMaybe <$> getLine
-  case userInput of
-    Just x -> return x
-    Nothing -> putStrLn "Wrong input should be a positive number." >> getMaxScore
-
-getTeamNames :: IO [TeamName]
-getTeamNames = do
-  putStrLn "Enter team names, separated by spaces:"
-  teamNames <- words <$> getLine
-  if length teamNames == 2
-    then return teamNames
-    else putStrLn "Wrong number of teams, should be 2." >> getTeamNames
+  teams <- getTeamNames
+  GameConfig players teams <$> getMaxScore
 
 getPlayers :: IO [PlayerName]
-getPlayers = do
-  putStrLn "Enter player names, separated by spaces:"
-  userInput <- words <$> getLine
-  if length userInput == 4
-    then return userInput
-    else putStrLn "Wrong number of players, should be 4." >> getPlayers
+getPlayers =
+  putStrLn ("Enter player names separated by spaces (default: " ++ show defaultPlayerNames ++ "):")
+    >> getLine
+    >>= processInput
+ where
+  processInput :: String -> IO [PlayerName]
+  processInput rawInput
+    | rawInput == quitSymbol = exitSuccess
+    | otherwise =
+        let
+          players = words rawInput
+         in
+          case players of
+            [] -> echoPlayers defaultPlayerNames
+            [_, _, _, _] ->
+              if nub players /= players
+                then putStrLn "Player names must be unique." >> getPlayers
+                else echoPlayers players
+            _ -> putStrLn "Wrong number of players, should be 4." >> getPlayers
+  echoPlayers :: [PlayerName] -> IO [PlayerName]
+  echoPlayers pn = putStrLn ("Player names chosen: " ++ show pn) >> return pn
+
+getTeamNames :: IO [TeamName]
+getTeamNames =
+  putStrLn ("Enter team names separated by spaces  (default: " ++ show defaultTeamNames ++ "):")
+    >> getLine
+    >>= processInput
+ where
+  processInput :: String -> IO [TeamName]
+  processInput rawInput
+    | rawInput == quitSymbol = exitSuccess
+    | otherwise =
+        let
+          teams = words rawInput
+         in
+          case teams of
+            [] -> echoTeams defaultTeamNames
+            [_, _] ->
+              if nub teams /= teams
+                then putStrLn "Team names must be unique." >> getTeamNames
+                else echoTeams teams
+            _ -> putStrLn "Wrong number of teams, should be 2." >> getTeamNames
+  echoTeams :: [TeamName] -> IO [TeamName]
+  echoTeams tn = putStrLn ("Team names chosen: " ++ show tn) >> return tn
+
+getMaxScore :: IO Int
+getMaxScore =
+  putStrLn ("Enter max score (default: " ++ show defaultScoreLimit ++ "):")
+    >> getLine
+    >>= processInput
+ where
+  processInput :: String -> IO Int
+  processInput rawInput
+    | rawInput == "" = echoScore defaultScoreLimit
+    | rawInput == quitSymbol = exitSuccess
+    | otherwise =
+        let userInput = readMaybe rawInput
+         in case userInput of
+              Just x -> echoScore x
+              Nothing -> putStrLn "Wrong input should be a positive number." >> getMaxScore
+  echoScore :: Int -> IO Int
+  echoScore sl = putStrLn ("Score limit chosen: " ++ show sl) >> return sl
 
 possiblePlayerActions :: Game -> PlayerName -> [PlayerAction]
 possiblePlayerActions game pn =
@@ -505,7 +578,7 @@ play game playerPlaying = do
   -- TODO: Finish implementation
   playerActions <- getPlayerActions game playerPlaying
   let newPlayerPlaying = nextInOrder game playerPlaying
-  let game' = foldl' (\g (pn, pa) -> applyPlayerAction g pn pa) game $ Map.toList playerActions
+  let game' = foldl' (\g (_, pa) -> applyPlayerAction g playerPlaying pa) game $ Map.toList playerActions
   return game'{gamePhase = Playing newPlayerPlaying}
 
 distribute :: Game -> IO Game
@@ -515,7 +588,12 @@ startingPlayer :: Map PlayerName TichuCards -> PlayerName
 startingPlayer = head . Map.keys . Map.filter (elem Mahjong)
 
 display :: Game -> IO ()
-display = print -- TODO: Implement
+display game =
+  putStrLn ("Game phase: " ++ show (gamePhase game))
+    >> putStrLn ("Board: " ++ show (board game))
+    >> putStrLn ("Hands: " ++ show (hands game))
+    >> putStrLn ("Score: " ++ show (score game))
+    >> putStrLn ""
 
 score :: Game -> Game
 score game = game -- TODO: Implement
