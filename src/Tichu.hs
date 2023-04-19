@@ -10,12 +10,12 @@
 module Tichu where
 
 import Control.Exception (assert)
-import Control.Monad (forM)
+import Control.Monad (foldM_, forM)
 import Data.Array.IO (IOArray, newListArray, readArray, writeArray)
-import Data.List (elemIndex, foldl', nub, nubBy, sort, tails, (\\))
+import Data.List (elemIndex, foldl', nub, nubBy, sort, sortBy, tails, (\\))
 import Data.Map (Map)
 import Data.Map qualified as Map
-import Data.Maybe (fromJust, isJust, mapMaybe)
+import Data.Maybe (fromJust, isJust, isNothing, mapMaybe)
 import System.Exit (exitSuccess)
 import System.Random (randomRIO)
 import Text.Read (readMaybe)
@@ -55,6 +55,8 @@ shuffle xs = do
   n = length xs
   newArray' :: Int -> [a] -> IO (IOArray Int a)
   newArray' n' = newListArray (1, n')
+
+type Passes = Int
 
 data Value
   = Two
@@ -104,9 +106,9 @@ instance Ord TichuCard where
   compare Phoenix _ = GT
   compare _ Phoenix = LT
   compare Dog _ = LT -- Dog needs to be before Mahjong, is lower than any card
-  compare _ Dog = LT
+  compare _ Dog = GT
   compare Mahjong _ = LT
-  compare _ Mahjong = LT
+  compare _ Mahjong = GT
 
 color :: TichuCard -> Maybe Color
 color (PokerCard (_, c)) = Just c
@@ -216,6 +218,8 @@ type TeamName = String
 
 type Score = Int
 
+type Amount = Int
+
 data TichuCombination
   = SingleCard TichuCards
   | Pair TichuCards Value
@@ -234,6 +238,17 @@ cardsFromCombination (Straight cards _) = cards
 cardsFromCombination (FullHouse cards _) = cards
 cardsFromCombination (Stairs cards _) = cards
 cardsFromCombination (Bomb cards _) = cards
+
+canBePlayedOnTop :: TichuCombination -> TichuCombination -> Bool
+canBePlayedOnTop (SingleCard _) (SingleCard [Phoenix]) = error "Value of Phoenix is not known."
+canBePlayedOnTop (SingleCard [card]) (SingleCard [cardOnBoard]) = card > cardOnBoard
+canBePlayedOnTop (Pair _ val) (Pair _ valOnBoard) = val > valOnBoard
+canBePlayedOnTop (ThreeOfAKind _ val) (ThreeOfAKind _ valOnBoard) = val > valOnBoard
+canBePlayedOnTop (Straight cards val) (Straight cardsOnBoard valOnBoard) = val > valOnBoard && length cards == length cardsOnBoard
+canBePlayedOnTop (FullHouse _ val) (FullHouse _ valOnBoard) = val > valOnBoard
+canBePlayedOnTop (Stairs cards val) (Stairs cardsOnBoard valOnBoard) = val > valOnBoard && length cards == length cardsOnBoard
+canBePlayedOnTop (Bomb cards val) (Bomb cardsOnBoard valOnBoard) = val > valOnBoard && length cards >= length cardsOnBoard
+canBePlayedOnTop _ _ = False
 
 possibleCombinations :: TichuCards -> [TichuCombination]
 possibleCombinations cards = concatMap combinationsLengthK [1 .. length cards]
@@ -293,20 +308,36 @@ data GamePhase
   = Starting
   | Dealing TichuCards
   | Distributing
-  | Playing PlayerName
+  | Playing PlayerName Passes
   | Scoring
   | NextRound
   | Finished
-  deriving (Show, Eq)
+  deriving (Eq)
 
-data PlayerAction = Start | Distribute (Map PlayerName TichuCard) | Play TichuCombination | Pass | Tichu | GrandTichu | Stop
+instance Show GamePhase where
+  show Starting = "Starting"
+  show (Dealing _) = "Dealing "
+  show Distributing = "Distributing"
+  show (Playing pn passes) = "Players turn: " ++ show pn ++ ". Passes before: " ++ show passes
+  show Scoring = "Scoring"
+  show NextRound = "NextRound"
+  show Finished = "Finished"
+
+data PlayerAction
+  = Start
+  | Distribute (Map PlayerName TichuCard)
+  | Play TichuCombination
+  | Pass
+  | Tichu
+  | GrandTichu
+  | Stop
   deriving (Show, Eq, Read)
 
 data Game = Game
   { gameConfig :: GameConfig
   , hands :: Map PlayerName TichuCards
   , tricks :: Map PlayerName TichuCards
-  , board :: [TichuCards]
+  , board :: [TichuCombination]
   , gamePhase :: GamePhase
   , tichus :: Map PlayerName Bool
   , scores :: Map TeamName Score
@@ -406,7 +437,7 @@ dealXCards :: Game -> Int -> Game
 dealXCards game nb = case gamePhase game of
   Dealing deck ->
     let (hands', deck') = dealXCards' dealPlayerOrder deck (hands game)
-     in game{hands = hands', gamePhase = Dealing deck'}
+     in game{hands = Map.map sort hands', gamePhase = Dealing deck'}
   r -> error $ "Wrong round: " ++ show r
  where
   dealPlayerOrder =
@@ -429,7 +460,7 @@ dealAllCards game = case gamePhase game of
                   ++ show (length (playerNames' game))
                   ++ " players in game."
         game' = dealXCards game nb
-     in game'{gamePhase = Distributing}
+     in game'{gamePhase = Distributing, hands = Map.map sort (hands game')}
   r -> error $ "Wrong round: " ++ show r
 
 -- From https://hackage.haskell.org/package/monad-loops-0.4.3/docs/src/Control-Monad-Loops.html
@@ -446,7 +477,7 @@ getGameConfig = do
 
 getPlayers :: IO [PlayerName]
 getPlayers =
-  putStrLn ("Enter player names separated by spaces (default: " ++ show defaultPlayerNames ++ "):")
+  putStrLn ("Enter player names separated by spaces (default: " ++ show defaultPlayerNames ++ "). This will also be the sitting order:")
     >> getLine
     >>= processInput
  where
@@ -508,46 +539,126 @@ getMaxScore =
   echoScore :: Int -> IO Int
   echoScore sl = putStrLn ("Score limit chosen: " ++ show sl) >> return sl
 
+isValidForBoard :: [TichuCombination] -> TichuCombination -> Bool
+isValidForBoard [] _ = True
+isValidForBoard ((SingleCard [Phoenix]) : rest) combi = isValidForBoard rest combi
+isValidForBoard (boardCombi : _) combi = canBePlayedOnTop combi boardCombi
+
 possiblePlayerActions :: Game -> PlayerName -> [PlayerAction]
 possiblePlayerActions game pn =
-  let defaultActions = [Stop, Pass]
+  let defaultActions = [Stop]
    in case gamePhase game of
-        Playing playerPlaying ->
-          let combinations = possibleCombinations $ hands game Map.! pn
+        Playing playerPlaying _ ->
+          let combinations = filter (isValidForBoard (board game)) $ possibleCombinations $ hands game Map.! pn
            in defaultActions
                 ++ if pn == playerPlaying
-                  then map Play combinations
+                  then map Play combinations ++ pass
                   else
-                    map Play $
-                      filter
-                        ( \case
-                            Bomb _ _ -> True
-                            _ -> False
-                        )
-                        combinations
+                    map
+                      Play
+                      ( filter
+                          ( \case
+                              Bomb _ _ -> not $ null $ board game
+                              _ -> False
+                          )
+                          combinations
+                      )
+                      ++ [Pass]
         Dealing _ -> defaultActions
         Distributing -> defaultActions
         _ -> []
+ where
+  pass :: [PlayerAction]
+  pass = [Pass | not $ null $ board game]
 
 askForPlayerAction :: [PlayerAction] -> IO PlayerAction
 askForPlayerAction possibleActions = do
   putStrLn "Possible actions:"
-  -- TODO: Let player chose by number instead of name
-  mapM_ print possibleActions
-  putStrLn "Enter action:"
-  action <- (\x -> if x == "" then Pass else read x) <$> getLine
-  if action `elem` possibleActions
-    then return action
-    else
-      putStrLn "Invalid action"
-        >> askForPlayerAction possibleActions
+  foldM_ printWithNumber 0 possibleActions
+  putStrLn "Enter the number of the desired action:"
+  rawInput <- getLine
+  -- TODO: Refactor this mess:
+  if rawInput == ""
+    then
+      if Pass `elem` possibleActions
+        then return Pass
+        else
+          putStrLn "You are not allowed to pass!"
+            >> askForPlayerAction possibleActions
+    else do
+      let actionNumberMaybe = readMaybe rawInput :: Maybe Int
+      if isNothing actionNumberMaybe
+        then
+          putStrLn "You must enter a number!"
+            >> askForPlayerAction possibleActions
+        else do
+          let actionNumber = fromJust actionNumberMaybe
+          if actionNumber < 0 || actionNumber >= length possibleActions
+            then
+              putStrLn
+                ( "Invalid action number! Must be between 0 and "
+                    ++ show (length possibleActions - 1)
+                    ++ "."
+                )
+                >> askForPlayerAction possibleActions
+            else do
+              let action = possibleActions !! actionNumber
+              if action `elem` possibleActions
+                then
+                  if action == Stop
+                    then
+                      putStrLn
+                        "Some player wanted to exit. Thank you for playing."
+                        >> exitSuccess
+                    else return action
+                else
+                  putStrLn "Invalid action"
+                    >> askForPlayerAction possibleActions
+ where
+  printWithNumber :: Show a => Int -> a -> IO Int
+  printWithNumber i x = putStrLn (show i ++ ": " ++ show x) >> return (i + 1)
 
-getPlayerActions :: Game -> PlayerName -> IO (Map PlayerName PlayerAction)
-getPlayerActions game playerPlaying = do
-  let otherPlayers = filter (/= playerPlaying) $ playerNames' game
-  playerAction <- askForPlayerAction $ possiblePlayerActions game playerPlaying
-  otherPlayerActions <- mapM (askForPlayerAction . possiblePlayerActions game) otherPlayers
-  return $ Map.fromList $ (playerPlaying, playerAction) : zip otherPlayers otherPlayerActions
+getPlayerPlayingWithPasses :: Game -> (PlayerName, Passes)
+getPlayerPlayingWithPasses game = case gamePhase game of
+  Playing playerName numberOfPassesBefore -> (playerName, numberOfPassesBefore)
+  _ -> error "Wrong game phase should be Playing"
+
+getPlayerActions :: Game -> IO (Map PlayerName PlayerAction)
+getPlayerActions game = do
+  actions <- mapM ask reorderedPlayerList
+  return $ Map.fromList $ zip reorderedPlayerList actions
+ where
+  playerPlaying :: PlayerName
+  playerPlaying = fst $ getPlayerPlayingWithPasses game
+  -- TODO: Make ideomatic:
+  ask :: PlayerName -> IO PlayerAction
+  ask pn =
+    ( \p ->
+        if p == playerPlaying
+          then
+            putStrLn
+              ( "Player \""
+                  ++ playerPlaying
+                  ++ "\" is playing. What do you want to do?"
+              )
+              >> return p
+          else
+            putStrLn
+              ( "Player \""
+                  ++ playerPlaying
+                  ++ "\" is playing now. Does Player \""
+                  ++ p
+                  ++ "\" want to do something before?"
+              )
+              >> return p
+    )
+      pn
+      >>= askForPlayerAction . possiblePlayerActions game
+  reorderedPlayerList :: [PlayerName]
+  reorderedPlayerList =
+    let playerList = playerNames' game
+        i = fromJust $ elemIndex playerPlaying playerList
+     in drop i playerList ++ take i playerList
 
 update :: Game -> IO Game
 update game =
@@ -555,54 +666,82 @@ update game =
     Starting -> startGame game
     Dealing _ -> return $ dealAllCards game
     Distributing -> distribute game
-    Playing playerPlaying -> play game playerPlaying
+    Playing _ _ -> play game
     NextRound -> nextRound game
     Scoring -> return $ score game
     Finished -> finish game
 
 applyPlayerAction :: Game -> PlayerName -> PlayerAction -> Game
-applyPlayerAction game playerPlaying playerAction =
+applyPlayerAction game pn playerAction =
   -- TODO: Finish implementation
-  case playerAction of
-    Play combination ->
-      let playerHand = hands game Map.! playerPlaying
-          cards = cardsFromCombination combination
-          newPlayerHand = playerHand \\ cards
-          newHands = Map.insert playerPlaying newPlayerHand $ hands game
-       in game{hands = newHands, board = cards : board game}
-    Stop -> game{stop = True}
-    _ -> game
+  let (playerPlaying, passes) = getPlayerPlayingWithPasses game
+   in case playerAction of
+        Play combination ->
+          let playerHand = hands game Map.! playerPlaying
+              cards = cardsFromCombination combination
+              newPlayerHand = playerHand \\ cards
+              newHands = Map.insert playerPlaying newPlayerHand $ hands game
+           in game
+                { hands = newHands
+                , board =
+                    combination
+                      : board game
+                , gamePhase = Playing (nextInOrder game playerPlaying) 0
+                }
+        Pass ->
+          if pn == playerPlaying
+            then
+              if passes < 2
+                then game{gamePhase = Playing (nextInOrder game playerPlaying) (passes + 1)}
+                else
+                  let nextPlayer = nextInOrder game playerPlaying
+                      trickNextPlayer = tricks game Map.! nextPlayer
+                      newTrick = concatMap cardsFromCombination (board game) ++ trickNextPlayer
+                      newBoard = []
+                      newPasses = 0
+                      newGamePhase = Playing nextPlayer newPasses
+                   in game
+                        { gamePhase = newGamePhase
+                        , board = newBoard
+                        , tricks = Map.insert nextPlayer newTrick $ tricks game
+                        }
+            else game
+        Stop -> game{stop = True}
+        _ -> game
 
-play :: Game -> PlayerName -> IO Game
-play game playerPlaying = do
-  -- TODO: Finish implementation
-  playerActions <- getPlayerActions game playerPlaying
-  let newPlayerPlaying = nextInOrder game playerPlaying
-  let game' = foldl' (\g (_, pa) -> applyPlayerAction g playerPlaying pa) game $ Map.toList playerActions
-  return game'{gamePhase = Playing newPlayerPlaying}
+play :: Game -> IO Game
+play game = do
+  playerActions <- getPlayerActions game
+  return $ foldl' (\g (pn, pa) -> applyPlayerAction g pn pa) game $ sortBy ifPlayingLast (Map.toList playerActions)
+ where
+  ifPlayingLast :: (PlayerName, a) -> (PlayerName, a) -> Ordering
+  ifPlayingLast (pn', _) (pn'', _) = case gamePhase game of
+    Playing playerPlaying _ -> if pn' == playerPlaying then GT else if pn'' == playerPlaying then LT else EQ
+    _ -> EQ
 
 distribute :: Game -> IO Game
-distribute game = return game{gamePhase = Playing $ startingPlayer $ hands game} -- TODO: Implement
+distribute game = return game{gamePhase = Playing (startingPlayer $ hands game) 0} -- TODO: Implement
 
 startingPlayer :: Map PlayerName TichuCards -> PlayerName
 startingPlayer = head . Map.keys . Map.filter (elem Mahjong)
 
 display :: Game -> IO ()
 display game =
-  putStrLn ("Game phase: " ++ show (gamePhase game))
+  print (gamePhase game)
     >> putStrLn ("Board: " ++ show (board game))
-    >> putStrLn ("Hands: " ++ show (hands game))
-    >> putStrLn ("Score: " ++ show (score game))
+    >> putStrLn ("Hands: " ++ show (Map.toList $ hands game))
+    >> putStrLn ("Tricks: " ++ show (Map.toList $ tricks game))
+    >> putStrLn ("Score: " ++ show (Map.toList $ scores game))
     >> putStrLn ""
 
 score :: Game -> Game
 score game = game -- TODO: Implement
 
 finish :: Game -> IO Game
-finish game = return game -- TODO: Implement
+finish = return -- TODO: Implement
 
 run :: Game -> IO Game
 run game = display game >> update game
 
 playTichu :: IO ()
-playTichu = getGameConfig >>= return . newGame >>= iterateUntilM stop run >>= display
+playTichu = getGameConfig >>= iterateUntilM stop run . newGame >>= display
