@@ -41,17 +41,32 @@ maxCards = 14
 
 -----------------------
 
+outputPromptChar :: Char
+outputPromptChar = '>'
+
+inputPromptChar :: Char
+inputPromptChar = '$'
+
+inputPrompt :: String
+inputPrompt = inputPromptChar : " "
+
+outputPrompt :: Int -> String
+outputPrompt n = replicate n outputPromptChar ++ " "
+
 putStrLnQ :: String -> IO ()
-putStrLnQ = putStrLn . (">> " ++)
+putStrLnQ = putStrLn . (outputPrompt 2 ++)
 
 putStrLnA :: String -> IO ()
-putStrLnA = putStrLn . ("> " ++)
+putStrLnA = putStrLn . (outputPrompt 1 ++)
 
 putStrLnQI :: String -> IO ()
-putStrLnQI = putStrLn . (">>>> " ++)
+putStrLnQI = putStrLn . (outputPrompt 4 ++)
 
 putStrLnE :: String -> IO ()
 putStrLnE = putStrLn . ("ERROR: " ++)
+
+putStrLnD :: String -> IO ()
+putStrLnD = putStrLn . ("DEBUG: " ++)
 
 printQ :: Show a => a -> IO ()
 printQ = putStrLnQ . show
@@ -96,10 +111,13 @@ trim =
     f . f
 
 printPrompt :: IO ()
-printPrompt = putStr "$ "
+printPrompt = putStr inputPrompt
+
+getLineFlushed :: IO String
+getLineFlushed = hFlush stdout >> getLine
 
 getTrimmedLine :: IO String
-getTrimmedLine = printPrompt >> hFlush stdout >> (trim <$> getLine)
+getTrimmedLine = printPrompt >> (trim <$> getLineFlushed)
 
 printWithNumber :: Show a => Int -> a -> IO Int
 printWithNumber i x = putStrLnQI ("(" ++ show i ++ ") " ++ show x) >> return (i + 1)
@@ -397,6 +415,11 @@ data Game = Game
   }
   deriving (Show, Eq)
 
+showLastPlayedCards :: Game -> String
+showLastPlayedCards game = case board game of
+  [] -> "Empty board"
+  (lastComb : _) -> show $ cardsFromCombination lastComb
+
 playerNames :: GameConfig -> [PlayerName]
 playerNames = sittingOrder
 
@@ -622,8 +645,8 @@ possiblePlayerActions game pn =
   pass :: [PlayerAction]
   pass = [Pass | not $ null $ board game]
 
-askForPlayerAction :: [PlayerAction] -> IO PlayerAction
-askForPlayerAction possibleActions = do
+askForPlayerAction :: PlayerName -> [PlayerAction] -> IO PlayerAction
+askForPlayerAction playerName possibleActions = do
   putStrLnQI "Possible actions:"
   foldM_ printWithNumber 0 possibleActions
   putStrLnQI "Enter the number of the desired action:"
@@ -631,19 +654,19 @@ askForPlayerAction possibleActions = do
   case rawInput of
     "" ->
       if Pass `elem` possibleActions
-        then return Pass
+        then putStrLnA "Passing" >> return Pass
         else
           putStrLnE "You are not allowed to pass!"
-            >> askForPlayerAction possibleActions
+            >> askForPlayerAction playerName possibleActions
     _ -> do
       maybeAction <- selectFromList possibleActions rawInput
       case maybeAction of
-        Nothing -> askForPlayerAction possibleActions
+        Nothing -> askForPlayerAction playerName possibleActions
         Just Stop ->
           putStrLnQ
-            "Some player wanted to exit. Thank you for playing."
+            (show playerName ++ " wanted to exit. Thank you for playing.")
             >> exitSuccess
-        Just action -> return action
+        Just action -> putStrLnA ("Player " ++ show playerName ++ "played: " ++ show action) >> return action
 
 selectFromList :: (Eq a) => [a] -> String -> IO (Maybe a)
 selectFromList selectionList rawInput = do
@@ -688,28 +711,30 @@ getPlayerActions game = do
   ask :: PlayerName -> IO PlayerAction
   ask pn = do
     showPlayerInfo
-    putStrLnQI "Board:"
-    printQI $ board game
-    putStrLnQI "Hands of player:"
+    putStrLnQI "Combination to beat:"
+    putStrLnQI $ showLastPlayedCards game
+    putStrLnQI "Complete board:"
+    printQI $ map cardsFromCombination (board game)
+    putStrLnQI ("Hands of player " ++ show pn ++ ":")
     printQI (hands game Map.! pn)
-    askForPlayerAction (possiblePlayerActions game pn)
+    askForPlayerAction pn (possiblePlayerActions game pn)
    where
     showPlayerInfo :: IO ()
     showPlayerInfo =
       if pn == playerPlaying
         then
           putStrLnQ
-            ( "Player \""
-                ++ playerPlaying
-                ++ "\" is playing. What do you want to do?"
+            ( "It is players "
+                ++ show playerPlaying
+                ++ " turn. What do you want to do?"
             )
         else
           putStrLnQ
-            ( "Player \""
-                ++ playerPlaying
-                ++ "\" is playing now. Does Player \""
-                ++ pn
-                ++ "\" want to do something before?"
+            ( "Does player "
+                ++ show pn
+                ++ " want to do something before player "
+                ++ show playerPlaying
+                ++ " does its turn?"
             )
 
 askForTichu :: Game -> IO Game
@@ -721,21 +746,21 @@ askForTichu game = case filter canStillCallTichu (playerNames' game) of
     putStrLnQI "Select the player which hands should be shown or just press enter to proceed."
     rawInput <- getTrimmedLine
     case rawInput of
-      "" -> return game
+      "" -> putStrLnA "Exiting Tichu Menu" >> return game
       _ -> do
         selection <- selectFromList stillCanCallTichu rawInput
         case selection of
           Nothing -> askForTichu game
           Just playerToShowHands -> do
-            putStrLnQI "Hands of player:"
+            putStrLnQI ("Hands of player " ++ show playerToShowHands ++ ":")
             printQI (hands game Map.! playerToShowHands)
             putStrLnQI "Do you want to call Tichu? (y/N)"
             rawInputForTichu <- getTrimmedLine
             if rawInputForTichu == "y"
               then
                 let game' = applyPlayerAction game playerToShowHands CallTichu
-                 in askForTichu game'
-              else askForTichu game
+                 in putStrLnA ("Player " ++ show playerToShowHands ++ " called Tichu!") >> askForTichu game'
+              else putStrLnA "No tichu called." >> askForTichu game
  where
   canStillCallTichu :: PlayerName -> Bool
   canStillCallTichu pn = length (hands game Map.! pn) == maxCards && isNothing (tichus game Map.! pn)
@@ -809,11 +834,14 @@ startingPlayer = head . Map.keys . Map.filter (elem Mahjong)
 
 display :: Game -> IO ()
 display game =
-  printQ (gamePhase game)
-    >> putStrLnQ ("Board: " ++ show (board game))
-    >> putStrLnQ ("Hands: " ++ show (Map.toList $ hands game))
-    >> putStrLnQ ("Tricks: " ++ show (Map.toList $ tricks game))
-    >> putStrLnQ ("Score: " ++ show (Map.toList $ scores game))
+  putStrLnQ
+    "Game State:"
+    >> printQI
+      (gamePhase game)
+    >> putStrLnQI ("Board: " ++ show (board game))
+    >> putStrLnQI ("Hands: " ++ show (Map.toList $ hands game))
+    >> putStrLnQI ("Tricks: " ++ show (Map.toList $ tricks game))
+    >> putStrLnQI ("Score: " ++ show (Map.toList $ scores game))
 
 score :: Game -> Game
 score game = game -- TODO: Implement
