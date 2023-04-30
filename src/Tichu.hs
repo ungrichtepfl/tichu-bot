@@ -7,16 +7,18 @@
 -- Profil build: https://stackoverflow.com/questions/32123475/profiling-builds-with-stack
 --  i.e. stack run --profile -- +RTS -xc
 
-module Tichu where
+module Tichu (module Tichu) where
 
 import Control.Exception (assert)
 import Control.Monad (foldM_, forM)
 import Data.Array.IO (IOArray, newListArray, readArray, writeArray)
+import Data.Char (isSpace)
 import Data.List (elemIndex, foldl', nub, nubBy, sort, sortBy, tails, (\\))
 import Data.Map (Map)
 import Data.Map qualified as Map
 import Data.Maybe (fromJust, isJust, isNothing, mapMaybe)
 import System.Exit (exitSuccess)
+import System.IO (hFlush, stdout)
 import System.Random (randomRIO)
 import Text.Read (readMaybe)
 
@@ -34,13 +36,43 @@ defaultTeamNames = ["Team 1", "Team 2"]
 defaultScoreLimit :: Int
 defaultScoreLimit = 1000
 
+maxCards :: Int
+maxCards = 14
+
 -----------------------
+
+putStrLnQ :: String -> IO ()
+putStrLnQ = putStrLn . (">> " ++)
+
+putStrLnA :: String -> IO ()
+putStrLnA = putStrLn . ("> " ++)
+
+putStrLnQI :: String -> IO ()
+putStrLnQI = putStrLn . (">>>> " ++)
+
+putStrLnE :: String -> IO ()
+putStrLnE = putStrLn . ("ERROR: " ++)
+
+printQ :: Show a => a -> IO ()
+printQ = putStrLnQ . show
+
+printA :: Show a => a -> IO ()
+printA = putStrLnA . show
+
+printQI :: Show a => a -> IO ()
+printQI = putStrLnQI . show
+
+printE :: Show a => a -> IO ()
+printE = putStrLnE . show
 
 setEmpty :: Map k [a] -> Map k [a]
 setEmpty = Map.map (const [])
 
 setFalse :: Map k Bool -> Map k Bool
 setFalse = Map.map (const False)
+
+setNothing :: Map k (Maybe a) -> Map k (Maybe a)
+setNothing = Map.map (const Nothing)
 
 shuffle :: [a] -> IO [a]
 shuffle xs = do
@@ -55,6 +87,22 @@ shuffle xs = do
   n = length xs
   newArray' :: Int -> [a] -> IO (IOArray Int a)
   newArray' n' = newListArray (1, n')
+
+trim :: String -> String
+trim =
+  let
+    f = reverse . dropWhile isSpace
+   in
+    f . f
+
+printPrompt :: IO ()
+printPrompt = putStr "$ "
+
+getTrimmedLine :: IO String
+getTrimmedLine = printPrompt >> hFlush stdout >> (trim <$> getLine)
+
+printWithNumber :: Show a => Int -> a -> IO Int
+printWithNumber i x = putStrLnQI ("(" ++ show i ++ ") " ++ show x) >> return (i + 1)
 
 type Passes = Int
 
@@ -323,13 +371,16 @@ instance Show GamePhase where
   show NextRound = "NextRound"
   show Finished = "Finished"
 
+data TichuType = Tichu | GrandTichu
+  deriving (Show, Eq)
+
 data PlayerAction
   = Start
   | Distribute (Map PlayerName TichuCard)
   | Play TichuCombination
   | Pass
-  | Tichu
-  | GrandTichu
+  | CallTichu
+  | CallGrandTichu
   | Stop
   deriving (Show, Eq, Read)
 
@@ -339,7 +390,7 @@ data Game = Game
   , tricks :: Map PlayerName TichuCards
   , board :: [TichuCombination]
   , gamePhase :: GamePhase
-  , tichus :: Map PlayerName Bool
+  , tichus :: Map PlayerName (Maybe TichuType)
   , scores :: Map TeamName Score
   , currentDealer :: PlayerName
   , stop :: Bool
@@ -367,8 +418,8 @@ initialHands names = Map.fromList [(n, []) | n <- names]
 initialTricks :: [PlayerName] -> Map PlayerName TichuCards
 initialTricks names = Map.fromList [(n, []) | n <- names]
 
-initialTichus :: [PlayerName] -> Map PlayerName Bool
-initialTichus names = Map.fromList [(n, False) | n <- names]
+initialTichus :: [PlayerName] -> Map PlayerName (Maybe TichuType)
+initialTichus names = Map.fromList [(n, Nothing) | n <- names]
 
 initialScores :: [TeamName] -> Map TeamName Score
 initialScores names = Map.fromList [(n, 0) | n <- names]
@@ -406,7 +457,7 @@ nextRound game = do
       { hands = setEmpty $ hands game
       , tricks = setEmpty $ tricks game
       , gamePhase = Dealing initialDeck
-      , tichus = setFalse $ tichus game
+      , tichus = setNothing $ tichus game
       , currentDealer = nextInOrder game (currentDealer game)
       }
 
@@ -477,8 +528,8 @@ getGameConfig = do
 
 getPlayers :: IO [PlayerName]
 getPlayers =
-  putStrLn ("Enter player names separated by spaces (default: " ++ show defaultPlayerNames ++ "). This will also be the sitting order:")
-    >> getLine
+  putStrLnQ ("Enter player names separated by spaces (default: " ++ show defaultPlayerNames ++ "). This will also be the sitting order:")
+    >> getTrimmedLine
     >>= processInput
  where
   processInput :: String -> IO [PlayerName]
@@ -492,16 +543,16 @@ getPlayers =
             [] -> echoPlayers defaultPlayerNames
             [_, _, _, _] ->
               if nub players /= players
-                then putStrLn "Player names must be unique." >> getPlayers
+                then putStrLnE "Player names must be unique." >> getPlayers
                 else echoPlayers players
-            _ -> putStrLn "Wrong number of players, should be 4." >> getPlayers
+            _ -> putStrLnE "Wrong number of players, should be 4." >> getPlayers
   echoPlayers :: [PlayerName] -> IO [PlayerName]
-  echoPlayers pn = putStrLn ("Player names chosen: " ++ show pn) >> return pn
+  echoPlayers pn = putStrLnA ("Player names chosen: " ++ show pn) >> return pn
 
 getTeamNames :: IO [TeamName]
 getTeamNames =
-  putStrLn ("Enter team names separated by spaces  (default: " ++ show defaultTeamNames ++ "):")
-    >> getLine
+  putStrLnQ ("Enter team names separated by spaces  (default: " ++ show defaultTeamNames ++ "):")
+    >> getTrimmedLine
     >>= processInput
  where
   processInput :: String -> IO [TeamName]
@@ -515,16 +566,16 @@ getTeamNames =
             [] -> echoTeams defaultTeamNames
             [_, _] ->
               if nub teams /= teams
-                then putStrLn "Team names must be unique." >> getTeamNames
+                then putStrLnE "Team names must be unique." >> getTeamNames
                 else echoTeams teams
-            _ -> putStrLn "Wrong number of teams, should be 2." >> getTeamNames
+            _ -> putStrLnE "Wrong number of teams, should be 2." >> getTeamNames
   echoTeams :: [TeamName] -> IO [TeamName]
-  echoTeams tn = putStrLn ("Team names chosen: " ++ show tn) >> return tn
+  echoTeams tn = putStrLnA ("Team names chosen: " ++ show tn) >> return tn
 
 getMaxScore :: IO Int
 getMaxScore =
-  putStrLn ("Enter max score (default: " ++ show defaultScoreLimit ++ "):")
-    >> getLine
+  putStrLnQ ("Enter max score (default: " ++ show defaultScoreLimit ++ "):")
+    >> getTrimmedLine
     >>= processInput
  where
   processInput :: String -> IO Int
@@ -535,9 +586,9 @@ getMaxScore =
         let userInput = readMaybe rawInput
          in case userInput of
               Just x -> echoScore x
-              Nothing -> putStrLn "Wrong input should be a positive number." >> getMaxScore
+              Nothing -> putStrLnE "Wrong input should be a positive number." >> getMaxScore
   echoScore :: Int -> IO Int
-  echoScore sl = putStrLn ("Score limit chosen: " ++ show sl) >> return sl
+  echoScore sl = putStrLnA ("Score limit chosen: " ++ show sl) >> return sl
 
 isValidForBoard :: [TichuCombination] -> TichuCombination -> Bool
 isValidForBoard [] _ = True
@@ -573,50 +624,49 @@ possiblePlayerActions game pn =
 
 askForPlayerAction :: [PlayerAction] -> IO PlayerAction
 askForPlayerAction possibleActions = do
-  putStrLn "Possible actions:"
+  putStrLnQI "Possible actions:"
   foldM_ printWithNumber 0 possibleActions
-  putStrLn "Enter the number of the desired action:"
-  rawInput <- getLine
-  -- TODO: Refactor this mess:
-  if rawInput == ""
-    then
+  putStrLnQI "Enter the number of the desired action:"
+  rawInput <- getTrimmedLine
+  case rawInput of
+    "" ->
       if Pass `elem` possibleActions
         then return Pass
         else
-          putStrLn "You are not allowed to pass!"
+          putStrLnE "You are not allowed to pass!"
             >> askForPlayerAction possibleActions
-    else do
-      let actionNumberMaybe = readMaybe rawInput :: Maybe Int
-      if isNothing actionNumberMaybe
+    _ -> do
+      maybeAction <- selectFromList possibleActions rawInput
+      case maybeAction of
+        Nothing -> askForPlayerAction possibleActions
+        Just Stop ->
+          putStrLnQ
+            "Some player wanted to exit. Thank you for playing."
+            >> exitSuccess
+        Just action -> return action
+
+selectFromList :: (Eq a) => [a] -> String -> IO (Maybe a)
+selectFromList selectionList rawInput = do
+  case readMaybe rawInput of
+    Nothing ->
+      putStrLnE "You must enter a number!"
+        >> return Nothing
+    Just selectionNumber ->
+      if selectionNumber < 0 || selectionNumber >= length selectionList
         then
-          putStrLn "You must enter a number!"
-            >> askForPlayerAction possibleActions
+          putStrLnE
+            ( "Invalid action number! Must be between 0 and "
+                ++ show (length selectionList - 1)
+                ++ "."
+            )
+            >> return Nothing
         else do
-          let actionNumber = fromJust actionNumberMaybe
-          if actionNumber < 0 || actionNumber >= length possibleActions
-            then
-              putStrLn
-                ( "Invalid action number! Must be between 0 and "
-                    ++ show (length possibleActions - 1)
-                    ++ "."
-                )
-                >> askForPlayerAction possibleActions
-            else do
-              let action = possibleActions !! actionNumber
-              if action `elem` possibleActions
-                then
-                  if action == Stop
-                    then
-                      putStrLn
-                        "Some player wanted to exit. Thank you for playing."
-                        >> exitSuccess
-                    else return action
-                else
-                  putStrLn "Invalid action"
-                    >> askForPlayerAction possibleActions
- where
-  printWithNumber :: Show a => Int -> a -> IO Int
-  printWithNumber i x = putStrLn (show i ++ ": " ++ show x) >> return (i + 1)
+          let selection = selectionList !! selectionNumber
+          if selection `elem` selectionList
+            then return $ Just selection
+            else
+              putStrLnE "Invalid action"
+                >> return Nothing
 
 getPlayerPlayingWithPasses :: Game -> (PlayerName, Passes)
 getPlayerPlayingWithPasses game = case gamePhase game of
@@ -630,43 +680,73 @@ getPlayerActions game = do
  where
   playerPlaying :: PlayerName
   playerPlaying = fst $ getPlayerPlayingWithPasses game
-  -- TODO: Make ideomatic:
-  ask :: PlayerName -> IO PlayerAction
-  ask pn =
-    ( \p ->
-        if p == playerPlaying
-          then
-            putStrLn
-              ( "Player \""
-                  ++ playerPlaying
-                  ++ "\" is playing. What do you want to do?"
-              )
-              >> return p
-          else
-            putStrLn
-              ( "Player \""
-                  ++ playerPlaying
-                  ++ "\" is playing now. Does Player \""
-                  ++ p
-                  ++ "\" want to do something before?"
-              )
-              >> return p
-    )
-      pn
-      >>= askForPlayerAction . possiblePlayerActions game
   reorderedPlayerList :: [PlayerName]
   reorderedPlayerList =
     let playerList = playerNames' game
         i = fromJust $ elemIndex playerPlaying playerList
      in drop i playerList ++ take i playerList
+  ask :: PlayerName -> IO PlayerAction
+  ask pn = do
+    showPlayerInfo
+    putStrLnQI "Board:"
+    printQI $ board game
+    putStrLnQI "Hands of player:"
+    printQI (hands game Map.! pn)
+    askForPlayerAction (possiblePlayerActions game pn)
+   where
+    showPlayerInfo :: IO ()
+    showPlayerInfo =
+      if pn == playerPlaying
+        then
+          putStrLnQ
+            ( "Player \""
+                ++ playerPlaying
+                ++ "\" is playing. What do you want to do?"
+            )
+        else
+          putStrLnQ
+            ( "Player \""
+                ++ playerPlaying
+                ++ "\" is playing now. Does Player \""
+                ++ pn
+                ++ "\" want to do something before?"
+            )
+
+askForTichu :: Game -> IO Game
+askForTichu game = case filter canStillCallTichu (playerNames' game) of
+  [] -> return game
+  stillCanCallTichu -> do
+    putStrLnQ "Who wants to call Tichu? Players that still can call Tichu:"
+    foldM_ printWithNumber 0 stillCanCallTichu
+    putStrLnQI "Select the player which hands should be shown or just press enter to proceed."
+    rawInput <- getTrimmedLine
+    case rawInput of
+      "" -> return game
+      _ -> do
+        selection <- selectFromList stillCanCallTichu rawInput
+        case selection of
+          Nothing -> askForTichu game
+          Just playerToShowHands -> do
+            putStrLnQI "Hands of player:"
+            printQI (hands game Map.! playerToShowHands)
+            putStrLnQI "Do you want to call Tichu? (y/N)"
+            rawInputForTichu <- getTrimmedLine
+            if rawInputForTichu == "y"
+              then
+                let game' = applyPlayerAction game playerToShowHands CallTichu
+                 in askForTichu game'
+              else askForTichu game
+ where
+  canStillCallTichu :: PlayerName -> Bool
+  canStillCallTichu pn = length (hands game Map.! pn) == maxCards && isNothing (tichus game Map.! pn)
 
 update :: Game -> IO Game
-update game =
+update game = do
   case gamePhase game of
     Starting -> startGame game
     Dealing _ -> return $ dealAllCards game
     Distributing -> distribute game
-    Playing _ _ -> play game
+    Playing _ _ -> askForTichu game >>= play
     NextRound -> nextRound game
     Scoring -> return $ score game
     Finished -> finish game
@@ -707,6 +787,8 @@ applyPlayerAction game pn playerAction =
                         }
             else game
         Stop -> game{stop = True}
+        CallTichu -> game{tichus = Map.insert pn (Just Tichu) (tichus game)}
+        CallGrandTichu -> game{tichus = Map.insert pn (Just GrandTichu) (tichus game)}
         _ -> game
 
 play :: Game -> IO Game
@@ -727,12 +809,11 @@ startingPlayer = head . Map.keys . Map.filter (elem Mahjong)
 
 display :: Game -> IO ()
 display game =
-  print (gamePhase game)
-    >> putStrLn ("Board: " ++ show (board game))
-    >> putStrLn ("Hands: " ++ show (Map.toList $ hands game))
-    >> putStrLn ("Tricks: " ++ show (Map.toList $ tricks game))
-    >> putStrLn ("Score: " ++ show (Map.toList $ scores game))
-    >> putStrLn ""
+  printQ (gamePhase game)
+    >> putStrLnQ ("Board: " ++ show (board game))
+    >> putStrLnQ ("Hands: " ++ show (Map.toList $ hands game))
+    >> putStrLnQ ("Tricks: " ++ show (Map.toList $ tricks game))
+    >> putStrLnQ ("Score: " ++ show (Map.toList $ scores game))
 
 score :: Game -> Game
 score game = game -- TODO: Implement
