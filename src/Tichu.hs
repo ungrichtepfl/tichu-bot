@@ -146,6 +146,17 @@ data Color = Spades | Hearts | Diamonds | Clubs
 data TichuCard = PokerCard (Value, Color) | Dragon | Phoenix | Mahjong | Dog
   deriving (Eq, Read)
 
+cardValue :: TichuCard -> Int
+cardValue (PokerCard (King, _)) = 10
+cardValue (PokerCard (Ten, _)) = 10
+cardValue (PokerCard (Five, _)) = 5
+cardValue Dragon = 25
+cardValue Phoenix = -25
+cardValue _ = 0
+
+cardsScore :: [TichuCard] -> Int
+cardsScore = sum . map cardValue
+
 instance Show TichuCard where
   show (PokerCard (v, c)) = [pokerCardUnicodeMatrix !! fromEnum c !! fromEnum v]
   show Dragon = "Dragon"
@@ -375,6 +386,7 @@ data GamePhase
   | Dealing TichuCards
   | Distributing
   | Playing PlayerName Passes
+  | GiveAwayLooserTricksAndHands
   | Scoring
   | NextRound
   | Finished
@@ -385,6 +397,7 @@ instance Show GamePhase where
   show (Dealing _) = "Dealing "
   show Distributing = "Distributing"
   show (Playing pn passes) = "Players turn: " ++ show pn ++ ". Passes before: " ++ show passes
+  show GiveAwayLooserTricksAndHands = "GiveAwayLooserTricksAndHands"
   show Scoring = "Scoring"
   show NextRound = "NextRound"
   show Finished = "Finished"
@@ -414,6 +427,13 @@ data Game = Game
   , stop :: Bool
   }
   deriving (Show, Eq)
+
+playersByTeam :: Game -> Map TeamName [PlayerName]
+playersByTeam game =
+  let playersByTeamList = case sittingOrder $ gameConfig game of
+        [p1, p2, p3, p4] -> [[p1, p3], [p2, p4]]
+        _ -> error "Not yet implemented for others than 4 players."
+   in Map.fromList $ zip (teamNames $ gameConfig game) playersByTeamList
 
 showLastPlayedCards :: Game -> String
 showLastPlayedCards game = case board game of
@@ -773,8 +793,14 @@ update game = do
     Distributing -> distribute game
     Playing _ _ -> askForTichu game >>= play
     NextRound -> nextRound game
+    GiveAwayLooserTricksAndHands -> return $ giveAwayLooserTricksAndHands game
     Scoring -> return $ score game
     Finished -> finish game
+
+giveAwayLooserTricksAndHands :: Game -> Game
+giveAwayLooserTricksAndHands game =
+  -- TODO: Finish implementation (we need to keep track of finishing order)
+  game
 
 applyPlayerAction :: Game -> PlayerName -> PlayerAction -> Game
 applyPlayerAction game pn playerAction =
@@ -804,7 +830,10 @@ applyPlayerAction game pn playerAction =
                       newTrick = concatMap cardsFromCombination (board game) ++ trickNextPlayer
                       newBoard = []
                       newPasses = 0
-                      newGamePhase = Playing nextPlayer newPasses
+                      newGamePhase =
+                        if endOfRound (Map.elems $ hands game)
+                          then Scoring
+                          else Playing nextPlayer newPasses
                    in game
                         { gamePhase = newGamePhase
                         , board = newBoard
@@ -815,6 +844,10 @@ applyPlayerAction game pn playerAction =
         CallTichu -> game{tichus = Map.insert pn (Just Tichu) (tichus game)}
         CallGrandTichu -> game{tichus = Map.insert pn (Just GrandTichu) (tichus game)}
         _ -> game
+ where
+  endOfRound :: [TichuCards] -> Bool
+  -- FIXME: We need to add a match
+  endOfRound cards = length (filter null cards) == 3 && length (filter (not . null) cards) == 1
 
 play :: Game -> IO Game
 play game = do
@@ -844,10 +877,35 @@ display game =
     >> putStrLnQI ("Score: " ++ show (Map.toList $ scores game))
 
 score :: Game -> Game
-score game = game -- TODO: Implement
+score game =
+  -- FIXME: We need to add a match and a Tichu
+  let currentScore = scores game
+      currentTricks = tricks game
+      newScore =
+        Map.mapWithKey
+          ( \teamName playerInTeams ->
+              (currentScore Map.! teamName)
+                + sum
+                  ( map
+                      ( \pn -> cardsScore (currentTricks Map.! pn)
+                      )
+                      playerInTeams
+                  )
+          )
+          (playersByTeam game)
+      newGamePhase = if any (>= scoreLimit (gameConfig game)) (Map.elems newScore) then Finished else NextRound
+   in game{scores = newScore, gamePhase = newGamePhase}
 
 finish :: Game -> IO Game
-finish = return -- TODO: Implement
+finish game = do
+  let winningTeams = Map.toList $ Map.filter (>= scoreLimit (gameConfig game)) (scores game)
+  printWinners winningTeams
+  return game
+ where
+  printWinners :: [(TeamName, Score)] -> IO ()
+  printWinners [] = error "No team won!"
+  printWinners [(winner, winningScore)] = putStrLnQ ("Yeay we have a winner! Team " ++ show winner ++ " won with a score of " ++ show winningScore ++ " points.")
+  printWinners winners = putStrLnQ ("Yeeeey, we have more than one winner! The teams " ++ show winners)
 
 run :: Game -> IO Game
 run game = display game >> update game
