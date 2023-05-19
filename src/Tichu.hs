@@ -1,5 +1,5 @@
 {-# LANGUAGE ImportQualifiedPost #-}
-{-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE LambdaCase          #-}
 
 -- Useful debug infos:
 -- Enabling assertions: https://stackoverflow.com/questions/45777703/turning-on-assertions-while-compiling-with-haskells-stack-build-system
@@ -9,18 +9,20 @@
 
 module Tichu (module Tichu) where
 
-import Control.Exception (assert)
-import Control.Monad (foldM_, forM)
-import Data.Array.IO (IOArray, newListArray, readArray, writeArray)
-import Data.Char (isSpace)
-import Data.List (elemIndex, foldl', nub, nubBy, sort, sortBy, tails, (\\))
-import Data.Map (Map)
-import Data.Map qualified as Map
-import Data.Maybe (fromJust, isJust, isNothing, mapMaybe)
-import System.Exit (exitSuccess)
-import System.IO (hFlush, stdout)
-import System.Random (randomRIO)
-import Text.Read (readMaybe)
+import           Control.Exception (assert)
+import           Control.Monad     (foldM_, forM)
+import           Data.Array.IO     (IOArray, newListArray, readArray,
+                                    writeArray)
+import           Data.Char         (isSpace)
+import           Data.List         (elemIndex, foldl', nub, nubBy, sort, sortBy,
+                                    tails, (\\))
+import           Data.Map          (Map)
+import qualified Data.Map          as Map
+import           Data.Maybe        (fromJust, isJust, isNothing, mapMaybe)
+import           System.Exit       (exitSuccess)
+import           System.IO         (hFlush, stdout)
+import           System.Random     (randomRIO)
+import           Text.Read         (readMaybe)
 
 ----- CONSTANTS -------
 
@@ -148,21 +150,21 @@ data TichuCard = PokerCard (Value, Color) | Dragon | Phoenix | Mahjong | Dog
 
 cardValue :: TichuCard -> Int
 cardValue (PokerCard (King, _)) = 10
-cardValue (PokerCard (Ten, _)) = 10
+cardValue (PokerCard (Ten, _))  = 10
 cardValue (PokerCard (Five, _)) = 5
-cardValue Dragon = 25
-cardValue Phoenix = -25
-cardValue _ = 0
+cardValue Dragon                = 25
+cardValue Phoenix               = -25
+cardValue _                     = 0
 
 cardsScore :: [TichuCard] -> Int
 cardsScore = sum . map cardValue
 
 instance Show TichuCard where
   show (PokerCard (v, c)) = [pokerCardUnicodeMatrix !! fromEnum c !! fromEnum v]
-  show Dragon = "Dragon"
-  show Phoenix = "Phoenix"
-  show Mahjong = "Mahjong"
-  show Dog = "Dog"
+  show Dragon             = "Dragon"
+  show Phoenix            = "Phoenix"
+  show Mahjong            = "Mahjong"
+  show Dog                = "Dog"
 
 pokerCardUnicodeMatrix :: [[Char]]
 pokerCardUnicodeMatrix =
@@ -174,26 +176,26 @@ pokerCardUnicodeMatrix =
 
 instance Ord TichuCard where
   compare (PokerCard (v1, _)) (PokerCard (v2, _)) = compare v1 v2
-  compare Dragon Dragon = EQ
-  compare Phoenix Phoenix = EQ
-  compare Mahjong Mahjong = EQ
-  compare Dog Dog = EQ
-  compare Dragon _ = GT
-  compare _ Dragon = LT
-  compare Phoenix _ = GT
-  compare _ Phoenix = LT
-  compare Dog _ = LT -- Dog needs to be before Mahjong, is lower than any card
-  compare _ Dog = GT
-  compare Mahjong _ = LT
-  compare _ Mahjong = GT
+  compare Dragon Dragon                           = EQ
+  compare Phoenix Phoenix                         = EQ
+  compare Mahjong Mahjong                         = EQ
+  compare Dog Dog                                 = EQ
+  compare Dragon _                                = GT
+  compare _ Dragon                                = LT
+  compare Phoenix _                               = GT
+  compare _ Phoenix                               = LT
+  compare Dog _                                   = LT -- Dog needs to be before Mahjong, is lower than any card
+  compare _ Dog                                   = GT
+  compare Mahjong _                               = LT
+  compare _ Mahjong                               = GT
 
 color :: TichuCard -> Maybe Color
 color (PokerCard (_, c)) = Just c
-color _ = Nothing
+color _                  = Nothing
 
 value :: TichuCard -> Maybe Value
 value (PokerCard (v, _)) = Just v
-value _ = Nothing
+value _                  = Nothing
 
 nonPhoenixCards :: TichuCards -> TichuCards
 nonPhoenixCards = filter (/= Phoenix)
@@ -308,13 +310,13 @@ data TichuCombination
   deriving (Show, Eq, Read)
 
 cardsFromCombination :: TichuCombination -> TichuCards
-cardsFromCombination (SingleCard cards) = cards
-cardsFromCombination (Pair cards _) = cards
+cardsFromCombination (SingleCard cards)     = cards
+cardsFromCombination (Pair cards _)         = cards
 cardsFromCombination (ThreeOfAKind cards _) = cards
-cardsFromCombination (Straight cards _) = cards
-cardsFromCombination (FullHouse cards _) = cards
-cardsFromCombination (Stairs cards _) = cards
-cardsFromCombination (Bomb cards _) = cards
+cardsFromCombination (Straight cards _)     = cards
+cardsFromCombination (FullHouse cards _)    = cards
+cardsFromCombination (Stairs cards _)       = cards
+cardsFromCombination (Bomb cards _)         = cards
 
 canBePlayedOnTop :: TichuCombination -> TichuCombination -> Bool
 canBePlayedOnTop (SingleCard _) (SingleCard [Phoenix]) = error "Value of Phoenix is not known."
@@ -364,8 +366,8 @@ toTichuCombination cards
 
 data GameConfig = GameConfig
   { sittingOrder :: [PlayerName]
-  , teamNames :: [TeamName]
-  , scoreLimit :: Score
+  , teamNames    :: [TeamName]
+  , scoreLimit   :: Score
   }
   deriving (Show, Eq)
 
@@ -375,8 +377,15 @@ nextInOrder :: Game -> PlayerName -> PlayerName
 nextInOrder game pn =
   let pns = sittingOrder $ gameConfig game
       index = fromJust (assert (pn `elem` pns) elemIndex pn pns)
-      newIndex = (index + 1) `mod` length pns
-   in pns !! assert (newIndex < length pns) newIndex
+      newIndex :: Int -> Int
+      newIndex i =
+        let
+          playersHands = Map.elems $ hands game
+         in
+          case playersHands !! i of
+            [] -> newIndex $ (i + 1) `mod` length pns
+            _  -> (i + 1) `mod` length pns
+   in pns !! newIndex index
 
 emptyDistribution :: [PlayerName] -> Distribution
 emptyDistribution pns = Map.fromList [(pn, Map.empty) | pn <- pns]
@@ -405,6 +414,14 @@ instance Show GamePhase where
 data TichuType = Tichu | GrandTichu
   deriving (Show, Eq)
 
+isTichu :: Maybe TichuType -> Bool
+isTichu (Just Tichu) = True
+isTichu _            = False
+
+isGrandTichu :: Maybe TichuType -> Bool
+isGrandTichu (Just GrandTichu) = True
+isGrandTichu _                 = False
+
 data PlayerAction
   = Start
   | Distribute (Map PlayerName TichuCard)
@@ -416,15 +433,16 @@ data PlayerAction
   deriving (Show, Eq, Read)
 
 data Game = Game
-  { gameConfig :: GameConfig
-  , hands :: Map PlayerName TichuCards
-  , tricks :: Map PlayerName TichuCards
-  , board :: [TichuCombination]
-  , gamePhase :: GamePhase
-  , tichus :: Map PlayerName (Maybe TichuType)
-  , scores :: Map TeamName Score
+  { gameConfig    :: GameConfig
+  , hands         :: Map PlayerName TichuCards
+  , tricks        :: Map PlayerName TichuCards
+  , board         :: [TichuCombination]
+  , gamePhase     :: GamePhase
+  , tichus        :: Map PlayerName (Maybe TichuType)
+  , scores        :: Map TeamName Score
   , currentDealer :: PlayerName
-  , stop :: Bool
+  , finishOrder   :: [PlayerName]
+  , stop          :: Bool
   }
   deriving (Show, Eq)
 
@@ -437,7 +455,7 @@ playersByTeam game =
 
 showLastPlayedCards :: Game -> String
 showLastPlayedCards game = case board game of
-  [] -> "Empty board"
+  []             -> "Empty board"
   (lastComb : _) -> show $ cardsFromCombination lastComb
 
 playerNames :: GameConfig -> [PlayerName]
@@ -478,6 +496,7 @@ newGame config =
     , tichus = initialTichus $ playerNames config
     , scores = initialScores $ teamNames config
     , currentDealer = head $ playerNames config
+    , finishOrder = []
     , stop = False
     }
 
@@ -594,7 +613,7 @@ getPlayers =
 
 getTeamNames :: IO [TeamName]
 getTeamNames =
-  putStrLnQ ("Enter team names separated by spaces  (default: " ++ show defaultTeamNames ++ "):")
+  putStrLnQ ("Enter team names separated by spaces (default: " ++ show defaultTeamNames ++ "):")
     >> getTrimmedLine
     >>= processInput
  where
@@ -643,7 +662,12 @@ possiblePlayerActions game pn =
   let defaultActions = [Stop]
    in case gamePhase game of
         Playing playerPlaying _ ->
-          let combinations = filter (isValidForBoard (board game)) $ possibleCombinations $ hands game Map.! pn
+          let combinations =
+                filter
+                  (isValidForBoard $ board game)
+                  ( possibleCombinations $
+                      hands game Map.! pn
+                  )
            in defaultActions
                 ++ if pn == playerPlaying
                   then map Play combinations ++ pass
@@ -652,8 +676,8 @@ possiblePlayerActions game pn =
                       Play
                       ( filter
                           ( \case
-                              Bomb _ _ -> not $ null $ board game
-                              _ -> False
+                              Bomb _ _ -> not $ null (board game)
+                              _        -> False
                           )
                           combinations
                       )
@@ -686,7 +710,7 @@ askForPlayerAction playerName possibleActions = do
           putStrLnQ
             (show playerName ++ " wanted to exit. Thank you for playing.")
             >> exitSuccess
-        Just action -> putStrLnA ("Player " ++ show playerName ++ "played: " ++ show action) >> return action
+        Just action -> putStrLnA ("Player " ++ show playerName ++ " played: " ++ show action) >> return action
 
 selectFromList :: (Eq a) => [a] -> String -> IO (Maybe a)
 selectFromList selectionList rawInput = do
@@ -733,7 +757,7 @@ getPlayerActions game = do
     showPlayerInfo
     putStrLnQI "Combination to beat:"
     putStrLnQI $ showLastPlayedCards game
-    putStrLnQI "Complete board:"
+    putStrLnQI "Full board:"
     printQI $ map cardsFromCombination (board game)
     putStrLnQI ("Hands of player " ++ show pn ++ ":")
     printQI (hands game Map.! pn)
@@ -788,14 +812,14 @@ askForTichu game = case filter canStillCallTichu (playerNames' game) of
 update :: Game -> IO Game
 update game = do
   case gamePhase game of
-    Starting -> startGame game
-    Dealing _ -> return $ dealAllCards game
-    Distributing -> distribute game
-    Playing _ _ -> askForTichu game >>= play
-    NextRound -> nextRound game
+    Starting                     -> startGame game
+    Dealing _                    -> return $ dealAllCards game
+    Distributing                 -> distribute game
+    Playing _ _                  -> askForTichu game >>= play
+    NextRound                    -> nextRound game
     GiveAwayLooserTricksAndHands -> return $ giveAwayLooserTricksAndHands game
-    Scoring -> return $ score game
-    Finished -> finish game
+    Scoring                      -> return $ score game
+    Finished                     -> finish game
 
 giveAwayLooserTricksAndHands :: Game -> Game
 giveAwayLooserTricksAndHands game =
@@ -812,12 +836,22 @@ applyPlayerAction game pn playerAction =
               cards = cardsFromCombination combination
               newPlayerHand = playerHand \\ cards
               newHands = Map.insert playerPlaying newPlayerHand $ hands game
+              newFinishOrder = if null newPlayerHand then playerPlaying : finishOrder game else finishOrder game
+              endOfRound = case length newFinishOrder of
+                3 -> True
+                2 -> any (all (`elem` newFinishOrder)) (Map.elems $ playersByTeam game) -- match
+                _ -> False
+              newGamePhase =
+                if endOfRound
+                  then Scoring
+                  else Playing (nextInOrder game playerPlaying) 0
            in game
                 { hands = newHands
                 , board =
                     combination
                       : board game
-                , gamePhase = Playing (nextInOrder game playerPlaying) 0
+                , gamePhase = newGamePhase
+                , finishOrder = newFinishOrder
                 }
         Pass ->
           if pn == playerPlaying
@@ -830,10 +864,7 @@ applyPlayerAction game pn playerAction =
                       newTrick = concatMap cardsFromCombination (board game) ++ trickNextPlayer
                       newBoard = []
                       newPasses = 0
-                      newGamePhase =
-                        if endOfRound (Map.elems $ hands game)
-                          then Scoring
-                          else Playing nextPlayer newPasses
+                      newGamePhase = Playing nextPlayer newPasses
                    in game
                         { gamePhase = newGamePhase
                         , board = newBoard
@@ -844,10 +875,6 @@ applyPlayerAction game pn playerAction =
         CallTichu -> game{tichus = Map.insert pn (Just Tichu) (tichus game)}
         CallGrandTichu -> game{tichus = Map.insert pn (Just GrandTichu) (tichus game)}
         _ -> game
- where
-  endOfRound :: [TichuCards] -> Bool
-  -- FIXME: We need to add a match
-  endOfRound cards = length (filter null cards) == 3 && length (filter (not . null) cards) == 1
 
 play :: Game -> IO Game
 play game = do
@@ -876,25 +903,65 @@ display game =
     >> putStrLnQI ("Tricks: " ++ show (Map.toList $ tricks game))
     >> putStrLnQI ("Score: " ++ show (Map.toList $ scores game))
 
+matchBonus :: Int
+matchBonus = 200
+
+tichuBonus :: Int
+tichuBonus = 100
+
+grandTichuBonus :: Int
+grandTichuBonus = 200
+
 score :: Game -> Game
 score game =
-  -- FIXME: We need to add a match and a Tichu
-  let currentScore = scores game
-      currentTricks = tricks game
-      newScore =
-        Map.mapWithKey
-          ( \teamName playerInTeams ->
-              (currentScore Map.! teamName)
-                + sum
-                  ( map
-                      ( \pn -> cardsScore (currentTricks Map.! pn)
-                      )
-                      playerInTeams
-                  )
-          )
-          (playersByTeam game)
-      newGamePhase = if any (>= scoreLimit (gameConfig game)) (Map.elems newScore) then Finished else NextRound
-   in game{scores = newScore, gamePhase = newGamePhase}
+  let
+    newScore =
+      Map.mapWithKey
+        scorePerTeam
+        (playersByTeam game)
+    newGamePhase = if any (>= scoreLimit (gameConfig game)) (Map.elems newScore) then Finished else NextRound
+   in
+    game{scores = newScore, gamePhase = newGamePhase}
+ where
+  scorePerTeam :: TeamName -> [PlayerName] -> Int
+  scorePerTeam teamName playersInTeam =
+    let currentScore = scores game
+        currentTricks = tricks game
+        currentScoreForTeam = currentScore Map.! teamName
+        scoreFromCardsOrMatch =
+          if all (`elem` finishOrder game) playersInTeam
+            then matchBonus
+            else
+              sum
+                ( map
+                    ( \pn -> cardsScore (currentTricks Map.! pn)
+                    )
+                    playersInTeam
+                )
+        winner = head $ finishOrder game
+        scoreForTichu =
+          if winner `elem` playersInTeam
+            then
+              if isTichu (tichus game Map.! winner)
+                then tichuBonus
+                else
+                  if isGrandTichu (tichus game Map.! winner)
+                    then grandTichuBonus
+                    else 0
+            else 0
+        scoreForFailedTichu =
+          sum $
+            Map.mapWithKey
+              ( \pn t ->
+                  if pn == winner || notElem pn playersInTeam
+                    then 0
+                    else
+                      if isTichu t
+                        then -tichuBonus
+                        else if isGrandTichu t then -grandTichuBonus else 0
+              )
+              (tichus game)
+     in currentScoreForTeam + scoreFromCardsOrMatch + scoreForTichu + scoreForFailedTichu
 
 finish :: Game -> IO Game
 finish game = do

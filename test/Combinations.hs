@@ -1,9 +1,9 @@
 {-# LANGUAGE ImportQualifiedPost #-}
 
-import Data.Map qualified as Map
-import Test.Tasty
-import Test.Tasty.HUnit
-import Tichu
+import qualified Data.Map         as Map
+import           Test.Tasty
+import           Test.Tasty.HUnit
+import           Tichu
 
 main :: IO ()
 main = do
@@ -71,6 +71,7 @@ testGame dealer =
         , scores = Map.fromList [("Team 1", 0), ("Team 2", 0)]
         , board = []
         , currentDealer = dealer
+        , finishOrder = []
         , stop = False
         }
 
