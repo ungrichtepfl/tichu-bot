@@ -822,9 +822,26 @@ update game = do
     Finished                     -> finish game
 
 giveAwayLooserTricksAndHands :: Game -> Game
-giveAwayLooserTricksAndHands game =
-  -- TODO: Finish implementation (we need to keep track of finishing order)
-  game
+giveAwayLooserTricksAndHands game = case playerNames' game \\ finishOrder game of
+  [looser] ->
+    let winner = head $ finishOrder game
+        newTricks = Map.insert looser [] (tricks game)
+        newTricks' =
+          Map.insert
+            winner
+            ( (tricks game Map.! winner)
+                ++ (tricks game Map.! looser)
+            )
+            newTricks
+        playerOtherTeam = head $ head $ filter (notElem looser) (Map.elems $ playersByTeam game)
+        newTricks'' = Map.insert playerOtherTeam ((tricks game Map.! playerOtherTeam) ++ (hands game Map.! looser)) newTricks'
+        newHands = Map.insert looser [] (hands game)
+     in game
+          { tricks = newTricks''
+          , hands = newHands
+          , gamePhase = Scoring
+          }
+  _ -> error ("There should be 3 player in finishing order found: " ++ show (finishOrder game))
 
 applyPlayerAction :: Game -> PlayerName -> PlayerAction -> Game
 applyPlayerAction game pn playerAction =
@@ -858,7 +875,8 @@ applyPlayerAction game pn playerAction =
             then
               if passes < 2
                 then game{gamePhase = Playing (nextInOrder game playerPlaying) (passes + 1)}
-                else
+                else -- FIXME: Give away trick with dragon!
+
                   let nextPlayer = nextInOrder game playerPlaying
                       trickNextPlayer = tricks game Map.! nextPlayer
                       newTrick = concatMap cardsFromCombination (board game) ++ trickNextPlayer
