@@ -381,10 +381,11 @@ nextInOrder game pn =
       newIndex i =
         let
           playersHands = Map.elems $ hands game
+          indexCandidate = (i + 1) `mod` length pns
          in
-          case playersHands !! i of
-            [] -> newIndex $ (i + 1) `mod` length pns
-            _  -> (i + 1) `mod` length pns
+          case playersHands !! indexCandidate of
+            [] -> newIndex indexCandidate -- skip player if he has no cards
+            _  -> indexCandidate
    in pns !! newIndex index
 
 emptyDistribution :: [PlayerName] -> Distribution
