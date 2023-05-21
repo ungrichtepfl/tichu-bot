@@ -10,7 +10,7 @@
 module Tichu (module Tichu) where
 
 import           Control.Exception (assert)
-import           Control.Monad     (foldM_, forM)
+import           Control.Monad     (foldM, foldM_, forM)
 import           Data.Array.IO     (IOArray, newListArray, readArray,
                                     writeArray)
 import           Data.Char         (isSpace)
@@ -366,6 +366,7 @@ toTichuCombination cards
 
 data GameConfig = GameConfig
   { sittingOrder :: [PlayerName]
+  , isAI         :: [Bool]
   , teamNames    :: [TeamName]
   , scoreLimit   :: Score
   }
@@ -412,6 +413,55 @@ instance Show GamePhase where
   show NextRound = "NextRound"
   show Finished = "Finished"
 
+data GamePlayer = CLI CLIPlayer | AI AIPlayer
+  deriving (Show, Eq)
+
+data AIPlayer = AIPlayer
+  deriving (Show, Eq)
+
+data CLIPlayer = CLIPlayer
+  deriving (Show, Eq)
+
+class Playable a where
+  pickPlayerAction :: a -> Game -> [PlayerAction] -> PlayerName -> IO PlayerAction
+
+instance Playable GamePlayer where
+  pickPlayerAction (CLI p) = pickPlayerAction p
+  pickPlayerAction (AI p)  = pickPlayerAction p
+
+instance Playable CLIPlayer where
+  pickPlayerAction _ game allPossibleActions pn = do
+    showPlayerInfo
+    putStrLnQI "Combination to beat:"
+    putStrLnQI $ showLastPlayedCards game
+    putStrLnQI "Full board:"
+    printQI $ map cardsFromCombination (board game)
+    putStrLnQI ("Hands of player " ++ show pn ++ ":")
+    printQI (hands game Map.! pn)
+    askForPlayerAction pn allPossibleActions
+   where
+    showPlayerInfo :: IO ()
+    showPlayerInfo =
+      let currentPlayer = getCurrentPlayer game
+       in if pn == currentPlayer
+            then
+              putStrLnQ
+                ( "It is players "
+                    ++ show currentPlayer
+                    ++ " turn. What do you want to do?"
+                )
+            else
+              putStrLnQ
+                ( "Does player "
+                    ++ show pn
+                    ++ " want to do something before player "
+                    ++ show currentPlayer
+                    ++ " does its turn?"
+                )
+
+instance Playable AIPlayer where
+  pickPlayerAction _ _ = undefined -- TODO: Implement
+
 data TichuType = Tichu | GrandTichu
   deriving (Show, Eq)
 
@@ -424,26 +474,25 @@ isGrandTichu (Just GrandTichu) = True
 isGrandTichu _                 = False
 
 data PlayerAction
-  = Start
-  | Distribute (Map PlayerName TichuCard)
+  = Pass
   | Play TichuCombination
-  | Pass
   | CallTichu
   | CallGrandTichu
   | Stop
   deriving (Show, Eq, Read)
 
 data Game = Game
-  { gameConfig    :: GameConfig
-  , hands         :: Map PlayerName TichuCards
-  , tricks        :: Map PlayerName TichuCards
-  , board         :: [TichuCombination]
-  , gamePhase     :: GamePhase
-  , tichus        :: Map PlayerName (Maybe TichuType)
-  , scores        :: Map TeamName Score
-  , currentDealer :: PlayerName
-  , finishOrder   :: [PlayerName]
-  , stop          :: Bool
+  { gameConfig     :: GameConfig
+  , hands          :: Map PlayerName TichuCards
+  , tricks         :: Map PlayerName TichuCards
+  , board          :: [TichuCombination]
+  , gamePhase      :: GamePhase
+  , tichus         :: Map PlayerName (Maybe TichuType)
+  , scores         :: Map TeamName Score
+  , currentDealer  :: PlayerName
+  , finishOrder    :: [PlayerName]
+  , shouldGameStop :: Bool
+  , gamePlayers    :: Map PlayerName GamePlayer
   }
   deriving (Show, Eq)
 
@@ -498,7 +547,12 @@ newGame config =
     , scores = initialScores $ teamNames config
     , currentDealer = head $ playerNames config
     , finishOrder = []
-    , stop = False
+    , shouldGameStop = False
+    , gamePlayers =
+        Map.fromList
+          [ (n, if a then AI AIPlayer else CLI CLIPlayer)
+          | (n, a) <- zip (sittingOrder config) (isAI config)
+          ]
     }
 
 startGame :: Game -> IO Game
@@ -587,7 +641,8 @@ getGameConfig :: IO GameConfig
 getGameConfig = do
   players <- getPlayers
   teams <- getTeamNames
-  GameConfig players teams <$> getMaxScore
+  let ais = [False, False, False, False] -- TODO: Ask players
+  GameConfig players ais teams <$> getMaxScore
 
 getPlayers :: IO [PlayerName]
 getPlayers =
@@ -660,9 +715,9 @@ isValidForBoard (boardCombi : _) combi = canBePlayedOnTop combi boardCombi
 
 possiblePlayerActions :: Game -> PlayerName -> [PlayerAction]
 possiblePlayerActions game pn =
-  let defaultActions = [Stop]
+  let defaultActions = Stop : [CallTichu | canStillCallTichu game pn]
    in case gamePhase game of
-        Playing playerPlaying _ ->
+        Playing currentPlayer _ ->
           let combinations =
                 filter
                   (isValidForBoard $ board game)
@@ -670,7 +725,7 @@ possiblePlayerActions game pn =
                       hands game Map.! pn
                   )
            in defaultActions
-                ++ if pn == playerPlaying
+                ++ if pn == currentPlayer
                   then map Play combinations ++ pass
                   else
                     map
@@ -683,7 +738,7 @@ possiblePlayerActions game pn =
                           combinations
                       )
                       ++ [Pass]
-        Dealing _ -> defaultActions
+        Dealing _ -> defaultActions -- TODO: Add GrandTichu
         Distributing -> defaultActions
         _ -> []
  where
@@ -736,79 +791,42 @@ selectFromList selectionList rawInput = do
               putStrLnE "Invalid action"
                 >> return Nothing
 
-getPlayerPlayingWithPasses :: Game -> (PlayerName, Passes)
-getPlayerPlayingWithPasses game = case gamePhase game of
+getCurrentPlayerWithPasses :: Game -> (PlayerName, Passes)
+getCurrentPlayerWithPasses game = case gamePhase game of
   Playing playerName numberOfPassesBefore -> (playerName, numberOfPassesBefore)
   _ -> error "Wrong game phase should be Playing"
 
+getActivePlayers :: Game -> [PlayerName]
+getActivePlayers game = case sittingOrder (gameConfig game) \\ finishOrder game of
+  [_] -> [] -- only one player left: game finished
+  ps  -> ps
+
+getCurrentPlayer :: Game -> PlayerName
+getCurrentPlayer = fst . getCurrentPlayerWithPasses
+
+playerListWithCurrentPlayerFirst :: Game -> [PlayerName]
+playerListWithCurrentPlayerFirst game =
+  let playerList = getActivePlayers game
+      i = fromJust $ elemIndex (getCurrentPlayer game) playerList
+   in drop i playerList ++ take i playerList
+
+getGamePlayersFromNames :: Game -> [PlayerName] -> [GamePlayer]
+getGamePlayersFromNames game = map (\p -> gamePlayers game Map.! p)
+
 getPlayerActions :: Game -> IO (Map PlayerName PlayerAction)
 getPlayerActions game = do
-  actions <- mapM ask reorderedPlayerList
-  return $ Map.fromList $ zip reorderedPlayerList actions
- where
-  playerPlaying :: PlayerName
-  playerPlaying = fst $ getPlayerPlayingWithPasses game
-  reorderedPlayerList :: [PlayerName]
-  reorderedPlayerList =
-    let playerList = playerNames' game
-        i = fromJust $ elemIndex playerPlaying playerList
-     in drop i playerList ++ take i playerList
-  ask :: PlayerName -> IO PlayerAction
-  ask pn = do
-    showPlayerInfo
-    putStrLnQI "Combination to beat:"
-    putStrLnQI $ showLastPlayedCards game
-    putStrLnQI "Full board:"
-    printQI $ map cardsFromCombination (board game)
-    putStrLnQI ("Hands of player " ++ show pn ++ ":")
-    printQI (hands game Map.! pn)
-    askForPlayerAction pn (possiblePlayerActions game pn)
-   where
-    showPlayerInfo :: IO ()
-    showPlayerInfo =
-      if pn == playerPlaying
-        then
-          putStrLnQ
-            ( "It is players "
-                ++ show playerPlaying
-                ++ " turn. What do you want to do?"
-            )
-        else
-          putStrLnQ
-            ( "Does player "
-                ++ show pn
-                ++ " want to do something before player "
-                ++ show playerPlaying
-                ++ " does its turn?"
-            )
+  let players = playerListWithCurrentPlayerFirst game
+  actions <-
+    mapM (getPlayerActionsByName game) players
+  return $ Map.fromList $ zip players actions
 
-askForTichu :: Game -> IO Game
-askForTichu game = case filter canStillCallTichu (playerNames' game) of
-  [] -> return game
-  stillCanCallTichu -> do
-    putStrLnQ "Who wants to call Tichu? Players that still can call Tichu:"
-    foldM_ printWithNumber 0 stillCanCallTichu
-    putStrLnQI "Select the player which hands should be shown or just press enter to proceed."
-    rawInput <- getTrimmedLine
-    case rawInput of
-      "" -> putStrLnA "Exiting Tichu Menu" >> return game
-      _ -> do
-        selection <- selectFromList stillCanCallTichu rawInput
-        case selection of
-          Nothing -> askForTichu game
-          Just playerToShowHands -> do
-            putStrLnQI ("Hands of player " ++ show playerToShowHands ++ ":")
-            printQI (hands game Map.! playerToShowHands)
-            putStrLnQI "Do you want to call Tichu? (y/N)"
-            rawInputForTichu <- getTrimmedLine
-            if rawInputForTichu == "y"
-              then
-                let game' = applyPlayerAction game playerToShowHands CallTichu
-                 in putStrLnA ("Player " ++ show playerToShowHands ++ " called Tichu!") >> askForTichu game'
-              else putStrLnA "No tichu called." >> askForTichu game
- where
-  canStillCallTichu :: PlayerName -> Bool
-  canStillCallTichu pn = length (hands game Map.! pn) == maxCards && isNothing (tichus game Map.! pn)
+getPlayerActionsByName :: Game -> PlayerName -> IO PlayerAction
+getPlayerActionsByName game pn =
+  let allPossibleActions = possiblePlayerActions game pn
+   in pickPlayerAction (gamePlayers game Map.! pn) game allPossibleActions pn
+
+canStillCallTichu :: Game -> PlayerName -> Bool
+canStillCallTichu game pn = length (hands game Map.! pn) == maxCards && isNothing (tichus game Map.! pn)
 
 update :: Game -> IO Game
 update game = do
@@ -816,7 +834,8 @@ update game = do
     Starting                     -> startGame game
     Dealing _                    -> return $ dealAllCards game
     Distributing                 -> distribute game
-    Playing _ _                  -> askForTichu game >>= play
+    Playing _ _                  -> play game
+    -- Playing _ _                  -> askForTichu game >>= play
     NextRound                    -> nextRound game
     GiveAwayLooserTricksAndHands -> return $ giveAwayLooserTricksAndHands game
     Scoring                      -> return $ score game
@@ -847,14 +866,14 @@ giveAwayLooserTricksAndHands game = case playerNames' game \\ finishOrder game o
 applyPlayerAction :: Game -> PlayerName -> PlayerAction -> Game
 applyPlayerAction game pn playerAction =
   -- TODO: Finish implementation
-  let (playerPlaying, passes) = getPlayerPlayingWithPasses game
+  let (currentPlayer, passes) = getCurrentPlayerWithPasses game
    in case playerAction of
         Play combination ->
-          let playerHand = hands game Map.! playerPlaying
+          let playerHand = hands game Map.! currentPlayer
               cards = cardsFromCombination combination
               newPlayerHand = playerHand \\ cards
-              newHands = Map.insert playerPlaying newPlayerHand $ hands game
-              newFinishOrder = if null newPlayerHand then playerPlaying : finishOrder game else finishOrder game
+              newHands = Map.insert currentPlayer newPlayerHand $ hands game
+              newFinishOrder = if null newPlayerHand then currentPlayer : finishOrder game else finishOrder game
               endOfRound = case length newFinishOrder of
                 3 -> True
                 2 -> any (all (`elem` newFinishOrder)) (Map.elems $ playersByTeam game) -- match
@@ -862,7 +881,7 @@ applyPlayerAction game pn playerAction =
               newGamePhase =
                 if endOfRound
                   then Scoring
-                  else Playing (nextInOrder game playerPlaying) 0
+                  else Playing (nextInOrder game currentPlayer) 0
            in game
                 { hands = newHands
                 , board =
@@ -872,13 +891,13 @@ applyPlayerAction game pn playerAction =
                 , finishOrder = newFinishOrder
                 }
         Pass ->
-          if pn == playerPlaying
+          if pn == currentPlayer
             then
               if passes < 2
-                then game{gamePhase = Playing (nextInOrder game playerPlaying) (passes + 1)}
+                then game{gamePhase = Playing (nextInOrder game currentPlayer) (passes + 1)}
                 else -- FIXME: Give away trick with dragon!
 
-                  let nextPlayer = nextInOrder game playerPlaying
+                  let nextPlayer = nextInOrder game currentPlayer
                       trickNextPlayer = tricks game Map.! nextPlayer
                       newTrick = concatMap cardsFromCombination (board game) ++ trickNextPlayer
                       newBoard = []
@@ -890,20 +909,28 @@ applyPlayerAction game pn playerAction =
                         , tricks = Map.insert nextPlayer newTrick $ tricks game
                         }
             else game
-        Stop -> game{stop = True}
+        Stop -> game{shouldGameStop = True}
         CallTichu -> game{tichus = Map.insert pn (Just Tichu) (tichus game)}
         CallGrandTichu -> game{tichus = Map.insert pn (Just GrandTichu) (tichus game)}
-        _ -> game
 
 play :: Game -> IO Game
-play game = do
-  playerActions <- getPlayerActions game
-  return $ foldl' (\g (pn, pa) -> applyPlayerAction g pn pa) game $ sortBy ifPlayingLast (Map.toList playerActions)
+play game =
+  foldM (\g pn -> getPlayerActionsByName g pn >>= updateGameByPlayerAction g pn) game (sortBy currentPlayerFirst (getActivePlayers game))
  where
-  ifPlayingLast :: (PlayerName, a) -> (PlayerName, a) -> Ordering
-  ifPlayingLast (pn', _) (pn'', _) = case gamePhase game of
-    Playing playerPlaying _ -> if pn' == playerPlaying then GT else if pn'' == playerPlaying then LT else EQ
+  currentPlayerFirst :: PlayerName -> PlayerName -> Ordering
+  currentPlayerFirst pn' pn'' = case gamePhase game of
+    Playing currentPlayer _ -> if pn' == currentPlayer then LT else if pn'' == currentPlayer then GT else EQ
     _ -> EQ
+
+updateGameByPlayerAction :: Game -> PlayerName -> PlayerAction -> IO Game
+updateGameByPlayerAction game pn pa =
+  let game' = applyPlayerAction game pn pa
+   in if pa `elem` [CallTichu, CallGrandTichu]
+        then do
+          putStrLnA ("Player " ++ show pn ++ " called " ++ if pa == CallTichu then "Tichu" else "Grand Tichu")
+          pa' <- getPlayerActionsByName game' pn
+          return $ applyPlayerAction game' pn pa'
+        else return game'
 
 distribute :: Game -> IO Game
 distribute game = return game{gamePhase = Playing (startingPlayer $ hands game) 0} -- TODO: Implement
@@ -997,4 +1024,4 @@ run :: Game -> IO Game
 run game = display game >> update game
 
 playTichu :: IO ()
-playTichu = getGameConfig >>= iterateUntilM stop run . newGame >>= display
+playTichu = getGameConfig >>= iterateUntilM shouldGameStop run . newGame >>= display
