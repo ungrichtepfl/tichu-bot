@@ -1,5 +1,4 @@
-{-# LANGUAGE ImportQualifiedPost #-}
-{-# LANGUAGE LambdaCase          #-}
+{-# LANGUAGE LambdaCase #-}
 
 -- Useful debug infos:
 -- Enabling assertions: https://stackoverflow.com/questions/45777703/turning-on-assertions-while-compiling-with-haskells-stack-build-system

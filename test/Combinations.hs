@@ -1,5 +1,3 @@
-{-# LANGUAGE ImportQualifiedPost #-}
-
 import qualified Data.Map         as Map
 import           Test.Tasty
 import           Test.Tasty.HUnit
