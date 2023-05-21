@@ -365,7 +365,7 @@ toTichuCombination cards
 
 data GameConfig = GameConfig
   { sittingOrder :: [PlayerName]
-  , isAI         :: [Bool]
+  , playerTypes  :: [GamePlayer]
   , teamNames    :: [TeamName]
   , scoreLimit   :: Score
   }
@@ -412,54 +412,54 @@ instance Show GamePhase where
   show NextRound = "NextRound"
   show Finished = "Finished"
 
-data GamePlayer = CLI CLIPlayer | AI AIPlayer
-  deriving (Show, Eq)
-
-data AIPlayer = AIPlayer
-  deriving (Show, Eq)
-
-data CLIPlayer = CLIPlayer
-  deriving (Show, Eq)
+data GamePlayer = CLIPlayer | RandomPlayer
+  deriving (Show, Eq, Read)
 
 class Playable a where
   pickPlayerAction :: a -> Game -> [PlayerAction] -> PlayerName -> IO PlayerAction
 
 instance Playable GamePlayer where
-  pickPlayerAction (CLI p) = pickPlayerAction p
-  pickPlayerAction (AI p)  = pickPlayerAction p
+  pickPlayerAction CLIPlayer    = pickPlayerActionCLI
+  pickPlayerAction RandomPlayer = pickPlayerActionRandom
 
-instance Playable CLIPlayer where
-  pickPlayerAction _ game allPossibleActions pn = do
-    showPlayerInfo
-    putStrLnQI "Combination to beat:"
-    putStrLnQI $ showLastPlayedCards game
-    putStrLnQI "Full board:"
-    printQI $ map cardsFromCombination (board game)
-    putStrLnQI ("Hands of player " ++ show pn ++ ":")
-    printQI (hands game Map.! pn)
-    askForPlayerAction pn allPossibleActions
-   where
-    showPlayerInfo :: IO ()
-    showPlayerInfo =
-      let currentPlayer = getCurrentPlayer game
-       in if pn == currentPlayer
-            then
-              putStrLnQ
-                ( "It is players "
-                    ++ show currentPlayer
-                    ++ " turn. What do you want to do?"
-                )
-            else
-              putStrLnQ
-                ( "Does player "
-                    ++ show pn
-                    ++ " want to do something before player "
-                    ++ show currentPlayer
-                    ++ " does its turn?"
-                )
+pickPlayerActionRandom :: Game -> [PlayerAction] -> PlayerName -> IO PlayerAction
+pickPlayerActionRandom _ allPossibleActions _ = do
+  let possibleActions = filter (Stop /=) allPossibleActions
+  if null possibleActions
+    then error "No possible actions."
+    else do
+      index <- randomRIO (0, length possibleActions - 1)
+      return $ possibleActions !! index
 
-instance Playable AIPlayer where
-  pickPlayerAction _ _ = undefined -- TODO: Implement
+pickPlayerActionCLI :: Game -> [PlayerAction] -> PlayerName -> IO PlayerAction
+pickPlayerActionCLI game allPossibleActions pn = do
+  showPlayerInfo
+  putStrLnQI "Combination to beat:"
+  putStrLnQI $ showLastPlayedCards game
+  putStrLnQI "Full board:"
+  printQI $ map cardsFromCombination (board game)
+  putStrLnQI ("Hands of player " ++ show pn ++ ":")
+  printQI (hands game Map.! pn)
+  askForPlayerAction pn allPossibleActions
+ where
+  showPlayerInfo :: IO ()
+  showPlayerInfo =
+    let currentPlayer = getCurrentPlayer game
+     in if pn == currentPlayer
+          then
+            putStrLnQ
+              ( "It is players "
+                  ++ show currentPlayer
+                  ++ " turn. What do you want to do?"
+              )
+          else
+            putStrLnQ
+              ( "Does player "
+                  ++ show pn
+                  ++ " want to do something before player "
+                  ++ show currentPlayer
+                  ++ " does its turn?"
+              )
 
 data TichuType = Tichu | GrandTichu
   deriving (Show, Eq)
@@ -547,11 +547,7 @@ newGame config =
     , currentDealer = head $ playerNames config
     , finishOrder = []
     , shouldGameStop = False
-    , gamePlayers =
-        Map.fromList
-          [ (n, if a then AI AIPlayer else CLI CLIPlayer)
-          | (n, a) <- zip (sittingOrder config) (isAI config)
-          ]
+    , gamePlayers = Map.fromList [(n, gp) | (n, gp) <- zip (playerNames config) (playerTypes config)]
     }
 
 startGame :: Game -> IO Game
@@ -639,9 +635,35 @@ iterateUntilM p f v
 getGameConfig :: IO GameConfig
 getGameConfig = do
   players <- getPlayers
+  pts <- getPlayerTypes
   teams <- getTeamNames
-  let ais = [False, False, False, False] -- TODO: Ask players
-  GameConfig players ais teams <$> getMaxScore
+  GameConfig players pts teams <$> getMaxScore
+
+defaultPlayerTypes :: [GamePlayer]
+defaultPlayerTypes = [CLIPlayer, RandomPlayer, RandomPlayer, RandomPlayer]
+
+getPlayerTypes :: IO [GamePlayer]
+getPlayerTypes =
+  putStrLnQ ("Enter player types separated by spaces (default: " ++ show defaultPlayerTypes ++ ").")
+    -- TODO: List possible options
+    >> getTrimmedLine
+    >>= processInput
+ where
+  processInput :: String -> IO [GamePlayer]
+  processInput rawInput
+    | rawInput == quitSymbol = exitSuccess
+    | otherwise =
+        let
+          playerTypesRaw = words rawInput
+         in
+          case playerTypesRaw of
+            [] -> echoPlayerTypes defaultPlayerTypes
+            [_, _, _, _] -> case mapM read playerTypesRaw of
+              Nothing -> putStrLnE "Wrong kind of player type." >> getPlayerTypes -- TODO: List possible options
+              Just pts -> echoPlayerTypes pts >> return pts
+            _ -> putStrLnE "Wrong number of player types, should be 4." >> getPlayerTypes
+  echoPlayerTypes :: [GamePlayer] -> IO [GamePlayer]
+  echoPlayerTypes pn = putStrLnA ("Player types chosen: " ++ show pn) >> return pn
 
 getPlayers :: IO [PlayerName]
 getPlayers =

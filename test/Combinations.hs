@@ -61,7 +61,7 @@ testDeck = [PokerCard (v, c) | c <- [Spades .. Clubs], v <- [Two .. Ace]] ++ [Dr
 testGame :: String -> Game
 testGame dealer =
     Game
-        { gameConfig = GameConfig ["Alice", "Bob", "Charlie", "David"] [False, False, False, False] ["Team 1", "Team 2"] 1000
+        { gameConfig = GameConfig ["Alice", "Bob", "Charlie", "David"] [CLIPlayer, CLIPlayer, CLIPlayer, CLIPlayer] ["Team 1", "Team 2"] 1000
         , hands = Map.fromList [("Alice", []), ("Bob", []), ("Charlie", []), ("David", [])]
         , tricks = Map.fromList [("Alice", []), ("Bob", []), ("Charlie", []), ("David", [])]
         , gamePhase = Dealing testDeck
@@ -69,7 +69,7 @@ testGame dealer =
         , scores = Map.fromList [("Team 1", 0), ("Team 2", 0)]
         , board = []
         , currentDealer = dealer
-        , gamePlayers = Map.fromList [("Alice", CLI CLIPlayer), ("Bob", CLI CLIPlayer), ("Charlie", CLI CLIPlayer), ("David", CLI CLIPlayer)]
+        , gamePlayers = Map.fromList [("Alice", CLIPlayer), ("Bob", CLIPlayer), ("Charlie", CLIPlayer), ("David", CLIPlayer)]
         , finishOrder = []
         , shouldGameStop = False
         }
