@@ -1,146 +1,56 @@
-import qualified Data.Map         as Map
+module TestCombinations (combinationsTests) where
+
+import           Combinations
+import           Structures
 import           Test.Tasty
 import           Test.Tasty.HUnit
-import           Tichu
 
-main :: IO ()
-main = do
-    defaultMain
-        ( testGroup
-            "Tichu Tests"
-            [ dealXCards'Test
-            , deal0CardsTest
-            , deal1CardDealerFirstTest
-            , deal1CardDealerLastTest
-            , testIsNOfAKind
-            , testIsNOfAKind'
-            , testIsNotNOfAKind
-            , testIsNotNOfAKind'
-            , testIsNotNOfAKind''
-            , testIsNotNOfAKind'''
-            , testStraight
-            , testStraight1
-            , testStraight2
-            , testStraight3
-            , testStraight4
-            , testStraight5
-            , testStraight6
-            , testStraight7
-            , testStraight8
-            , testStraight9
-            , testStraight10
-            , testStraight11
-            , testStraight12
-            , testStraight13
-            , testBomb
-            , testBomb1
-            , testBomb2
-            , testBomb3
-            , testBomb4
-            , testBomb5
-            , testBomb6
-            , testBomb7
-            , testFullHouse
-            , testFullHouse1
-            , testFullHouse2
-            , testFullHouse3
-            , testFullHouse4
-            , testFullHouse5
-            , testStairs
-            , testStairs1
-            , testStairs2
-            , testStairs3
-            , testStairs4
-            , testStairs5
-            ]
-        )
+combinationsTests :: TestTree
+combinationsTests =
+     testGroup
+        "Combination Tests"
+        [ testIsNOfAKind
+        , testIsNOfAKind'
+        , testIsNotNOfAKind
+        , testIsNotNOfAKind'
+        , testIsNotNOfAKind''
+        , testIsNotNOfAKind'''
+        , testStraight
+        , testStraight1
+        , testStraight2
+        , testStraight3
+        , testStraight4
+        , testStraight5
+        , testStraight6
+        , testStraight7
+        , testStraight8
+        , testStraight9
+        , testStraight10
+        , testStraight11
+        , testStraight12
+        , testStraight13
+        , testBomb
+        , testBomb1
+        , testBomb2
+        , testBomb3
+        , testBomb4
+        , testBomb5
+        , testBomb6
+        , testBomb7
+        , testFullHouse
+        , testFullHouse1
+        , testFullHouse2
+        , testFullHouse3
+        , testFullHouse4
+        , testFullHouse5
+        , testStairs
+        , testStairs1
+        , testStairs2
+        , testStairs3
+        , testStairs4
+        , testStairs5
+        ]
 
-testDeck :: TichuCards
-testDeck = [PokerCard (v, c) | c <- [Spades .. Clubs], v <- [Two .. Ace]] ++ [Dragon, Phoenix, Mahjong, Dog]
-
-testGame :: String -> Game
-testGame dealer =
-    Game
-        { gameConfig = GameConfig ["Alice", "Bob", "Charlie", "David"] [CLIPlayer, CLIPlayer, CLIPlayer, CLIPlayer] ["Team 1", "Team 2"] 1000
-        , hands = Map.fromList [("Alice", []), ("Bob", []), ("Charlie", []), ("David", [])]
-        , tricks = Map.fromList [("Alice", []), ("Bob", []), ("Charlie", []), ("David", [])]
-        , gamePhase = Dealing testDeck
-        , tichus = Map.fromList [("Alice", Nothing), ("Bob", Nothing), ("Charlie", Nothing), ("David", Nothing)]
-        , scores = Map.fromList [("Team 1", 0), ("Team 2", 0)]
-        , board = []
-        , currentDealer = dealer
-        , gamePlayers = Map.fromList [("Alice", CLIPlayer), ("Bob", CLIPlayer), ("Charlie", CLIPlayer), ("David", CLIPlayer)]
-        , finishOrder = []
-        , shouldGameStop = False
-        }
-
-dealXCards'Test :: TestTree
-dealXCards'Test =
-    testCase "dealXCards'" $
-        let dealedHands =
-                dealXCards'
-                    ["Alice", "Bob", "Charlie", "David"]
-                    (take 5 testDeck)
-                    (Map.fromList [("Alice", []), ("Bob", []), ("Charlie", []), ("David", [])])
-         in assertEqual
-                "Everybody has one card"
-                ( Map.fromList
-                    [
-                        ( "Alice"
-                        , [PokerCard (Two, Spades)]
-                        )
-                    , ("Bob", [PokerCard (Three, Spades)])
-                    , ("Charlie", [PokerCard (Four, Spades)])
-                    , ("David", [PokerCard (Five, Spades)])
-                    ]
-                , [PokerCard (Six, Spades)]
-                )
-                dealedHands
-
-deal0CardsTest :: TestTree
-deal0CardsTest =
-    testCase "deal0Cards" $
-        let game = dealXCards (testGame "Alice") 0
-         in assertEqual
-                "Empty hands"
-                ( Map.fromList
-                    [ ("Alice", [])
-                    , ("Bob", [])
-                    , ("Charlie", [])
-                    , ("David", [])
-                    ]
-                )
-                (hands game)
-
-deal1CardDealerFirstTest :: TestTree
-deal1CardDealerFirstTest =
-    testCase "deal1CardDealerFirst" $
-        let game = dealXCards (testGame "Alice") 1
-         in assertEqual
-                "Everybody has one card"
-                ( Map.fromList
-                    [ ("Alice", [PokerCard (Five, Spades)])
-                    , ("Bob", [PokerCard (Two, Spades)])
-                    , ("Charlie", [PokerCard (Three, Spades)])
-                    , ("David", [PokerCard (Four, Spades)])
-                    ]
-                )
-                (hands game)
-
-deal1CardDealerLastTest :: TestTree
-deal1CardDealerLastTest =
-    testCase "deal1CardDealerFirst" $
-        let game = dealXCards (testGame "David") 1
-         in assertEqual
-                "Everybody has one card"
-                ( Map.fromList
-                    [ ("Alice", [PokerCard (Two, Spades)])
-                    , ("Bob", [PokerCard (Three, Spades)])
-                    , ("Charlie", [PokerCard (Four, Spades)])
-                    , ("David", [PokerCard (Five, Spades)])
-                    ]
-                )
-                (hands game)
 
 testIsNOfAKind :: TestTree
 testIsNOfAKind =

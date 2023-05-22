@@ -25,6 +25,13 @@ source-repository head
 
 library
   exposed-modules:
+      Combinations
+      Constants
+      GamePlayer
+      IO
+      Players.CommandLine
+      Players.Random
+      Structures
       Tichu
       Utils
   other-modules:
@@ -56,8 +63,11 @@ executable tichu-bot
 
 test-suite tichu-bot-test
   type: exitcode-stdio-1.0
-  main-is: Combinations.hs
+  main-is: TestMain.hs
   other-modules:
+      MockGame
+      TestCombinations
+      TestTichu
       Paths_tichu_bot
   hs-source-dirs:
       test
