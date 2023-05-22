@@ -9,9 +9,7 @@
 module Tichu (module Tichu) where
 
 import           Control.Exception (assert)
-import           Control.Monad     (foldM, foldM_, forM)
-import           Data.Array.IO     (IOArray, newListArray, readArray,
-                                    writeArray)
+import           Control.Monad     (foldM, foldM_)
 import           Data.Char         (isSpace)
 import           Data.List         (elemIndex, foldl', nub, nubBy, sort, sortBy,
                                     tails, (\\))
@@ -22,6 +20,7 @@ import           System.Exit       (exitSuccess)
 import           System.IO         (hFlush, stdout)
 import           System.Random     (randomRIO)
 import           Text.Read         (readMaybe)
+import           Utils
 
 ----- CONSTANTS -------
 
@@ -80,29 +79,6 @@ printQI = putStrLnQI . show
 
 printE :: Show a => a -> IO ()
 printE = putStrLnE . show
-
-setEmpty :: Map k [a] -> Map k [a]
-setEmpty = Map.map (const [])
-
-setFalse :: Map k Bool -> Map k Bool
-setFalse = Map.map (const False)
-
-setNothing :: Map k (Maybe a) -> Map k (Maybe a)
-setNothing = Map.map (const Nothing)
-
-shuffle :: [a] -> IO [a]
-shuffle xs = do
-  ar <- newArray' n xs
-  forM [1 .. n] $ \i -> do
-    j <- randomRIO (i, n)
-    vi <- readArray ar i
-    vj <- readArray ar j
-    writeArray ar j vi
-    return vj
- where
-  n = length xs
-  newArray' :: Int -> [a] -> IO (IOArray Int a)
-  newArray' n' = newListArray (1, n')
 
 trim :: String -> String
 trim =

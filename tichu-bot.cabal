@@ -26,6 +26,7 @@ source-repository head
 library
   exposed-modules:
       Tichu
+      Utils
   other-modules:
       Paths_tichu_bot
   hs-source-dirs:
