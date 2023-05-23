@@ -11,11 +11,11 @@ pickPlayerActionCommandLine :: Game -> [PlayerAction] -> PlayerName -> IO Player
 pickPlayerActionCommandLine game allPossibleActions pn = do
   showPlayerInfo
   putStrLnQI "Combination to beat:"
-  putStrLnQI $ showLastPlayedCards game
+  putStrLnQI (showLastPlayedCardsSep " " game ++ " ") -- Space needed for unicode symbols to show correctly
   putStrLnQI "Full board:"
   printQI $ map cardsFromCombination (board game)
   putStrLnQI ("Hands of player " ++ show pn ++ ":")
-  putStrLnQI $ showList' (hands game Map.! pn)
+  putStrLnQI (showListSep " " (hands game Map.! pn) ++ " ") -- Space needed for unicode symbols to show correctly
   askForPlayerAction pn allPossibleActions
  where
   showPlayerInfo :: IO ()

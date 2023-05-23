@@ -288,14 +288,13 @@ getPlayerActionsByName game gamePlayers pn =
 canStillCallTichu :: Game -> PlayerName -> Bool
 canStillCallTichu game pn = length (hands game Map.! pn) == maxCards && isNothing (tichus game Map.! pn)
 
-update :: Game -> GamePlayers -> IO Game
-update game gamePlayers = do
+updateGame :: Game -> GamePlayers -> IO Game
+updateGame game gamePlayers = do
   case gamePhase game of
     Starting                     -> startGame game
     Dealing _                    -> return $ dealAllCards game
     Distributing                 -> distribute game
     Playing _ _                  -> play game gamePlayers
-    -- Playing _ _                  -> askForTichu game >>= play
     NextRound                    -> nextRound game
     GiveAwayLooserTricksAndHands -> return $ giveAwayLooserTricksAndHands game
     Scoring                      -> return $ score game
@@ -408,6 +407,7 @@ display game =
     >> putStrLnQI ("Hands: " ++ showMap (hands game))
     >> putStrLnQI ("Tricks: " ++ showMap (tricks game))
     >> putStrLnQI ("Score: " ++ showMap (scores game))
+    >> newLine
 
 matchBonus :: Int
 matchBonus = 200
@@ -480,11 +480,11 @@ finish game = do
   printWinners [(winner, winningScore)] = putStrLnQ ("Yeay we have a winner! Team " ++ show winner ++ " won with a score of " ++ show winningScore ++ " points.")
   printWinners winners = putStrLnQ ("Yeeeey, we have more than one winner! The teams " ++ showList' winners)
 
-run :: GamePlayers -> Game -> IO Game
-run gamePlayers game = display game >> update game gamePlayers
+update :: GamePlayers -> Game -> IO Game
+update gamePlayers game = display game >> updateGame game gamePlayers
 
 playTichu :: IO ()
 playTichu = do
   gameConf <- getGameConfig
   gamePlayers <- getGamePlayers $ sittingOrder gameConf
-  iterateUntilM_ shouldGameStop (run gamePlayers) (newGame gameConf)
+  iterateUntilM_ shouldGameStop (update gamePlayers) (newGame gameConf)

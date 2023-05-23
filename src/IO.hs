@@ -13,6 +13,9 @@ inputPromptChar = '$'
 inputPrompt :: String
 inputPrompt = inputPromptChar : " "
 
+newLine :: IO ()
+newLine = putStrLn ""
+
 outputPrompt :: Int -> String
 outputPrompt n = replicate n outputPromptChar ++ " "
 
@@ -20,7 +23,7 @@ putStrLnQ :: String -> IO ()
 putStrLnQ = putStrLn . (outputPrompt 2 ++)
 
 putStrLnA :: String -> IO ()
-putStrLnA = putStrLn . (outputPrompt 1 ++)
+putStrLnA s = putStrLn (outputPrompt 1 ++ s) >> newLine
 
 putStrLnQI :: String -> IO ()
 putStrLnQI = putStrLn . (outputPrompt 4 ++)
