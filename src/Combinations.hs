@@ -50,12 +50,15 @@ isNstraight cards n
   isStraight' cards'
     | containsSpecialCardsNoPhoenix cards' = False
     | otherwise =
-        let values = mapMaybe value cards'
+        let numCards = length cards'
+            values = mapMaybe value cards'
             minVal = minimum values
             maxVal = maximum values
             values' = [minVal .. maxVal]
             values'' = values' \\ values
-         in length values'' <= 1 && nub values == values
+         in if Phoenix `elem` cards'
+              then length values'' <= 1 && nub cards' == cards'
+              else numCards == length values'
 
 isBomb :: TichuCards -> Bool
 isBomb cards
