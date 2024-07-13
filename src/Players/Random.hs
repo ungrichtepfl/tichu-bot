@@ -1,7 +1,7 @@
 module Players.Random (pickPlayerActionRandom) where
 
-import           Structures
-import           System.Random (randomRIO)
+import Structures
+import System.Random (randomRIO)
 
 pickPlayerActionRandom :: Game -> [PlayerAction] -> PlayerName -> IO PlayerAction
 pickPlayerActionRandom _ allPossibleActions _ = do

@@ -1,8 +1,8 @@
 module IO (module IO) where
 
-import           Data.Char (isSpace)
-import           System.IO (hFlush, stdout)
-import           Text.Read (readMaybe)
+import Data.Char (isSpace)
+import System.IO (hFlush, stdout)
+import Text.Read (readMaybe)
 
 outputPromptChar :: Char
 outputPromptChar = '>'

@@ -1,9 +1,9 @@
 module TestCombinations (combinationsTests) where
 
-import           Combinations
-import           Structures
-import           Test.Tasty
-import           Test.Tasty.HUnit
+import Combinations
+import Structures
+import Test.Tasty
+import Test.Tasty.HUnit
 
 combinationsTests :: TestTree
 combinationsTests =

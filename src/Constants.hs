@@ -1,7 +1,7 @@
 module Constants (module Constants) where
 
-import           GamePlayer
-import           Structures
+import GamePlayer
+import Structures
 
 quitSymbol :: String
 quitSymbol = "q"

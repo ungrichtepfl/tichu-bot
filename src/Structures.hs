@@ -1,6 +1,6 @@
 module Structures (module Structures) where
 
-import           Data.Map (Map)
+import Data.Map (Map)
 
 type Passes = Int
 

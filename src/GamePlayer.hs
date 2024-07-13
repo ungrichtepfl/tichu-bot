@@ -1,8 +1,8 @@
 module GamePlayer (module GamePlayer) where
 
-import           Players.CommandLine
-import           Players.Random
-import           Structures
+import Players.CommandLine
+import Players.Random
+import Structures
 
 data GamePlayer = CommandLinePlayer | RandomPlayer
   deriving (Show, Eq, Read)

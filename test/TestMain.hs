@@ -1,6 +1,6 @@
-import           Test.Tasty
-import           TestCombinations
-import           TestTichu
+import Test.Tasty
+import TestCombinations
+import TestTichu
 
 main :: IO ()
 main =
