@@ -1,4 +1,4 @@
-module IO (module IO) where
+module Players.IO (module Players.IO) where
 
 import Data.Char (isSpace)
 import System.IO (hFlush, stdout)

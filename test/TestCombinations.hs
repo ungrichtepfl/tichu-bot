@@ -1,7 +1,7 @@
 module TestCombinations (combinationsTests) where
 
-import Combinations
-import Structures
+import Game.Combinations
+import Game.Structures
 import Test.Tasty
 import Test.Tasty.HUnit
 

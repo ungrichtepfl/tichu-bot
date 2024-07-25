@@ -1,9 +1,9 @@
-module Combinations (module Combinations) where
+module Game.Combinations (module Game.Combinations) where
 
-import Data.List  (nub, nubBy, sort, tails, (\\))
-import Data.Maybe (mapMaybe)
-import Structures
-import Utils
+import Data.List       (nub, nubBy, sort, tails, (\\))
+import Data.Maybe      (mapMaybe)
+import Game.Structures
+import Game.Utils
 
 isNOfAKind :: Int -> TichuCards -> Bool
 isNOfAKind 1 [_] = True

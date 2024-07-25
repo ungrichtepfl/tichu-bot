@@ -1,4 +1,4 @@
-module Utils (module Utils) where
+module Game.Utils (module Game.Utils) where
 
 import           Control.Exception (assert)
 import           Control.Monad     (forM)
@@ -8,7 +8,7 @@ import           Data.List         (elemIndex, (\\))
 import           Data.Map          (Map)
 import qualified Data.Map          as Map
 import           Data.Maybe        (fromJust)
-import           Structures
+import           Game.Structures
 import           System.Exit       (exitSuccess)
 import           System.Random     (randomRIO)
 

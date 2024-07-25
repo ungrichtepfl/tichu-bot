@@ -25,15 +25,15 @@ source-repository head
 
 library
   exposed-modules:
-      Combinations
-      Constants
-      GamePlayer
-      IO
+      Game.Combinations
+      Game.Constants
+      Game.Structures
+      Game.Tichu
+      Game.Utils
       Players.CommandLine
+      Players.GamePlayer
+      Players.IO
       Players.Random
-      Structures
-      Tichu
-      Utils
   other-modules:
       Paths_tichu_bot
   hs-source-dirs:

@@ -1,7 +1,6 @@
-module Constants (module Constants) where
+module Game.Constants (module Game.Constants) where
 
-import GamePlayer
-import Structures
+import Game.Structures
 
 quitSymbol :: String
 quitSymbol = "q"
@@ -17,6 +16,3 @@ defaultScoreLimit = 1000
 
 maxCards :: Int
 maxCards = 14
-
-defaultPlayerTypes :: [GamePlayer]
-defaultPlayerTypes = [CommandLinePlayer, RandomPlayer, RandomPlayer, RandomPlayer]

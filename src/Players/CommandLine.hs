@@ -1,14 +1,14 @@
-module Players.CommandLine (pickPlayerActionCommandLine) where
+module Players.CommandLine (commandLinePlayer, commandLinePlayer') where
 
-import           Control.Monad (foldM_)
-import qualified Data.Map      as Map
-import           IO
-import           Utils
+import Control.Monad (foldM_)
+import qualified Data.Map as Map
+import Game.Utils
+import Players.IO
 
-import           Structures
+import Game.Structures
 
-pickPlayerActionCommandLine :: Game -> [PlayerAction] -> PlayerName -> IO PlayerAction
-pickPlayerActionCommandLine game allPossibleActions pn = do
+commandLinePlayer :: Game -> [PlayerAction] -> PlayerName -> IO PlayerAction
+commandLinePlayer game allPossibleActions pn = do
   showPlayerInfo
   putStrLnQI "Combination to beat:"
   putStrLnQI (showLastPlayedCardsSep " " game ++ " ") -- Space needed for unicode symbols to show correctly
@@ -59,3 +59,6 @@ askForPlayerAction playerName possibleActions = do
             (show playerName ++ " wanted to exit.")
             >> exitGame
         Just action -> putStrLnA ("Player " ++ show playerName ++ " played: " ++ show action) >> return action
+
+commandLinePlayer' :: (String, GamePlayer)
+commandLinePlayer' = ("commandLinePlayer", commandLinePlayer)

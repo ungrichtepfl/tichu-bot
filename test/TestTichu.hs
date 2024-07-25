@@ -1,11 +1,11 @@
 module TestTichu (tichuTests) where
 
 import qualified Data.Map         as Map
+import           Game.Structures
+import           Game.Tichu
 import           MockGame
-import           Structures
 import           Test.Tasty
 import           Test.Tasty.HUnit
-import           Tichu
 
 tichuTests :: TestTree
 tichuTests =

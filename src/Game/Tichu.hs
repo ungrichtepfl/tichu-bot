@@ -6,23 +6,21 @@
 -- Profil build: https://stackoverflow.com/questions/32123475/profiling-builds-with-stack
 --  i.e. stack run --profile -- +RTS -xc
 
-module Tichu (module Tichu) where
+module Game.Tichu (module Game.Tichu) where
 
-import           Combinations
-import           Constants
-import           Control.Exception (assert)
-import           Control.Monad     (foldM)
-import           Data.List         (elemIndex, foldl', nub, sort, sortBy, (\\))
-import           Data.Map          (Map)
-import qualified Data.Map          as Map
-import           Data.Maybe        (fromJust, isJust, isNothing)
-import           GamePlayer
-import           IO
-import           Structures
-import           Text.Read         (readMaybe)
-import           Utils
-
-type GamePlayers = Map PlayerName GamePlayer
+import Control.Exception (assert)
+import Control.Monad (foldM)
+import Data.List (elemIndex, foldl', nub, sort, sortBy, (\\))
+import Data.Map (Map)
+import qualified Data.Map as Map
+import Data.Maybe (fromJust, isJust, isNothing)
+import Game.Combinations
+import Game.Constants
+import Game.Structures
+import Game.Utils
+import Players.GamePlayer
+import Players.IO
+import Text.Read (readMaybe)
 
 orderedDeck :: TichuCards
 orderedDeck =
@@ -142,29 +140,6 @@ getGameConfig = do
   teams <- getTeamNames
   GameConfig players teams <$> getMaxScore
 
-getGamePlayers :: [PlayerName] -> IO GamePlayers
-getGamePlayers pns =
-  putStrLnQ ("Enter player types separated by spaces for players " ++ showList' pns ++ " (default: " ++ showList' defaultPlayerTypes ++ ").")
-    -- TODO: List possible options
-    >> getTrimmedLine
-    >>= processInput
- where
-  processInput :: String -> IO GamePlayers
-  processInput rawInput
-    | rawInput == quitSymbol = exitGame
-    | otherwise =
-        let
-          playerTypesRaw = words rawInput
-         in
-          case playerTypesRaw of
-            [] -> echoPlayerTypes (Map.fromList $ zip pns defaultPlayerTypes)
-            [_, _, _, _] -> case mapM read playerTypesRaw of
-              Nothing -> putStrLnE "Wrong kind of player type." >> getGamePlayers pns -- TODO: List possible options
-              Just pts -> echoPlayerTypes (Map.fromList $ zip pns pts)
-            _ -> putStrLnE "Wrong number of player types, should be 4." >> getGamePlayers pns
-  echoPlayerTypes :: GamePlayers -> IO GamePlayers
-  echoPlayerTypes gps = putStrLnA ("Player types chosen: " ++ showMap gps) >> return gps
-
 getPlayers :: IO [PlayerName]
 getPlayers =
   putStrLnQ ("Enter player names separated by spaces (default: " ++ showList' defaultPlayerNames ++ "). This will also be the sitting order:")
@@ -242,8 +217,7 @@ possiblePlayerActions game pn =
           let combinations =
                 filter
                   (isValidForBoard $ board game)
-                  ( possibleCombinations $
-                      hands game Map.! pn
+                  ( possibleCombinations $ hands game Map.! pn
                   )
            in defaultActions
                 ++ if pn == currentPlayer
@@ -254,7 +228,7 @@ possiblePlayerActions game pn =
                       ( filter
                           ( \case
                               Bomb _ _ -> not $ null (board game)
-                              _        -> False
+                              _ -> False
                           )
                           combinations
                       )
@@ -272,33 +246,33 @@ playerListWithCurrentPlayerFirst game =
       i = fromJust $ elemIndex (getCurrentPlayer game) playerList
    in drop i playerList ++ take i playerList
 
-getPlayerActions :: Game -> GamePlayers -> IO (Map PlayerName PlayerAction)
+getPlayerActions :: Game -> Map PlayerName GamePlayer -> IO (Map PlayerName PlayerAction)
 getPlayerActions game gamePlayers = do
   let players = playerListWithCurrentPlayerFirst game
   actions <-
     mapM (getPlayerActionsByName game gamePlayers) players
   return $ Map.fromList $ zip players actions
 
-getPlayerActionsByName :: Game -> GamePlayers -> PlayerName -> IO PlayerAction
+getPlayerActionsByName :: Game -> Map PlayerName GamePlayer -> PlayerName -> IO PlayerAction
 getPlayerActionsByName game gamePlayers pn =
   let allPossibleActions = possiblePlayerActions game pn
       gamePlayer = gamePlayers Map.! pn
-   in pickPlayerAction gamePlayer game allPossibleActions pn
+   in gamePlayer game allPossibleActions pn
 
 canStillCallTichu :: Game -> PlayerName -> Bool
 canStillCallTichu game pn = length (hands game Map.! pn) == maxCards && isNothing (tichus game Map.! pn)
 
-updateGame :: Game -> GamePlayers -> IO Game
+updateGame :: Game -> Map PlayerName GamePlayer -> IO Game
 updateGame game gamePlayers = do
   case gamePhase game of
-    Starting                     -> startGame game
-    Dealing _                    -> return $ dealAllCards game
-    Distributing                 -> distribute game
-    Playing _ _                  -> play game gamePlayers
-    NextRound                    -> nextRound game
+    Starting -> startGame game
+    Dealing _ -> return $ dealAllCards game
+    Distributing -> distribute game
+    Playing _ _ -> play game gamePlayers
+    NextRound -> nextRound game
     GiveAwayLooserTricksAndHands -> return $ giveAwayLooserTricksAndHands game
-    Scoring                      -> return $ score game
-    Finished                     -> finish game
+    Scoring -> return $ score game
+    Finished -> finish game
 
 giveAwayLooserTricksAndHands :: Game -> Game
 giveAwayLooserTricksAndHands game = case playerNames' game \\ finishOrder game of
@@ -355,7 +329,6 @@ applyPlayerAction game pn playerAction =
               if passes < 2
                 then game{gamePhase = Playing (nextInOrder game currentPlayer) (passes + 1)}
                 else -- FIXME: Give away trick with dragon!
-
                   let nextPlayer = nextInOrder game currentPlayer
                       trickNextPlayer = tricks game Map.! nextPlayer
                       newTrick = concatMap cardsFromCombination (board game) ++ trickNextPlayer
@@ -372,7 +345,7 @@ applyPlayerAction game pn playerAction =
         CallTichu -> game{tichus = Map.insert pn (Just Tichu) (tichus game)}
         CallGrandTichu -> game{tichus = Map.insert pn (Just GrandTichu) (tichus game)}
 
-play :: Game -> GamePlayers -> IO Game
+play :: Game -> Map PlayerName GamePlayer -> IO Game
 play game gamePlayers =
   foldM (\g pn -> getPlayerActionsByName g gamePlayers pn >>= updateGameByPlayerAction g gamePlayers pn) game (sortBy currentPlayerFirst (getActivePlayers game))
  where
@@ -381,7 +354,7 @@ play game gamePlayers =
     Playing currentPlayer _ -> if pn' == currentPlayer then LT else if pn'' == currentPlayer then GT else EQ
     _ -> EQ
 
-updateGameByPlayerAction :: Game -> GamePlayers -> PlayerName -> PlayerAction -> IO Game
+updateGameByPlayerAction :: Game -> Map PlayerName GamePlayer -> PlayerName -> PlayerAction -> IO Game
 updateGameByPlayerAction game gamePlayers pn pa =
   let game' = applyPlayerAction game pn pa
    in if pa `elem` [CallTichu, CallGrandTichu]
@@ -480,7 +453,7 @@ finish game = do
   printWinners [(winner, winningScore)] = putStrLnQ ("Yeay we have a winner! Team " ++ show winner ++ " won with a score of " ++ show winningScore ++ " points.")
   printWinners winners = putStrLnQ ("Yeeeey, we have more than one winner! The teams " ++ showList' winners)
 
-update :: GamePlayers -> Game -> IO Game
+update :: Map PlayerName GamePlayer -> Game -> IO Game
 update gamePlayers game = display game >> updateGame game gamePlayers
 
 playTichu :: IO ()
@@ -488,3 +461,27 @@ playTichu = do
   gameConf <- getGameConfig
   gamePlayers <- getGamePlayers $ sittingOrder gameConf
   iterateUntilM_ shouldGameStop (update gamePlayers) (newGame gameConf)
+
+getGamePlayers :: [PlayerName] -> IO (Map PlayerName GamePlayer)
+getGamePlayers pns =
+  putStrLnQ ("Enter player types separated by spaces for players " ++ showList' pns ++ " (default: " ++ showList' (map fst defaultPlayerTypes) ++ ").")
+    -- TODO: List possible options
+    >> getTrimmedLine
+    >>= processInput
+ where
+  processInput :: String -> IO (Map PlayerName GamePlayer)
+  processInput rawInput
+    | rawInput == quitSymbol = exitGame
+    | otherwise =
+        let
+          playerTypesRaw = words rawInput
+         in
+          case playerTypesRaw of
+            [] -> echoPlayerTypes defaultPlayerTypes
+            [_, _, _, _] -> case mapM textToPlayer playerTypesRaw of
+              Nothing -> putStrLnE "Wrong kind of player type." >> getGamePlayers pns -- TODO: List possible options
+              Just pts -> echoPlayerTypes (zip playerTypesRaw pts)
+            _ -> putStrLnE "Wrong number of player types, should be 4." >> getGamePlayers pns
+
+  echoPlayerTypes :: [(String, GamePlayer)] -> IO (Map PlayerName GamePlayer)
+  echoPlayerTypes gps = putStrLnA ("Player types chosen: " ++ showList' (map fst gps)) >> return (Map.fromList $ zip pns (map snd gps))
