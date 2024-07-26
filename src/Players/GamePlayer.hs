@@ -11,6 +11,6 @@ defaultPlayerTypes = [commandLinePlayer', randomPlayer', randomPlayer', randomPl
 
 textToPlayer :: String -> Maybe GamePlayer
 textToPlayer p
-  | p == fst commandLinePlayer' = Just commandLinePlayer
-  | p == fst randomPlayer' = Just randomPlayer
-  | otherwise = Nothing
+    | p == fst commandLinePlayer' = Just commandLinePlayer
+    | p == fst randomPlayer' = Just randomPlayer
+    | otherwise = Nothing

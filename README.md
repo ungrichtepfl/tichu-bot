@@ -37,14 +37,10 @@ stack test
 
 ## Development
 
-Please use `stylish-haskell` as a formatter. Install it using:
-
-```shell
-stack install stylish-haskell
-```
+Please use `fourmolu>=0.16.2.0` as a formatter (see their [GitHub page](https://github.com/fourmolu/fourmolu?tab=readme-ov-file#usage).
 
 You can then run it using:
 
 ```shell
-stylish-haskell -i -r src test
+fourmolu -i -r src test
 ```

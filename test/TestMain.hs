@@ -1,4 +1,5 @@
 import Test.Tasty
+
 import TestCombinations
 import TestTichu
 

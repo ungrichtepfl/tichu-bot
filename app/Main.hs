@@ -34,4 +34,5 @@ main = playTichu
 -- teardown :: WindowResources -> IO ()
 -- teardown = closeWindow
 --
+
 -- $(raylibApplication 'startup 'mainLoop 'shouldClose 'teardown)

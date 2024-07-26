@@ -1,7 +1,8 @@
 module MockGame (testGame, testDeck) where
 
-import qualified Data.Map        as Map
-import           Game.Structures
+import qualified Data.Map as Map
+
+import Game.Structures
 
 testDeck :: TichuCards
 testDeck = [PokerCard (v, c) | c <- [Spades .. Clubs], v <- [Two .. Ace]] ++ [Dragon, Phoenix, Mahjong, Dog]
