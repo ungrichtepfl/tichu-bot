@@ -1,6 +1,6 @@
 module Main (main) where
 
-import Game.Tichu (playTichu)
+import Cli (playTichu)
 
 main :: IO ()
 main = playTichu

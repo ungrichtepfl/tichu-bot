@@ -55,74 +55,6 @@ shuffle xs = do
     newArray' :: Int -> [a] -> IO (IOArray Int a)
     newArray' n' = newListArray (1, n')
 
-showListSep :: (Show a) => String -> [a] -> String
-showListSep _ [] = ""
-showListSep _ [x] = show x
-showListSep sep (x : xs) = show x ++ sep ++ showListSep sep xs
-
-showStringListSep :: String -> [String] -> String
-showStringListSep _ [] = ""
-showStringListSep _ [x] = x
-showStringListSep sep (x : xs) = x ++ sep ++ showStringListSep sep xs
-
-showCharListSep :: String -> [Char] -> String
-showCharListSep _ [] = ""
-showCharListSep _ [x] = [x]
-showCharListSep sep (x : xs) = x : (sep ++ showCharListSep sep xs)
-
-showMapSep :: (Show k, Show v) => String -> Map k v -> String
-showMapSep sep m = showMapAsList $ Map.toList m
-  where
-    showMapAsList :: (Show k, Show v) => [(k, v)] -> String
-    showMapAsList [] = ""
-    showMapAsList [(k, v)] = show k ++ " -> " ++ show v
-    showMapAsList ((k, v) : xs) = show k ++ " -> " ++ show v ++ sep ++ showMapAsList xs
-
-showMapListSep :: (Show k, Show v) => String -> Map k [v] -> String
-showMapListSep sep m = showMapAsList $ Map.toList m
-  where
-    showMapAsList :: (Show k, Show v) => [(k, [v])] -> String
-    showMapAsList [] = ""
-    showMapAsList [(k, v)] = show k ++ " -> " ++ showList' v
-    showMapAsList ((k, v) : xs) = show k ++ " -> " ++ showList' v ++ sep ++ showMapAsList xs
-
-showMapCharListSep :: (Show k) => String -> Map k [Char] -> String
-showMapCharListSep sep m = showMapCharAsList $ Map.toList m
-  where
-    showMapCharAsList :: (Show k) => [(k, [Char])] -> String
-    showMapCharAsList [] = ""
-    showMapCharAsList [(k, v)] = show k ++ " -> " ++ showCharList v
-    showMapCharAsList ((k, v) : xs) = show k ++ " -> " ++ showCharList v ++ sep ++ showMapCharAsList xs
-
-showMapStringListSep :: (Show k) => String -> Map k [String] -> String
-showMapStringListSep sep m = showMapCharAsList $ Map.toList m
-  where
-    showMapCharAsList :: (Show k) => [(k, [String])] -> String
-    showMapCharAsList [] = ""
-    showMapCharAsList [(k, v)] = show k ++ " -> " ++ showStringList v
-    showMapCharAsList ((k, v) : xs) = show k ++ " -> " ++ showStringList v ++ sep ++ showMapCharAsList xs
-
-showList' :: (Show a) => [a] -> String
-showList' = showListSep ", "
-
-showStringList :: [String] -> String
-showStringList = showStringListSep ", "
-
-showCharList :: [Char] -> String
-showCharList = showCharListSep ", "
-
-showMap :: (Show k, Show v) => Map k v -> String
-showMap = showMapSep ", "
-
-showMapList :: (Show k, Show v) => Map k [v] -> String
-showMapList = showMapListSep ", "
-
-showMapCharList :: (Show k) => Map k [Char] -> String
-showMapCharList = showMapCharListSep ", "
-
-showMapStringList :: (Show k) => Map k [String] -> String
-showMapStringList = showMapStringListSep ", "
-
 nonPhoenixCards :: TichuCards -> TichuCards
 nonPhoenixCards = filter (/= Phoenix)
 
@@ -159,14 +91,6 @@ playersByTeam game =
             [p1, p2, p3, p4] -> [[p1, p3], [p2, p4]]
             _ -> error "Not yet implemented for others than 4 players."
      in Map.fromList $ zip (teamNames $ gameConfig game) playersByTeamList
-
-showLastPlayedCardsSep :: String -> Game -> String
-showLastPlayedCardsSep sep game = case board game of
-    [] -> "Empty board"
-    (lastComb : _) -> showListSep sep $ cardsFromCombination lastComb
-
-showLastPlayedCards :: Game -> String
-showLastPlayedCards = showLastPlayedCardsSep ", "
 
 isTichu :: Maybe TichuType -> Bool
 isTichu (Just Tichu) = True

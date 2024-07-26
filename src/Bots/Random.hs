@@ -1,4 +1,4 @@
-module Players.Random (randomPlayer, randomPlayer') where
+module Bots.Random (randomPlayer, randomPlayer') where
 
 import System.Random (randomRIO)
 

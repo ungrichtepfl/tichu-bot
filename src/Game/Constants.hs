@@ -16,3 +16,12 @@ defaultScoreLimit = 1000
 
 maxCards :: Int
 maxCards = 14
+
+matchBonus :: Int
+matchBonus = 200
+
+tichuBonus :: Int
+tichuBonus = 100
+
+grandTichuBonus :: Int
+grandTichuBonus = 200

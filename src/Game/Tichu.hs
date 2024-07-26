@@ -9,11 +9,9 @@
 module Game.Tichu (module Game.Tichu) where
 
 import Control.Exception (assert)
-import Control.Monad (foldM)
-import Data.List (elemIndex, foldl', nub, sort, sortBy, (\\))
+import Data.List (elemIndex, foldl', sort, (\\))
 import Data.Map (Map)
 import Data.Maybe (fromJust, isJust, isNothing)
-import Text.Read (readMaybe)
 
 import qualified Data.Map as Map
 
@@ -21,17 +19,12 @@ import Game.Combinations
 import Game.Constants
 import Game.Structures
 import Game.Utils
-import Players.GamePlayer
-import Players.IO
 
 orderedDeck :: TichuCards
 orderedDeck =
     [ PokerCard (v, c) | v <- [Two .. Ace], c <- [Spades .. Clubs]
     ]
         ++ [Dragon, Phoenix, Mahjong, Dog]
-
-shuffledDeck :: IO TichuCards
-shuffledDeck = shuffle orderedDeck
 
 initialHands :: [PlayerName] -> Map PlayerName TichuCards
 initialHands names = Map.fromList [(n, []) | n <- names]
@@ -59,29 +52,6 @@ newGame config =
         , finishOrder = []
         , shouldGameStop = False
         }
-
-startGame :: Game -> IO Game
-startGame game = do
-    initialDeck <- shuffledDeck
-    shuffledPlayers <- shuffle $ playerNames' game
-    let randomPlayer = head shuffledPlayers
-    return $
-        game
-            { gamePhase = Dealing initialDeck
-            , currentDealer = randomPlayer
-            }
-
-nextRound :: Game -> IO Game
-nextRound game = do
-    initialDeck <- shuffledDeck
-    return $
-        game
-            { hands = setEmpty $ hands game
-            , tricks = setEmpty $ tricks game
-            , gamePhase = Dealing initialDeck
-            , tichus = setNothing $ tichus game
-            , currentDealer = nextInOrder game (currentDealer game)
-            }
 
 currentDealerIndex :: Game -> Int
 currentDealerIndex game =
@@ -136,76 +106,6 @@ dealAllCards game = case gamePhase game of
          in game'{gamePhase = Distributing, hands = Map.map sort (hands game')}
     r -> error $ "Wrong round: " ++ show r
 
-getGameConfig :: IO GameConfig
-getGameConfig = do
-    players <- getPlayers
-    teams <- getTeamNames
-    GameConfig players teams <$> getMaxScore
-
-getPlayers :: IO [PlayerName]
-getPlayers =
-    putStrLnQ
-        ( "Enter player names separated by spaces (default: "
-            ++ showList' defaultPlayerNames
-            ++ "). This will also be the sitting order:"
-        )
-        >> getTrimmedLine
-        >>= processInput
-  where
-    processInput :: String -> IO [PlayerName]
-    processInput rawInput
-        | rawInput == quitSymbol = exitGame
-        | otherwise =
-            let players = words rawInput
-             in case players of
-                    [] -> echoPlayers defaultPlayerNames
-                    [_, _, _, _] ->
-                        if nub players /= players
-                            then putStrLnE "Player names must be unique." >> getPlayers
-                            else echoPlayers players
-                    _ -> putStrLnE "Wrong number of players, should be 4." >> getPlayers
-    echoPlayers :: [PlayerName] -> IO [PlayerName]
-    echoPlayers pn = putStrLnA ("Player names chosen: " ++ showList' pn) >> return pn
-
-getTeamNames :: IO [TeamName]
-getTeamNames =
-    putStrLnQ ("Enter team names separated by spaces (default: " ++ showList' defaultTeamNames ++ "):")
-        >> getTrimmedLine
-        >>= processInput
-  where
-    processInput :: String -> IO [TeamName]
-    processInput rawInput
-        | rawInput == quitSymbol = exitGame
-        | otherwise =
-            let teams = words rawInput
-             in case teams of
-                    [] -> echoTeams defaultTeamNames
-                    [_, _] ->
-                        if nub teams /= teams
-                            then putStrLnE "Team names must be unique." >> getTeamNames
-                            else echoTeams teams
-                    _ -> putStrLnE "Wrong number of teams, should be 2." >> getTeamNames
-    echoTeams :: [TeamName] -> IO [TeamName]
-    echoTeams tn = putStrLnA ("Team names chosen: " ++ showList' tn) >> return tn
-
-getMaxScore :: IO Int
-getMaxScore =
-    putStrLnQ ("Enter max score (default: " ++ show defaultScoreLimit ++ "):")
-        >> getTrimmedLine
-        >>= processInput
-  where
-    processInput :: String -> IO Int
-    processInput rawInput
-        | rawInput == "" = echoScore defaultScoreLimit
-        | rawInput == quitSymbol = exitGame
-        | otherwise =
-            let userInput = readMaybe rawInput
-             in case userInput of
-                    Just x -> echoScore x
-                    Nothing -> putStrLnE "Wrong input should be a positive number." >> getMaxScore
-    echoScore :: Int -> IO Int
-    echoScore sl = putStrLnA ("Score limit chosen: " ++ show sl) >> return sl
-
 isValidForBoard :: [TichuCombination] -> TichuCombination -> Bool
 isValidForBoard [] _ = True
 isValidForBoard ((SingleCard [Phoenix]) : rest) combi = isValidForBoard rest combi
@@ -247,55 +147,8 @@ playerListWithCurrentPlayerFirst game =
         i = fromJust $ elemIndex (getCurrentPlayer game) playerList
      in drop i playerList ++ take i playerList
 
-getPlayerActions :: Game -> Map PlayerName GamePlayer -> IO (Map PlayerName PlayerAction)
-getPlayerActions game gamePlayers = do
-    let players = playerListWithCurrentPlayerFirst game
-    actions <-
-        mapM (getPlayerActionsByName game gamePlayers) players
-    return $ Map.fromList $ zip players actions
-
-getPlayerActionsByName :: Game -> Map PlayerName GamePlayer -> PlayerName -> IO PlayerAction
-getPlayerActionsByName game gamePlayers pn =
-    let allPossibleActions = possiblePlayerActions game pn
-        gamePlayer = gamePlayers Map.! pn
-     in gamePlayer game allPossibleActions pn
-
 canStillCallTichu :: Game -> PlayerName -> Bool
 canStillCallTichu game pn = length (hands game Map.! pn) == maxCards && isNothing (tichus game Map.! pn)
-
-updateGame :: Game -> Map PlayerName GamePlayer -> IO Game
-updateGame game gamePlayers = do
-    case gamePhase game of
-        Starting -> startGame game
-        Dealing _ -> return $ dealAllCards game
-        Distributing -> distribute game
-        Playing _ _ -> play game gamePlayers
-        NextRound -> nextRound game
-        GiveAwayLooserTricksAndHands -> return $ giveAwayLooserTricksAndHands game
-        Scoring -> return $ score game
-        Finished -> finish game
-
-giveAwayLooserTricksAndHands :: Game -> Game
-giveAwayLooserTricksAndHands game = case playerNames' game \\ finishOrder game of
-    [looser] ->
-        let winner = head $ finishOrder game
-            newTricks = Map.insert looser [] (tricks game)
-            newTricks' =
-                Map.insert
-                    winner
-                    ( (tricks game Map.! winner)
-                        ++ (tricks game Map.! looser)
-                    )
-                    newTricks
-            playerOtherTeam = head $ head $ filter (notElem looser) (Map.elems $ playersByTeam game)
-            newTricks'' = Map.insert playerOtherTeam ((tricks game Map.! playerOtherTeam) ++ (hands game Map.! looser)) newTricks'
-            newHands = Map.insert looser [] (hands game)
-         in game
-                { tricks = newTricks''
-                , hands = newHands
-                , gamePhase = Scoring
-                }
-    _ -> error ("There should be 3 player in finishing order found: " ++ show (finishOrder game))
 
 applyPlayerAction :: Game -> PlayerName -> PlayerAction -> Game
 applyPlayerAction game pn playerAction =
@@ -346,54 +199,30 @@ applyPlayerAction game pn playerAction =
             CallTichu -> game{tichus = Map.insert pn (Just Tichu) (tichus game)}
             CallGrandTichu -> game{tichus = Map.insert pn (Just GrandTichu) (tichus game)}
 
-play :: Game -> Map PlayerName GamePlayer -> IO Game
-play game gamePlayers =
-    foldM
-        (\g pn -> getPlayerActionsByName g gamePlayers pn >>= updateGameByPlayerAction g gamePlayers pn)
-        game
-        (sortBy currentPlayerFirst (getActivePlayers game))
-  where
-    currentPlayerFirst :: PlayerName -> PlayerName -> Ordering
-    currentPlayerFirst pn' pn'' = case gamePhase game of
-        Playing currentPlayer _ -> if pn' == currentPlayer then LT else if pn'' == currentPlayer then GT else EQ
-        _ -> EQ
-
-updateGameByPlayerAction :: Game -> Map PlayerName GamePlayer -> PlayerName -> PlayerAction -> IO Game
-updateGameByPlayerAction game gamePlayers pn pa =
-    let game' = applyPlayerAction game pn pa
-     in if pa `elem` [CallTichu, CallGrandTichu]
-            then do
-                putStrLnA ("Player " ++ show pn ++ " called " ++ if pa == CallTichu then "Tichu." else "Grand Tichu.")
-                pa' <- getPlayerActionsByName game' gamePlayers pn
-                return $ applyPlayerAction game' pn pa'
-            else putStrLnA ("Player " ++ show pn ++ " played " ++ show pa ++ ".") >> return game'
-
-distribute :: Game -> IO Game
-distribute game = return game{gamePhase = Playing (startingPlayer $ hands game) 0} -- TODO: Implement
-
 startingPlayer :: Map PlayerName TichuCards -> PlayerName
 startingPlayer = head . Map.keys . Map.filter (elem Mahjong)
 
-display :: Game -> IO ()
-display game =
-    putStrLnQ
-        "Game State:"
-        >> printQI
-            (gamePhase game)
-        >> putStrLnQI ("Board: " ++ showList' (board game))
-        >> putStrLnQI ("Hands: " ++ showMap (hands game))
-        >> putStrLnQI ("Tricks: " ++ showMap (tricks game))
-        >> putStrLnQI ("Score: " ++ showMap (scores game))
-        >> newLine
-
-matchBonus :: Int
-matchBonus = 200
-
-tichuBonus :: Int
-tichuBonus = 100
-
-grandTichuBonus :: Int
-grandTichuBonus = 200
+giveAwayLooserTricksAndHands :: Game -> Game
+giveAwayLooserTricksAndHands game = case playerNames' game \\ finishOrder game of
+    [looser] ->
+        let winner = head $ finishOrder game
+            newTricks = Map.insert looser [] (tricks game)
+            newTricks' =
+                Map.insert
+                    winner
+                    ( (tricks game Map.! winner)
+                        ++ (tricks game Map.! looser)
+                    )
+                    newTricks
+            playerOtherTeam = head $ head $ filter (notElem looser) (Map.elems $ playersByTeam game)
+            newTricks'' = Map.insert playerOtherTeam ((tricks game Map.! playerOtherTeam) ++ (hands game Map.! looser)) newTricks'
+            newHands = Map.insert looser [] (hands game)
+         in game
+                { tricks = newTricks''
+                , hands = newHands
+                , gamePhase = Scoring
+                }
+    _ -> error ("There should be 3 player in finishing order found: " ++ show (finishOrder game))
 
 score :: Game -> Game
 score game =
@@ -442,52 +271,3 @@ score game =
                         )
                         (tichus game)
          in currentScoreForTeam + scoreFromCardsOrMatch + scoreForTichu + scoreForFailedTichu
-
-finish :: Game -> IO Game
-finish game = do
-    let winningTeams = Map.toList $ Map.filter (>= scoreLimit (gameConfig game)) (scores game)
-    printWinners winningTeams
-    return game
-  where
-    printWinners :: [(TeamName, Score)] -> IO ()
-    printWinners [] = error "No team won!"
-    printWinners [(winner, winningScore)] =
-        putStrLnQ ("Yeay we have a winner! Team " ++ show winner ++ " won with a score of " ++ show winningScore ++ " points.")
-    printWinners winners = putStrLnQ ("Yeeeey, we have more than one winner! The teams " ++ showList' winners)
-
-update :: Map PlayerName GamePlayer -> Game -> IO Game
-update gamePlayers game = display game >> updateGame game gamePlayers
-
-playTichu :: IO ()
-playTichu = do
-    gameConf <- getGameConfig
-    gamePlayers <- getGamePlayers $ sittingOrder gameConf
-    iterateUntilM_ shouldGameStop (update gamePlayers) (newGame gameConf)
-
-getGamePlayers :: [PlayerName] -> IO (Map PlayerName GamePlayer)
-getGamePlayers pns =
-    putStrLnQ
-        ( "Enter player types separated by spaces for players "
-            ++ showList' pns
-            ++ " (default: "
-            ++ showList' (map fst defaultPlayerTypes)
-            ++ ")."
-        )
-        -- TODO: List possible options
-        >> getTrimmedLine
-        >>= processInput
-  where
-    processInput :: String -> IO (Map PlayerName GamePlayer)
-    processInput rawInput
-        | rawInput == quitSymbol = exitGame
-        | otherwise =
-            let playerTypesRaw = words rawInput
-             in case playerTypesRaw of
-                    [] -> echoPlayerTypes defaultPlayerTypes
-                    [_, _, _, _] -> case mapM textToPlayer playerTypesRaw of
-                        Nothing -> putStrLnE "Wrong kind of player type." >> getGamePlayers pns -- TODO: List possible options
-                        Just pts -> echoPlayerTypes (zip playerTypesRaw pts)
-                    _ -> putStrLnE "Wrong number of player types, should be 4." >> getGamePlayers pns
-
-    echoPlayerTypes :: [(String, GamePlayer)] -> IO (Map PlayerName GamePlayer)
-    echoPlayerTypes gps = putStrLnA ("Player types chosen: " ++ showList' (map fst gps)) >> return (Map.fromList $ zip pns (map snd gps))

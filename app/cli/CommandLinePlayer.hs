@@ -1,12 +1,13 @@
-module Players.CommandLine (commandLinePlayer, commandLinePlayer') where
+module CommandLinePlayer (module CommandLinePlayer) where
 
 import Control.Monad (foldM_)
 
 import qualified Data.Map as Map
 
+import Bots.Random
 import Game.Structures
 import Game.Utils
-import Players.IO
+import IO
 
 commandLinePlayer :: Game -> [PlayerAction] -> PlayerName -> IO PlayerAction
 commandLinePlayer game allPossibleActions pn = do
@@ -63,3 +64,12 @@ askForPlayerAction playerName possibleActions = do
 
 commandLinePlayer' :: (String, GamePlayer)
 commandLinePlayer' = ("commandLinePlayer", commandLinePlayer)
+
+defaultPlayerTypes :: [(String, GamePlayer)]
+defaultPlayerTypes = [commandLinePlayer', randomPlayer', randomPlayer', randomPlayer']
+
+textToPlayer :: String -> Maybe GamePlayer
+textToPlayer p
+    | p == fst commandLinePlayer' = Just commandLinePlayer
+    | p == fst randomPlayer' = Just randomPlayer
+    | otherwise = Nothing

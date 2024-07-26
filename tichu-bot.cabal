@@ -5,7 +5,7 @@ cabal-version: 1.12
 -- see: https://github.com/sol/hpack
 
 name:           tichu-bot
-version:        0.1.0.0
+version:        0.1.1.0
 description:    Please see the README on GitHub at <https://github.com/ungrichtepfl/tichu-bot#readme>
 homepage:       https://github.com/ungrichtepfl/tichu-bot#readme
 bug-reports:    https://github.com/ungrichtepfl/tichu-bot/issues
@@ -25,15 +25,12 @@ source-repository head
 
 library
   exposed-modules:
+      Bots.Random
       Game.Combinations
       Game.Constants
       Game.Structures
       Game.Tichu
       Game.Utils
-      Players.CommandLine
-      Players.GamePlayer
-      Players.IO
-      Players.Random
   other-modules:
       Paths_tichu_bot
   hs-source-dirs:
@@ -49,6 +46,9 @@ library
 executable tichu-cli
   main-is: Main.hs
   other-modules:
+      Cli
+      CommandLinePlayer
+      IO
       Paths_tichu_bot
   hs-source-dirs:
       app/cli
