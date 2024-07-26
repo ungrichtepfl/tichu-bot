@@ -37,7 +37,7 @@ library:
 executables:
   tichu-bot:
     main: Main.hs
-    source-dirs: app
+    source-dirs: app/cli
     ghc-options:
       - -threaded
       - -rtsopts
