@@ -18,9 +18,9 @@ extra-source-files:
 description: Please see the README on GitHub at <https://github.com/ungrichtepfl/tichu-bot#readme>
 dependencies:
   - base >= 4.7 && < 5
-  - random == 1.2.1.1
-  - array == 0.5.4.0
-  - containers == 0.6.7
+  - random >= 1.2.1.1 && < 2
+  - array >= 0.5.4.0 && < 1
+  - containers >= 0.6.7 && < 1
 ghc-options:
   - -O2
   - -Wall
@@ -72,7 +72,7 @@ executables:
       - -Wpartial-fields
       - -Wredundant-constraints
     dependencies:
-      - h-raylib == 5.1.3.0
+      - h-raylib >= 5.5.2.1 && < 6
       - tichu-bot
 tests:
   tichu-bot-test:
@@ -84,5 +84,5 @@ tests:
       - -with-rtsopts=-N
     dependencies:
       - tichu-bot
-      - tasty == 1.4.3
-      - tasty-hunit == 0.10.1
+      - tasty >= 1.4.3 && < 2
+      - tasty-hunit >= 0.10.1 && < 1
