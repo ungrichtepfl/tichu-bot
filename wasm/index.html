@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Haskell + WASM</title>
+</head>
+
+<body>
+  <h1>Haskell + WebAssembly</h1>
+</body>
+<script type="module">
+
+  import {WASI} from "https://cdn.jsdelivr.net/npm/@runno/wasi@0.7.0/dist/wasi.js";
+
+  const wasi = new WASI({
+    stdout: (out) => console.log(out),
+    stdin: () => {
+      var text = window.prompt();
+      if (text === null) {
+        text = "q";
+      }
+      text += "\n";
+      return text;
+    }
+  });
+
+  const wasm = await WebAssembly.instantiateStreaming(fetch("./tichu-bot-wasm.wasm"), wasi.getImportObject());
+
+  wasi.start(wasm, {});
+
+
+</script>
+
+</html>
