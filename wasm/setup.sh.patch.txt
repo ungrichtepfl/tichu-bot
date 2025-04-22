@@ -1,0 +1,6 @@
+5d4
+< TEMP_DIR="${TEMP_DIR:-}"
+90c89
+< workdir=$(mktemp -d -p "${TEMP_DIR:-}")
+---
+> workdir=$(mktemp -d)
