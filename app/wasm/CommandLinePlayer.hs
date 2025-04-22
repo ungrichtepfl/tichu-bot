@@ -43,7 +43,7 @@ askForPlayerAction :: PlayerName -> [PlayerAction] -> IO PlayerAction
 askForPlayerAction playerName possibleActions = do
     putStrLnQI "Possible actions:"
     foldM_ printWithNumber 0 possibleActions
-    putStrLnQI "Enter the number of the desired action:"
+    putStrLnQI "Enter the number of the desired action (put nothing to pass and press cancel to stop game):"
     rawInput <- getTrimmedLine
     case rawInput of
         "" ->

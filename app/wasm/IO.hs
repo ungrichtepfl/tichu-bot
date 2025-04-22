@@ -26,31 +26,31 @@ outputPrompt :: Int -> String
 outputPrompt n = replicate n outputPromptChar ++ " "
 
 putStrLnQ :: String -> IO ()
-putStrLnQ = putStrLn . (outputPrompt 2 ++)
+putStrLnQ s = putStrLn (outputPrompt 2 ++ s) >> hFlush stdout
 
 putStrLnA :: String -> IO ()
-putStrLnA s = putStrLn (outputPrompt 1 ++ s) >> newLine
+putStrLnA s = putStrLn (outputPrompt 1 ++ s) >> newLine >> hFlush stdout
 
 putStrLnQI :: String -> IO ()
-putStrLnQI = putStrLn . (outputPrompt 4 ++)
+putStrLnQI s = putStrLn (outputPrompt 4 ++ s) >> hFlush stdout
 
 putStrLnE :: String -> IO ()
-putStrLnE = putStrLn . ("ERROR: " ++)
+putStrLnE s = putStrLn ("ERROR: " ++ s) >> hFlush stdout
 
 putStrLnD :: String -> IO ()
-putStrLnD = putStrLn . ("DEBUG: " ++)
+putStrLnD s = putStrLn ("DEBUG: " ++ s) >> hFlush stdout
 
 printQ :: (Show a) => a -> IO ()
-printQ = putStrLnQ . show
+printQ s = putStrLnQ (show s) >> hFlush stdout
 
 printA :: (Show a) => a -> IO ()
-printA = putStrLnA . show
+printA s = putStrLnA (show s) >> hFlush stdout
 
 printQI :: (Show a) => a -> IO ()
-printQI = putStrLnQI . show
+printQI s = putStrLnQI (show s) >> hFlush stdout
 
 printE :: (Show a) => a -> IO ()
-printE = putStrLnE . show
+printE s = putStrLnE (show s) >> hFlush stdout
 
 trim :: String -> String
 trim =

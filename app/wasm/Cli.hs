@@ -1,6 +1,7 @@
 module Cli (module Cli) where
 
 import Control.Monad (foldM)
+import Data.IORef
 import Data.List (nub, sortBy)
 import Data.Map (Map)
 import Text.Read (readMaybe)
@@ -38,7 +39,7 @@ getGamePlayers pns =
   where
     processInput :: String -> IO (Map PlayerName GamePlayer)
     processInput rawInput
-        | rawInput == quitSymbol = exitGame
+        | rawInput == quitSymbol || rawInput == "0" = exitGame
         | otherwise =
             let playerTypesRaw = words rawInput
              in case playerTypesRaw of
@@ -63,7 +64,7 @@ getPlayers =
   where
     processInput :: String -> IO [PlayerName]
     processInput rawInput
-        | rawInput == quitSymbol = exitGame
+        | rawInput == quitSymbol || rawInput == "0" = exitGame
         | otherwise =
             let players = words rawInput
              in case players of
@@ -84,7 +85,7 @@ getTeamNames =
   where
     processInput :: String -> IO [TeamName]
     processInput rawInput
-        | rawInput == quitSymbol = exitGame
+        | rawInput == quitSymbol || rawInput == "0" = exitGame
         | otherwise =
             let teams = words rawInput
              in case teams of
@@ -106,7 +107,7 @@ getMaxScore =
     processInput :: String -> IO Int
     processInput rawInput
         | rawInput == "" = echoScore defaultScoreLimit
-        | rawInput == quitSymbol = exitGame
+        | rawInput == quitSymbol || rawInput == "0" = exitGame
         | otherwise =
             let userInput = readMaybe rawInput
              in case userInput of

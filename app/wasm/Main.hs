@@ -2,6 +2,7 @@ module Main where
 
 import Cli (playTichu)
 
-main :: IO ()
-main = playTichu
+foreign export javascript "playTichu" playTichu :: IO ()
 
+main :: IO ()
+main = return ()

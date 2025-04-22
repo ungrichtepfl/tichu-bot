@@ -2,34 +2,38 @@
 <html lang="en">
 
 <head>
-  <meta charset="UTF-8">
-  <title>Haskell + WASM</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tichu Bot</title>
+  <style>
+    #console {
+      background-color: #000;
+      color: #0f0;
+      padding: 10px;
+      height: 300px;
+      overflow-y: auto;
+      font-family: monospace;
+      white-space: pre-wrap;
+      border: 1px solid #333;
+      margin-bottom: 10px;
+    }
+
+    #inputArea {
+      display: flex;
+      gap: 10px;
+    }
+
+    #userInput {
+      flex-grow: 1;
+      font-family: monospace;
+    }
+  </style>
 </head>
 
 <body>
-  <h1>Haskell + WebAssembly</h1>
+
+  <div id="console"></div>
+  <script type="module" src="tichu-bot.js"></script>
 </body>
-<script type="module">
-
-  import {WASI} from "https://cdn.jsdelivr.net/npm/@runno/wasi@0.7.0/dist/wasi.js";
-
-  const wasi = new WASI({
-    stdout: (out) => console.log(out),
-    stdin: () => {
-      var text = window.prompt();
-      if (text === null) {
-        text = "q";
-      }
-      text += "\n";
-      return text;
-    }
-  });
-
-  const wasm = await WebAssembly.instantiateStreaming(fetch("./tichu-bot-wasm.wasm"), wasi.getImportObject());
-
-  wasi.start(wasm, {});
-
-
-</script>
 
 </html>
