@@ -43,5 +43,16 @@ wasi.initialize(wasm, {
 });
 // Wait 200 then run the function
 setTimeout(() => {
-  wasi.instance.exports.playTichu();
+  const updateGame = (game) => {
+    if (!game.shouldStop) {
+      wasi.instance.exports.updateTichu(JSON.stringify(game)).then((res) => {
+        const game_upd = JSON.parse(res);
+        setTimeout(() => updateGame(game_upd), 1);
+      })
+    }
+  };
+  wasi.instance.exports.setupTichu().then((res) => {
+    const game = JSON.parse(res);
+    updateGame(game);
+  })
 }, 200);

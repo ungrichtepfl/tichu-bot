@@ -1,7 +1,6 @@
 module Cli (module Cli) where
 
 import Control.Monad (foldM)
-import Data.IORef
 import Data.List (nub, sortBy)
 import Data.Map (Map)
 import Text.Read (readMaybe)
@@ -14,12 +13,6 @@ import Game.Structures
 import Game.Tichu
 import Game.Utils
 import IO
-
-playTichu :: IO ()
-playTichu = do
-    gameConf <- getGameConfig
-    gamePlayers <- getGamePlayers $ sittingOrder gameConf
-    iterateUntilM_ shouldGameStop (update gamePlayers) (newGame gameConf)
 
 shuffledDeck :: IO TichuCards
 shuffledDeck = shuffle orderedDeck

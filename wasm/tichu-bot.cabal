@@ -21,11 +21,9 @@ library
   include-dirs:      c
   build-depends:
       array >=0.5.4.0 && <1
-    , base >=4.7 && <5
+    , base >=4.21 && <5
     , containers >=0.6.7 && <1
     , random >=1.2.1.1 && <2
-    , splitmix >= 0.1.1 && <1
-    , mtl >= 2.3.1 && <3
   default-language: Haskell2010
 
 executable tichu-bot-wasm
@@ -35,14 +33,16 @@ executable tichu-bot-wasm
         CommandLinePlayer
         IO
         Paths_tichu_bot
+    ghc-options:
     build-depends:
         array >=0.5.4.0 && <1
-      , base >=4.7 && <5
+      , base >=4.21 && <5
       , containers >=0.6.7 && <1
       , random >=1.2.1.1 && <2
-      , splitmix >= 0.1.1 && <1
-      , mtl >= 2.3.1 && <3
+      , aeson >= 2.2 && <3
+      , bytestring >= 0.12 && < 1
+      , ghc-experimental
       , tichu-bot
-    hs-source-dirs:   ../app/wasm
+    hs-source-dirs:   app
     default-language: Haskell2010
-    ghc-options: -no-hs-main -optl-mexec-model=reactor -optl-Wl,--export=playTichu
+    ghc-options: -no-hs-main -optl-mexec-model=reactor -optl-Wl,--export=updateTichu,--export=setupTichu
