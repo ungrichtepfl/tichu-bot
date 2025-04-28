@@ -10,7 +10,7 @@ import qualified Data.Map as Map
 import CommandLinePlayer
 import Game.Constants
 import Game.Structures
-import Game.Tichu
+import Game.Tichu hiding (distribute, finish, nextRound, startGame, updateGame)
 import Game.Utils
 import IO
 
@@ -18,10 +18,8 @@ playTichu :: IO ()
 playTichu = do
     gameConf <- getGameConfig
     gamePlayers <- getGamePlayers $ sittingOrder gameConf
-    iterateUntilM_ shouldGameStop (update gamePlayers) (newGame gameConf)
-
-shuffledDeck :: IO TichuCards
-shuffledDeck = shuffle orderedDeck
+    let seed = 0
+    iterateUntilM_ shouldGameStop (update gamePlayers) (fst $ newGame gameConf seed)
 
 getGamePlayers :: [PlayerName] -> IO (Map PlayerName GamePlayer)
 getGamePlayers pns =
@@ -117,12 +115,12 @@ getMaxScore =
 
 updateGameByPlayerAction :: Game -> Map PlayerName GamePlayer -> PlayerName -> PlayerAction -> IO Game
 updateGameByPlayerAction game gamePlayers pn pa =
-    let game' = applyPlayerAction game pn pa
+    let game' = applyPlayerAction game (pn, pa)
      in if pa `elem` [CallTichu, CallGrandTichu]
             then do
                 putStrLnA ("Player " ++ show pn ++ " called " ++ if pa == CallTichu then "Tichu." else "Grand Tichu.")
                 pa' <- getPlayerActionsByName game' gamePlayers pn
-                return $ applyPlayerAction game' pn pa'
+                return $ applyPlayerAction game' (pn, pa')
             else putStrLnA ("Player " ++ show pn ++ " played " ++ show pa ++ ".") >> return game'
 
 display :: Game -> IO ()
@@ -183,40 +181,40 @@ getPlayerActionsByName game gamePlayers pn =
         gamePlayer = gamePlayers Map.! pn
      in gamePlayer game allPossibleActions pn
 
-startGame :: Game -> IO Game
-startGame game = do
-    initialDeck <- shuffledDeck
-    shuffledPlayers <- shuffle $ playerNames' game
-    let randomPlayer = head shuffledPlayers
-    return $
-        game
+startGame :: Game -> Game
+startGame game =
+    let (initialDeck, gen') = shuffle orderedDeck (generator game)
+        (shuffledPlayers, gen'') = shuffle (playerNames' game) gen'
+        randomPlayer = head shuffledPlayers
+     in game
             { gamePhase = Dealing initialDeck
             , currentDealer = randomPlayer
+            , generator = gen''
             }
 
-nextRound :: Game -> IO Game
-nextRound game = do
-    initialDeck <- shuffledDeck
-    return $
-        game
+nextRound :: Game -> Game
+nextRound game =
+    let (initialDeck, gen') = shuffle orderedDeck (generator game)
+     in game
             { hands = setEmpty $ hands game
             , tricks = setEmpty $ tricks game
             , gamePhase = Dealing initialDeck
             , tichus = setNothing $ tichus game
             , currentDealer = nextInOrder game (currentDealer game)
+            , generator = gen'
             }
 
-distribute :: Game -> IO Game
-distribute game = return game{gamePhase = Playing (startingPlayer $ hands game) 0} -- TODO: Implement
+distribute :: Game -> Game
+distribute game = game{gamePhase = Playing (startingPlayer $ hands game) 0} -- TODO: Implement
 
 updateGame :: Game -> Map PlayerName GamePlayer -> IO Game
 updateGame game gamePlayers = do
     case gamePhase game of
-        Starting -> startGame game
+        Starting -> return $ startGame game
         Dealing _ -> return $ dealAllCards game
-        Distributing -> distribute game
+        Distributing -> return $ distribute game
         Playing _ _ -> play game gamePlayers
-        NextRound -> nextRound game
+        NextRound -> return $ nextRound game
         GiveAwayLooserTricksAndHands -> return $ giveAwayLooserTricksAndHands game
         Scoring -> return $ score game
         Finished -> finish game

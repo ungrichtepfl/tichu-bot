@@ -1,6 +1,7 @@
 module Game.Structures (module Game.Structures) where
 
 import Data.Map (Map)
+import System.Random (StdGen)
 
 type Passes = Int
 
@@ -199,7 +200,9 @@ data Game = Game
     , scores :: Map TeamName Score
     , currentDealer :: PlayerName
     , finishOrder :: [PlayerName]
+    , winnerTeams :: [TeamName]
     , shouldGameStop :: Bool
+    , generator :: StdGen
     }
     deriving (Show, Eq)
 

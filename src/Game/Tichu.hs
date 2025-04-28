@@ -12,6 +12,7 @@ import Control.Exception (assert)
 import Data.List (elemIndex, foldl', sort, (\\))
 import Data.Map (Map)
 import Data.Maybe (fromJust, isJust, isNothing)
+import System.Random (mkStdGen)
 
 import qualified Data.Map as Map
 
@@ -38,20 +39,25 @@ initialTichus names = Map.fromList [(n, Nothing) | n <- names]
 initialScores :: [TeamName] -> Map TeamName Score
 initialScores names = Map.fromList [(n, 0) | n <- names]
 
-newGame :: GameConfig -> Game
-newGame config =
-    Game
-        { gameConfig = config
-        , hands = initialHands $ playerNames config
-        , tricks = initialTricks $ playerNames config
-        , board = []
-        , gamePhase = Starting
-        , tichus = initialTichus $ playerNames config
-        , scores = initialScores $ teamNames config
-        , currentDealer = head $ playerNames config
-        , finishOrder = []
-        , shouldGameStop = False
-        }
+newGame :: GameConfig -> Int -> (Game, Map PlayerName [PlayerAction])
+newGame config seed =
+    let gen = mkStdGen seed
+        game =
+            Game
+                { gameConfig = config
+                , hands = initialHands $ playerNames config
+                , tricks = initialTricks $ playerNames config
+                , board = []
+                , gamePhase = Starting
+                , tichus = initialTichus $ playerNames config
+                , scores = initialScores $ teamNames config
+                , currentDealer = head $ playerNames config
+                , finishOrder = []
+                , shouldGameStop = False
+                , winnerTeams = []
+                , generator = gen
+                }
+     in (game, allPossiblePlayerActions game)
 
 currentDealerIndex :: Game -> Int
 currentDealerIndex game =
@@ -111,6 +117,11 @@ isValidForBoard [] _ = True
 isValidForBoard ((SingleCard [Phoenix]) : rest) combi = isValidForBoard rest combi
 isValidForBoard (boardCombi : _) combi = canBePlayedOnTop combi boardCombi
 
+allPossiblePlayerActions :: Game -> Map PlayerName [PlayerAction]
+allPossiblePlayerActions game =
+    let pln = playerNames' game
+     in Map.fromList $ zip pln (possiblePlayerActions game <$> pln)
+
 possiblePlayerActions :: Game -> PlayerName -> [PlayerAction]
 possiblePlayerActions game pn =
     let defaultActions = Stop : [CallTichu | canStillCallTichu game pn]
@@ -150,8 +161,8 @@ playerListWithCurrentPlayerFirst game =
 canStillCallTichu :: Game -> PlayerName -> Bool
 canStillCallTichu game pn = length (hands game Map.! pn) == maxCards && isNothing (tichus game Map.! pn)
 
-applyPlayerAction :: Game -> PlayerName -> PlayerAction -> Game
-applyPlayerAction game pn playerAction =
+applyPlayerAction :: Game -> (PlayerName, PlayerAction) -> Game
+applyPlayerAction game (pn, playerAction) =
     -- TODO: Finish implementation
     let (currentPlayer, passes) = getCurrentPlayerWithPasses game
      in case playerAction of
@@ -199,6 +210,55 @@ applyPlayerAction game pn playerAction =
             CallTichu -> game{tichus = Map.insert pn (Just Tichu) (tichus game)}
             CallGrandTichu -> game{tichus = Map.insert pn (Just GrandTichu) (tichus game)}
 
+startGame :: Game -> Game
+startGame game =
+    let
+        (initialDeck, gen') = shuffle orderedDeck (generator game)
+        (shuffledPlayers, gen'') = shuffle (playerNames' game) gen'
+        randomPlayer = head shuffledPlayers
+     in
+        game
+            { gamePhase = Dealing initialDeck
+            , currentDealer = randomPlayer
+            , generator = gen''
+            }
+
+distribute :: Game -> (PlayerName, PlayerAction) -> Game
+distribute game _ = game{gamePhase = Playing (startingPlayer $ hands game) 0} -- TODO: Implement
+
+nextRound :: Game -> Game
+nextRound game = do
+    let
+        (initialDeck, gen') = shuffle orderedDeck (generator game)
+     in
+        game
+            { hands = setEmpty $ hands game
+            , tricks = setEmpty $ tricks game
+            , gamePhase = Dealing initialDeck
+            , tichus = setNothing $ tichus game
+            , currentDealer = nextInOrder game (currentDealer game)
+            , generator = gen'
+            }
+
+finish :: Game -> Game
+finish game = do
+    game{shouldGameStop = True}
+
+updateGame :: Game -> (PlayerName, PlayerAction) -> (Game, Map PlayerName [PlayerAction])
+updateGame game playersAction =
+    let
+        game' = case gamePhase game of
+            Starting -> startGame game
+            Dealing _ -> dealAllCards game
+            Distributing -> distribute game playersAction
+            Playing _ _ -> applyPlayerAction game playersAction
+            NextRound -> nextRound game
+            GiveAwayLooserTricksAndHands -> giveAwayLooserTricksAndHands game
+            Scoring -> score game
+            Finished -> finish game
+     in
+        (game', allPossiblePlayerActions game')
+
 startingPlayer :: Map PlayerName TichuCards -> PlayerName
 startingPlayer = head . Map.keys . Map.filter (elem Mahjong)
 
@@ -231,7 +291,8 @@ score game =
                 scorePerTeam
                 (playersByTeam game)
         newGamePhase = if any (>= scoreLimit (gameConfig game)) (Map.elems newScore) then Finished else NextRound
-     in game{scores = newScore, gamePhase = newGamePhase}
+        winnerTeams' = fst <$> Map.toList (Map.filter (>= scoreLimit (gameConfig game)) (scores game))
+     in game{scores = newScore, gamePhase = newGamePhase, winnerTeams = winnerTeams'}
   where
     scorePerTeam :: TeamName -> [PlayerName] -> Int
     scorePerTeam teamName playersInTeam =

@@ -1,25 +1,32 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE ViewPatterns #-}
 
-module Jsi (module Jsi) where
+module Jsi (updateGame, newGame) where
 
 import Bots.Random
-import Cli
-import CommandLinePlayer
 import qualified Data.Aeson as AS
 import GHC.Generics (Generic)
 
-import Data.Aeson (FromJSON, ToJSON)
 import qualified Data.ByteString.Lazy.Char8 as BL
 import GHC.Wasm.Prim (JSString)
 import qualified GHC.Wasm.Prim as WP
 
 import qualified Data.Map as Map
 import Game.Structures
-import Game.Tichu
-import Game.Utils
-import IO
+import qualified Game.Tichu as Tichu
+
+import Data.Aeson (FromJSON (..), ToJSON (..), withArray)
+import Data.Aeson.Types (Parser)  
+import qualified Data.Aeson as Aeson
+import Data.Bits (xor)
+import Data.Scientific (toBoundedInteger)
+import Data.Vector (fromList, toList)
+import qualified Data.Vector as V
+import Data.Word (Word64)
+import GHC.Generics (Generic)
+import System.Random (StdGen, genWord64, initStdGen, mkStdGen, split)
 
 deriving instance Generic Value
 deriving instance Generic Color
@@ -30,6 +37,29 @@ deriving instance Generic GamePhase
 deriving instance Generic TichuType
 deriving instance Generic PlayerAction
 deriving instance Generic Game
+
+instance ToJSON StdGen where
+    toJSON g = Aeson.toJSON (take 2 (genWords g))
+      where
+        genWords :: StdGen -> [Word64]
+        genWords gen0 =
+            let (w1, gen1) = genWord64 gen0
+                (w2, _) = genWord64 gen1
+             in [w1, w2]
+
+instance FromJSON StdGen where
+    parseJSON = withArray "StdGen" $ \arr -> do
+        case toList arr of
+            [v1, v2] -> do
+                w1 <- parseWord64 v1
+                w2 <- parseWord64 v2
+                pure (mkStdGen (fromIntegral (w1 `xor` w2)))
+            _ -> fail "Expected array of two elements"
+      where
+        parseWord64 :: Aeson.Value -> Parser Word64
+        parseWord64 v = do
+            n <- Aeson.parseJSON v
+            maybe (fail "Invalid Word64") pure (toBoundedInteger n)
 
 instance FromJSON Value
 instance ToJSON Value
@@ -64,23 +94,21 @@ toJsString = WP.toJSString . BL.unpack . AS.encode
 fromJsString :: (FromJSON a) => JSString -> Maybe a
 fromJsString = AS.decode . BL.pack . WP.fromJSString
 
-updateTichu :: JSString -> IO JSString
-updateTichu js_game =
-    case fromJsString js_game of
-        Just g -> do game' <- updateTichu' g; return $ toJsString game'
-        Nothing -> return $ toJsString "ERROR: Wrong game state."
+updateGame :: JSString -> JSString -> JSString
+updateGame (fromJsString -> Just game) (fromJsString -> Just playersAction) =
+    let
+        output = Tichu.updateGame game playersAction
+     in
+        toJsString output
+-- TODO: Print the format of the Json string that is expected
+updateGame jsGame jsPlayersAction =
+    error $
+        "ERROR: Wrong game state or players action.\nGameState: "
+            ++ WP.fromJSString jsGame
+            ++ "\nPlayers Actions: "
+            ++ WP.fromJSString jsPlayersAction
 
-updateTichu' :: Game -> IO Game
-updateTichu' game =
-    let pln = playerNames' game
-     in update (Map.fromList $ zip pln (map snd defaultPlayerTypes)) game
-
-setupTichu :: IO JSString
-setupTichu = fmap toJsString setupTichu'
-
-setupTichu' :: IO Game
-setupTichu' = do
-    gameConf <- getGameConfig
-    gamePlayers <- getGamePlayers $ sittingOrder gameConf
-    let game = newGame gameConf
-    return game
+newGame :: JSString -> JSString
+newGame (fromJsString -> Just gameConfig) = toJsString $ Tichu.newGame gameConfig 0
+-- TODO: Print the format of the Json string that is expected
+newGame jsGameConfig = error $ "ERROR: Wrong game config type " ++ WP.fromJSString jsGameConfig

@@ -2,17 +2,20 @@ module Game.Utils (module Game.Utils) where
 
 import Control.Exception (assert)
 import Control.Monad (forM)
+
+import qualified Control.Monad.ST as MST
 import Data.Array.IO (
-    IOArray,
     newListArray,
     readArray,
     writeArray,
  )
+import qualified Data.Array.ST as AST
 import Data.List (elemIndex, (\\))
 import Data.Map (Map)
 import Data.Maybe (fromJust)
+import qualified Data.STRef as STR
 import System.Exit (exitSuccess)
-import System.Random (randomRIO)
+import System.Random (StdGen, randomR)
 
 import qualified Data.Map as Map
 
@@ -41,19 +44,29 @@ setFalse = Map.map (const False)
 setNothing :: Map k (Maybe a) -> Map k (Maybe a)
 setNothing = Map.map (const Nothing)
 
-shuffle :: [a] -> IO [a]
-shuffle xs = do
-    ar <- newArray' n xs
-    forM [1 .. n] $ \i -> do
-        j <- randomRIO (i, n)
-        vi <- readArray ar i
-        vj <- readArray ar j
-        writeArray ar j vi
-        return vj
+shuffle :: [a] -> StdGen -> ([a], StdGen)
+shuffle xs gen =
+    MST.runST
+        ( do
+            g <- STR.newSTRef gen
+            let randomRST lohi = do
+                    (a, s') <- randomR lohi <$> STR.readSTRef g
+                    STR.writeSTRef g s'
+                    return a
+            ar <- newArray n xs
+            xs' <- forM [1 .. n] $ \i -> do
+                j <- randomRST (i, n)
+                vi <- readArray ar i
+                vj <- readArray ar j
+                writeArray ar j vi
+                return vj
+            gen' <- STR.readSTRef g
+            return (xs', gen')
+        )
   where
     n = length xs
-    newArray' :: Int -> [a] -> IO (IOArray Int a)
-    newArray' n' = newListArray (1, n')
+    newArray :: Int -> [a] -> MST.ST s (AST.STArray s Int a)
+    newArray n' = newListArray (1, n')
 
 nonPhoenixCards :: TichuCards -> TichuCards
 nonPhoenixCards = filter (/= Phoenix)

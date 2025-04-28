@@ -17,8 +17,6 @@ library
   hs-source-dirs:
       ../src
   ghc-options:
-  c-sources:         c/stubs.c
-  include-dirs:      c
   build-depends:
       array >=0.5.4.0 && <1
     , base >=4.21 && <5
@@ -29,9 +27,7 @@ library
 executable tichu-bot-wasm
     main-is:          Main.hs
     other-modules:
-        Cli
-        CommandLinePlayer
-        IO
+        Jsi
         Paths_tichu_bot
     ghc-options:
     build-depends:
@@ -41,8 +37,10 @@ executable tichu-bot-wasm
       , random >=1.2.1.1 && <2
       , aeson >= 2.2 && <3
       , bytestring >= 0.12 && < 1
+      , scientific >= 0.3 && < 1 
+      , vector >= 0.13 && < 1
       , ghc-experimental
       , tichu-bot
     hs-source-dirs:   app
     default-language: Haskell2010
-    ghc-options: -no-hs-main -optl-mexec-model=reactor -optl-Wl,--export=updateTichu,--export=setupTichu
+    ghc-options: -no-hs-main -optl-mexec-model=reactor -optl-Wl,--export=newGame,--export=updateGame

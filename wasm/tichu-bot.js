@@ -16,7 +16,7 @@ const wasi = new WASI({
     }
     consoleEl.textContent += out;
     consoleEl.scrollTop = consoleEl.scrollHeight;
-    console.log(out);
+    // console.log(out);
   },
   stdin: () => {
     const out = out_queue[0];
@@ -43,16 +43,26 @@ wasi.initialize(wasm, {
 });
 // Wait 200 then run the function
 setTimeout(() => {
-  const updateGame = (game) => {
+  const updateGame = (game, playersAction) => {
     if (!game.shouldStop) {
-      wasi.instance.exports.updateTichu(JSON.stringify(game)).then((res) => {
-        const game_upd = JSON.parse(res);
-        setTimeout(() => updateGame(game_upd), 1);
-      })
+      wasi.instance.exports.updateGame(JSON.stringify(game),
+        JSON.stringify(playersAction)).then((jsonGameOutput) => {
+          const gameOutput = JSON.parse(jsonGameOutput);
+          console.log(gameOutput)
+          // setTimeout(() => updateGame(gameOutput), 1);
+        })
     }
   };
-  wasi.instance.exports.setupTichu().then((res) => {
-    const game = JSON.parse(res);
-    updateGame(game);
+  const gameConfig = {
+    sittingOrder: ["P1", "P2", "P3", "P4"],
+    teamNames: ["Team 1", "Team 2"],
+    scoreLimit: 1000,
+  };
+  wasi.instance.exports.newGame(JSON.stringify(gameConfig)).then((jsonGame) => {
+    const [game, awailableActions] = JSON.parse(jsonGame);
+    console.log(game);
+    console.log(awailableActions);
+    const action = ["P1", {tag: "Pass"}]
+    updateGame(game, action);
   })
 }, 200);

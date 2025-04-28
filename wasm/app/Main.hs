@@ -1,10 +1,10 @@
 module Main where
 
-import Jsi (setupTichu, updateTichu)
 import GHC.Wasm.Prim
+import Jsi (newGame, updateGame)
 
-foreign export javascript "updateTichu" updateTichu :: JSString -> IO JSString
-foreign export javascript "setupTichu" setupTichu :: IO JSString
+foreign export javascript "updateGame" updateGame :: JSString -> JSString -> JSString
+foreign export javascript "newGame" newGame :: JSString -> JSString
 
 main :: IO ()
 main = return ()
