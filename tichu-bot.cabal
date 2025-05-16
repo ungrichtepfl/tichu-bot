@@ -61,20 +61,24 @@ executable tichu-cli
     , tichu-bot
   default-language: Haskell2010
 
-executable tichu-gui
+executable tichu-wasm
   main-is: Main.hs
   other-modules:
+      Jsi
       Paths_tichu_bot
   hs-source-dirs:
-      app/gui
-  ghc-options: -O2 -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N -O2 -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints
+      ./wasm/app/
+  ghc-options: -O2 -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -O2 -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -no-hs-main -optl-mexec-model=reactor -optl-Wl,--export=newGame,--export=updateGame
   build-depends:
-      array >=0.5.4.0 && <1
+      aeson >=2.2 && <3
+    , array >=0.5.4.0 && <1
     , base >=4.7 && <5
+    , bytestring >=0.12 && <1
     , containers >=0.6.7 && <1
-    , h-raylib >=5.5.2.1 && <6
     , random >=1.2.1.1 && <2
+    , scientific >=0.3 && <1
     , tichu-bot
+    , vector >=0.13 && <1
   default-language: Haskell2010
 
 test-suite tichu-bot-test

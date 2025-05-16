@@ -32,8 +32,10 @@ ghc-options:
   - -Wmissing-home-modules
   - -Wpartial-fields
   - -Wredundant-constraints
+
 library:
   source-dirs: src
+
 executables:
   tichu-cli:
     main: Main.hs
@@ -54,13 +56,11 @@ executables:
       - -Wredundant-constraints
     dependencies:
       - tichu-bot
-  tichu-gui:
+
+  tichu-wasm:
     main: Main.hs
-    source-dirs: app/gui
+    source-dirs: ./wasm/app/
     ghc-options:
-      - -threaded
-      - -rtsopts
-      - -with-rtsopts=-N
       - -O2
       - -Wall
       - -Wcompat
@@ -71,9 +71,15 @@ executables:
       - -Wmissing-home-modules
       - -Wpartial-fields
       - -Wredundant-constraints
+      - -no-hs-main -optl-mexec-model=reactor -optl-Wl,--export=newGame,--export=updateGame
     dependencies:
-      - h-raylib >= 5.5.2.1 && < 6
+      - aeson >= 2.2 && <3
+      - bytestring >= 0.12 && < 1
+      - scientific >= 0.3 && < 1
+      - vector >= 0.13 && < 1
+      # - ghc-experimental # HACK: Must be via Makefile to generated cabal file. Otherwise, everything else does not build somehow (no idea how to fix)
       - tichu-bot
+
 tests:
   tichu-bot-test:
     main: TestMain.hs

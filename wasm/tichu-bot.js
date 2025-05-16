@@ -31,7 +31,7 @@ const wasi = new WASI({
 
 
 // Run WASM
-const wasm = await WebAssembly.instantiateStreaming(fetch("./tichu-bot-wasm.wasm"),
+const wasm = await WebAssembly.instantiateStreaming(fetch("./tichu-wasm.wasm"),
   Object.assign(
     { ghc_wasm_jsffi: ghc_wasm_jsffi(jsffiExports) },
     wasi.getImportObject()

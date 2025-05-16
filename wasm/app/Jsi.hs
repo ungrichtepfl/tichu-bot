@@ -88,18 +88,18 @@ instance ToJSON PlayerAction
 instance FromJSON Game
 instance ToJSON Game
 
-toJsString :: (ToJSON a) => a -> JSString
-toJsString = WP.toJSString . BL.unpack . AS.encode
+makeJsString :: (ToJSON a) => a -> JSString
+makeJsString = WP.toJSString . BL.unpack . AS.encode
 
-fromJsString :: (FromJSON a) => JSString -> Maybe a
-fromJsString = AS.decode . BL.pack . WP.fromJSString
+makeHsType :: (FromJSON a) => JSString -> Maybe a
+makeHsType = AS.decode . BL.pack . WP.fromJSString
 
 updateGame :: JSString -> JSString -> JSString
-updateGame (fromJsString -> Just game) (fromJsString -> Just playersAction) =
+updateGame (makeHsType -> Just game) (makeHsType -> Just playersAction) =
     let
         output = Tichu.updateGame game playersAction
      in
-        toJsString output
+        makeJsString output
 -- TODO: Print the format of the Json string that is expected
 updateGame jsGame jsPlayersAction =
     error $
@@ -109,6 +109,6 @@ updateGame jsGame jsPlayersAction =
             ++ WP.fromJSString jsPlayersAction
 
 newGame :: JSString -> JSString
-newGame (fromJsString -> Just gameConfig) = toJsString $ Tichu.newGame gameConfig 0
+newGame (makeHsType -> Just gameConfig) = makeJsString $ Tichu.newGame gameConfig 0
 -- TODO: Print the format of the Json string that is expected
 newGame jsGameConfig = error $ "ERROR: Wrong game config type " ++ WP.fromJSString jsGameConfig

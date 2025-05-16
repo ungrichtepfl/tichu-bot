@@ -3,17 +3,10 @@
 # For more information, please see the documentation at:
 #   https://docs.haskellstack.org/en/stable/topics/lock_files
 
-packages:
-- completed:
-    hackage: h-raylib-5.5.2.1@sha256:b6568e457636105e401d2e0311827fc63eb9d3669b5dcd8f0dec9b17b03e13cd,8745
-    pantry-tree:
-      sha256: c9612a94c823c0a2df643f48e554676d3baf12676baacd909215f0a38803bc96
-      size: 31238
-  original:
-    hackage: h-raylib-5.5.2.1
+packages: []
 snapshots:
 - completed:
-    sha256: 296a7960c37efa382432ab497161a092684191815eb92a608c5d6ea5f894ace3
-    size: 683835
-    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/23/19.yaml
-  original: lts-23.19
+    sha256: f8c8f95e57e436cee7c053b6f424e2c07a1020304a5583f3568cd9521443c340
+    size: 683838
+    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/23/22.yaml
+  original: lts-23.22
