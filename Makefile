@@ -27,7 +27,7 @@ wasm-run: wasm-build
 	"$$(wasm32-wasi-ghc --print-libdir)"/post-link.mjs -i $(wasm_dir)/$(wasm_exe).wasm -o $(wasm_dir)/ghc_wasm_jsffi.js
 	python3 -m http.server --directory $(wasm_dir)
 
-CFLAGS:= -Wall -Werror -Wextra -Wpedantic -g
+CFLAGS:= -Wall -Werror -Wextra -Wpedantic -ggdb
 CSRC:=gui/gui.c
 COUT_OBJ:=cout/gui.o
 COUT_EXE:=cout/gui

@@ -11,6 +11,8 @@
 #define WASM 0
 #endif
 
+#define LENGTH(a) (sizeof(a) / sizeof(a[0]))
+
 #define WIN_WIDTH 800
 #define WIN_HEIHT WIN_WIDTH
 #define FPS 60
@@ -44,9 +46,58 @@ typedef struct {
   Texture2D background;
 } Assets;
 
+typedef struct {
+  Vector2 card_pos[CARDS_PER_COLOR * NUM_COLORS + 4];
+  int selected_piece_idx;
+} State;
+
+State g_state = {0};
+
+typedef enum {
+  RED_CARD,
+  GREEN_CARD,
+  BLUE_CARD,
+  BLACK_CARD,
+  DRAGON,
+  PHOENIX,
+  MAHJONG,
+  DOG,
+} CardColor;
+
+typedef struct {
+  CardColor color;
+  int number;
+} Card;
+
+size_t get_card_index(Card card) {
+  if (card.color < NUM_COLORS)
+    return card.color * CARDS_PER_COLOR + card.number - 2;
+  else
+    return card.color - NUM_COLORS + CARDS_PER_COLOR * NUM_COLORS;
+}
+
+Vector2 get_card_position(Card card) {
+  return g_state.card_pos[get_card_index(card)];
+}
+
+Card get_card_from_index(size_t index) {
+  long long idx = (long long)index;
+
+  if (idx < CARDS_PER_COLOR * NUM_COLORS)
+    return (Card){
+        .color = idx / CARDS_PER_COLOR,
+        .number = idx % CARDS_PER_COLOR + 2,
+    };
+  else
+    return (Card){
+        .color = idx - CARDS_PER_COLOR * NUM_COLORS + NUM_COLORS,
+        .number = 0,
+    };
+}
+
 Assets g_assets = {0};
 
-void loadGlobalAssets(void) {
+void load_global_assets(void) {
 
   char asset_path[256];
   Texture2D asset;
@@ -110,7 +161,7 @@ void loadGlobalAssets(void) {
   g_assets.background = asset;
 }
 
-void unloadGlobalAssets(void) {
+void unload_global_assets(void) {
   for (size_t i = 0; i < CARDS_PER_COLOR; ++i) {
     UnloadTexture(g_assets.green[i]);
     UnloadTexture(g_assets.blue[i]);
@@ -123,23 +174,11 @@ void unloadGlobalAssets(void) {
   UnloadTexture(g_assets.phoenix);
   UnloadTexture(g_assets.background);
 }
+Texture2D get_background_asset(void) { return g_assets.background; }
 
-typedef enum {
-  RED_CARD,
-  GREEN_CARD,
-  BLUE_CARD,
-  BLACK_CARD,
-  DRAGON,
-  PHOENIX,
-  MAHJONG,
-  DOG,
-} CardColor;
-
-Texture2D getBackgroundAsset(void) { return g_assets.background; }
-
-Texture2D getCardAsset(CardColor color, int card_num) {
-  card_num -= 2; // Starts at 2
-  switch (color) {
+Texture2D get_card_asset(Card card) {
+  int card_num = card.number - 2; // Starts at 2
+  switch (card.color) {
   case RED_CARD: {
     assert(card_num < CARDS_PER_COLOR && "Wrong card number!");
     return g_assets.red[card_num];
@@ -173,25 +212,101 @@ Texture2D getCardAsset(CardColor color, int card_num) {
   }
 }
 
+bool is_mouse_down(void) {
+#if WASM
+  return mouse_down > 0;
+#else
+  return IsMouseButtonDown(MOUSE_BUTTON_LEFT);
+#endif
+}
+
+Vector2 get_mouse_position(void) {
+#if WASM
+  return (Vector2){.x = (float)mouse_x, .y = (float)mouse_y};
+#else
+  return GetMousePosition();
+#endif
+}
+
+Rectangle get_card_rectangle(Card card) {
+  Texture2D card_texture = get_card_asset(card);
+  Vector2 pos = get_card_position(card);
+  return (Rectangle){
+      .x = pos.x,
+      .y = pos.y,
+      .width = card_texture.width,
+      .height = card_texture.height,
+  };
+}
+
+void update_card_position(void) {
+  static Vector2 previous_mouse_touch = {0};
+  if (is_mouse_down()) {
+    Vector2 mouse_touch = get_mouse_position();
+    if (g_state.selected_piece_idx >= 0) {
+      g_state.card_pos[g_state.selected_piece_idx].x +=
+          mouse_touch.x - previous_mouse_touch.x;
+      g_state.card_pos[g_state.selected_piece_idx].y +=
+          mouse_touch.y - previous_mouse_touch.y;
+    } else {
+      for (size_t i = 0; i < LENGTH(g_state.card_pos); ++i) {
+        Card card = get_card_from_index(i);
+        Rectangle card_rec = get_card_rectangle(card);
+        if (CheckCollisionPointRec(mouse_touch, card_rec)) {
+          g_state.selected_piece_idx = i;
+          break;
+        }
+      }
+    }
+    previous_mouse_touch = mouse_touch;
+  } else {
+    g_state.selected_piece_idx = -1;
+  }
+}
+
+void setup_global_state(void) {
+  g_state.selected_piece_idx = -1; // Nothing selected
+
+  for (size_t i = 0; i < LENGTH(g_state.card_pos); ++i) {
+    int col = NUM_COLORS + 1;
+
+    // Evenly space the cards
+    g_state.card_pos[i].x = (i % col) * ((float)WIN_WIDTH / col);
+    g_state.card_pos[i].y = ((float)i / col) * ((float)WIN_HEIHT / col);
+    // Set the last 4 cards to be in the middle
+  }
+}
+
+void draw_cards(void) {
+  for (size_t i = 0; i < LENGTH(g_state.card_pos); ++i) {
+    Card card = get_card_from_index(i);
+    Vector2 pos = g_state.card_pos[i];
+    Texture2D card_texture = get_card_asset(card);
+    DrawTextureEx(card_texture, pos, 0, 1, WHITE);
+  }
+}
+
 void init(void) {
+  setup_global_state();
   InitWindow(WIN_WIDTH, WIN_HEIHT, "Tichu");
-  loadGlobalAssets();
+  load_global_assets();
 #if !WASM
   SetTargetFPS(FPS);
 #endif
 }
 
 void deinit(void) {
-  unloadGlobalAssets();
+  unload_global_assets();
   CloseWindow();
 }
 
-void updateDraw(void) {
+void update_draw(void) {
+  update_card_position();
 
   BeginDrawing();
   ClearBackground(WHITE);
-  DrawTexture(getBackgroundAsset(), 0, 0, WHITE);
-  DrawTextureEx(getCardAsset(DRAGON, 0), (Vector2){400, 400}, 60, 1, WHITE);
+  DrawTexture(get_background_asset(), 0, 0, WHITE);
+  draw_cards();
 
   EndDrawing();
 }
@@ -201,7 +316,7 @@ int main(void) {
   init();
 
   while (!WindowShouldClose()) {
-    updateDraw();
+    update_draw();
   }
 
   deinit();
