@@ -47,7 +47,12 @@ typedef struct {
 } Assets;
 
 typedef struct {
-  Vector2 card_pos[CARDS_PER_COLOR * NUM_COLORS + 4];
+  Vector2 pos;
+  float rot;
+  float scale;
+} CardPose;
+typedef struct {
+  CardPose card_pose[CARDS_PER_COLOR * NUM_COLORS + 4];
   int selected_piece_idx;
 } State;
 
@@ -76,8 +81,8 @@ size_t get_card_index(Card card) {
     return card.color - NUM_COLORS + CARDS_PER_COLOR * NUM_COLORS;
 }
 
-Vector2 get_card_position(Card card) {
-  return g_state.card_pos[get_card_index(card)];
+CardPose get_card_pose(Card card) {
+  return g_state.card_pose[get_card_index(card)];
 }
 
 Card get_card_from_index(size_t index) {
@@ -230,12 +235,12 @@ Vector2 get_mouse_position(void) {
 
 Rectangle get_card_rectangle(Card card) {
   Texture2D card_texture = get_card_asset(card);
-  Vector2 pos = get_card_position(card);
+  CardPose pose = get_card_pose(card);
   return (Rectangle){
-      .x = pos.x,
-      .y = pos.y,
-      .width = card_texture.width,
-      .height = card_texture.height,
+      .x = pose.pos.x,
+      .y = pose.pos.y,
+      .width = card_texture.width * pose.scale,
+      .height = card_texture.height * pose.scale,
   };
 }
 
@@ -244,12 +249,12 @@ void update_card_position(void) {
   if (is_mouse_down()) {
     Vector2 mouse_touch = get_mouse_position();
     if (g_state.selected_piece_idx >= 0) {
-      g_state.card_pos[g_state.selected_piece_idx].x +=
+      g_state.card_pose[g_state.selected_piece_idx].pos.x +=
           mouse_touch.x - previous_mouse_touch.x;
-      g_state.card_pos[g_state.selected_piece_idx].y +=
+      g_state.card_pose[g_state.selected_piece_idx].pos.y +=
           mouse_touch.y - previous_mouse_touch.y;
     } else {
-      for (size_t i = 0; i < LENGTH(g_state.card_pos); ++i) {
+      for (size_t i = 0; i < LENGTH(g_state.card_pose); ++i) {
         Card card = get_card_from_index(i);
         Rectangle card_rec = get_card_rectangle(card);
         if (CheckCollisionPointRec(mouse_touch, card_rec)) {
@@ -267,22 +272,26 @@ void update_card_position(void) {
 void setup_global_state(void) {
   g_state.selected_piece_idx = -1; // Nothing selected
 
-  for (size_t i = 0; i < LENGTH(g_state.card_pos); ++i) {
+  for (size_t i = 0; i < LENGTH(g_state.card_pose); ++i) {
     int col = NUM_COLORS + 1;
+    // No scale
+    g_state.card_pose[i].scale = 1.f;
+    // No rotation
+    g_state.card_pose[i].rot = 0.f;
 
     // Evenly space the cards
-    g_state.card_pos[i].x = (i % col) * ((float)WIN_WIDTH / col);
-    g_state.card_pos[i].y = ((float)i / col) * ((float)WIN_HEIHT / col);
+    g_state.card_pose[i].pos.x = (i % col) * ((float)WIN_WIDTH / col);
+    g_state.card_pose[i].pos.y = ((float)i / col) * ((float)WIN_HEIHT / col);
     // Set the last 4 cards to be in the middle
   }
 }
 
 void draw_cards(void) {
-  for (size_t i = 0; i < LENGTH(g_state.card_pos); ++i) {
+  for (size_t i = 0; i < LENGTH(g_state.card_pose); ++i) {
     Card card = get_card_from_index(i);
-    Vector2 pos = g_state.card_pos[i];
+    CardPose pose = g_state.card_pose[i];
     Texture2D card_texture = get_card_asset(card);
-    DrawTextureEx(card_texture, pos, 0, 1, WHITE);
+    DrawTextureEx(card_texture, pose.pos, pose.rot, pose.scale, WHITE);
   }
 }
 
