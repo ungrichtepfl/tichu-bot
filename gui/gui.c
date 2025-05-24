@@ -53,10 +53,29 @@ typedef struct {
 } CardPose;
 typedef struct {
   CardPose card_pose[CARDS_PER_COLOR * NUM_COLORS + 4];
+  size_t render_prio[CARDS_PER_COLOR * NUM_COLORS + 4];
   int selected_piece_idx;
 } State;
 
 State g_state = {0};
+
+void set_highest_prio(size_t idx) {
+  int cut = -1;
+  for (int i = 0; (size_t)i < LENGTH(g_state.render_prio); ++i) {
+    if (g_state.render_prio[i] == idx) {
+      cut = i;
+      break;
+    }
+  }
+  if (cut == -1) {
+    fprintf(stderr, "Could not set highest prio, idx not found. Most probably "
+                    "something wrong in the init function.");
+    return;
+  }
+  memmove(&g_state.render_prio[1], &g_state.render_prio[0],
+          cut * sizeof(g_state.render_prio[0]));
+  g_state.render_prio[0] = idx;
+}
 
 typedef enum {
   RED_CARD,
@@ -254,11 +273,13 @@ void update_card_position(void) {
       g_state.card_pose[g_state.selected_piece_idx].pos.y +=
           mouse_touch.y - previous_mouse_touch.y;
     } else {
-      for (size_t i = 0; i < LENGTH(g_state.card_pose); ++i) {
-        Card card = get_card_from_index(i);
+      for (size_t i = 0; i < LENGTH(g_state.render_prio); ++i) {
+        size_t idx = g_state.render_prio[i];
+        Card card = get_card_from_index(idx);
         Rectangle card_rec = get_card_rectangle(card);
         if (CheckCollisionPointRec(mouse_touch, card_rec)) {
-          g_state.selected_piece_idx = i;
+          g_state.selected_piece_idx = idx;
+          set_highest_prio(idx);
           break;
         }
       }
@@ -271,6 +292,10 @@ void update_card_position(void) {
 
 void setup_global_state(void) {
   g_state.selected_piece_idx = -1; // Nothing selected
+
+  for (size_t i = 0; i < LENGTH(g_state.render_prio); ++i) {
+    g_state.render_prio[i] = i;
+  }
 
   for (size_t i = 0; i < LENGTH(g_state.card_pose); ++i) {
     int col = NUM_COLORS + 1;
@@ -287,9 +312,10 @@ void setup_global_state(void) {
 }
 
 void draw_cards(void) {
-  for (size_t i = 0; i < LENGTH(g_state.card_pose); ++i) {
-    Card card = get_card_from_index(i);
-    CardPose pose = g_state.card_pose[i];
+  for (int i = (int)LENGTH(g_state.render_prio) - 1; i >= 0; --i) {
+    size_t idx = g_state.render_prio[i];
+    Card card = get_card_from_index(idx);
+    CardPose pose = g_state.card_pose[idx];
     Texture2D card_texture = get_card_asset(card);
     DrawTextureEx(card_texture, pose.pos, pose.rot, pose.scale, WHITE);
   }
