@@ -9,12 +9,14 @@
 #define NUM_TEAMS 2
 #define TOTAL_CARDS (CARDS_PER_COLOR * NUM_COLORS + 4)
 #define MAX_CARDS_PER_PLAYER (NUM_COLORS / 4)
+#define MAX_BYTES_NAME 101
+#define MAX_CHARS_NAME (MAX_CARDS_PER_PLAYER - 1)
 
 typedef int Passes;
 
-typedef char *PlayerName;
+typedef char PlayerName;
 
-typedef char *TeamName;
+typedef char TeamName;
 
 typedef int Score;
 
@@ -56,8 +58,8 @@ typedef struct {
 } TichuCombination;
 
 typedef struct {
-  PlayerName sittingOrder[4];
-  TeamName teamNames[4];
+  PlayerName sittingOrder[NUM_PLAYERS][MAX_BYTES_NAME];
+  TeamName teamNames[NUM_TEAMS][MAX_BYTES_NAME];
   Score scoreLimit;
 } GameConfig;
 
@@ -75,7 +77,7 @@ typedef enum {
 typedef struct {
   GamePhaseType type;
   Card cards[56];
-  PlayerName playerName;
+  PlayerName playerName[MAX_BYTES_NAME];
   Passes numPasses;
 } GamePhase;
 
@@ -101,9 +103,9 @@ typedef struct {
   GamePhase gamePhase;
   TichuType tichus[NUM_PLAYERS];
   Score scores[NUM_TEAMS];
-  PlayerName currentDealer;
-  PlayerName finishOrder[NUM_PLAYERS];
-  TeamName winnerTeams[NUM_TEAMS];
+  PlayerName currentDealer[MAX_BYTES_NAME];
+  PlayerName finishOrder[NUM_PLAYERS][MAX_BYTES_NAME];
+  TeamName winnerTeams[NUM_TEAMS][MAX_BYTES_NAME];
   bool shouldGameStop;
 } Game;
 
