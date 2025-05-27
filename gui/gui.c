@@ -2,6 +2,7 @@
 #include "jsmn.h"
 #include <assert.h>
 #include <raylib.h>
+#include <stdbool.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <string.h>
@@ -14,6 +15,8 @@
 #endif
 
 #define LENGTH(a) (sizeof(a) / sizeof(a[0]))
+#define MAX(a, b) (a > b ? a : b)
+#define MIN(a, b) (a < b ? a : b)
 
 #define WIN_WIDTH 800
 #define WIN_HEIHT WIN_WIDTH
@@ -417,33 +420,108 @@ void print_json_error(int err) {
   }
 }
 
+int print_tokens(jsmntok_t *current_token, int num_tokens, const char *json,
+                 int indent) {
+
+  if (num_tokens <= 0)
+    return 0;
+
+  switch (current_token->type) {
+  case JSMN_ARRAY: {
+
+    int tokens_printed = 1; // Skip the array one
+    if (current_token->size > 0) {
+
+      for (int j = 0; j < indent; ++j)
+        printf(" ");
+      printf("---- Size %d ----\n", current_token->size);
+      for (int i = 0; i < current_token->size; ++i) {
+        if (indent == 0)
+          printf("-");
+
+        tokens_printed += print_tokens(current_token + tokens_printed,
+                                       num_tokens - tokens_printed, json,
+                                       indent == 0 ? 1 : indent);
+      }
+      for (int j = 0; j < indent; ++j)
+        printf(" ");
+      printf("----\n");
+    } else {
+      for (int j = 0; j < indent; ++j)
+        printf(" ");
+      printf("[]\n");
+    }
+    return tokens_printed;
+
+  } break;
+  case JSMN_OBJECT: {
+    int tokens_printed = 1; // Skip the object one
+    for (int i = 0; i < current_token->size; ++i) {
+      jsmntok_t *key = current_token + tokens_printed;
+      for (int j = 0; j < indent; ++j)
+        printf(" ");
+      printf("%.*s:\n", key->end - key->start, json + key->start);
+      ++tokens_printed;
+      tokens_printed +=
+          print_tokens(current_token + tokens_printed,
+                       num_tokens - tokens_printed, json, indent + 2);
+    }
+    return tokens_printed;
+  } break;
+  case JSMN_PRIMITIVE: {
+    for (int j = 0; j < indent; ++j)
+      printf(" ");
+    printf("%.*s\n", current_token->end - current_token->start,
+           json + current_token->start);
+    return 1;
+  } break;
+  case JSMN_STRING: {
+    for (int j = 0; j < indent; ++j)
+      printf(" ");
+    printf("%.*s\n", current_token->end - current_token->start,
+           json + current_token->start);
+    return 1;
+  } break;
+  case JSMN_UNDEFINED: {
+    for (int j = 0; j < indent; ++j)
+      printf(" ");
+    printf("UNDEFINED (%.*s)\n", current_token->end - current_token->start,
+           json + current_token->start);
+    return 1;
+  } break;
+  default: {
+    assert(0 && "Unreachable");
+  } break;
+  }
+
+  return 0;
+}
+
 void parse_game(Game *game, const char *game_json) {
 
   int num_tokens = jsmn_parse(&json_parser, game_json, strlen(game_json),
                               json_tokens, NUM_JSON_TOKENS);
+
   if (num_tokens < 0) {
     print_json_error(num_tokens);
   }
 
-  for (int i = 0; i < num_tokens; ++i) {
-    // TODO: Finish function
-    printf("Type: %d (start: %d, end: %d, size: %d)\n", json_tokens[i].type,
-           json_tokens[i].start, json_tokens[i].end, json_tokens[i].size);
-  }
+  print_tokens(json_tokens, num_tokens, game_json, 0);
+
   memset(game, 0, sizeof(*game));
 }
 
 #if !WASM
 int main(void) {
-  init();
+  /* init(); */
 
   Game game = {0};
   parse_game(&game, test_json);
 
-  while (!WindowShouldClose()) {
-    update_draw();
-  }
-
-  deinit();
+  /* while (!WindowShouldClose()) { */
+  /*   update_draw(); */
+  /* } */
+  /**/
+  /* deinit(); */
 }
 #endif
