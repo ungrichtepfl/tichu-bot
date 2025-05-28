@@ -343,7 +343,7 @@ void update_draw(void) {
   EndDrawing();
 }
 
-bool key_equal(const char *json, jsmntok_t *tok, const char *s) {
+bool json_str_equal(const char *json, jsmntok_t *tok, const char *s) {
   if (tok->type == JSMN_STRING && (int)strlen(s) == tok->end - tok->start &&
       strncmp(json + tok->start, s, tok->end - tok->start) == 0) {
     return true;
@@ -355,52 +355,52 @@ const char *test_json =
     "[{\"board\":[],\"currentDealer\":\"P4\",\"finishOrder\":[],\"gameConfig\":"
     "{\"scoreLimit\":1000,\"sittingOrder\":[\"P1\",\"P2\",\"P3\",\"P4\"],"
     "\"teamNames\":[\"Team 1\",\"Team "
-    "2\"]},\"gamePhase\":{\"contents\":[{\"contents\":[\"Queen\",\"Clubs\"],"
-    "\"tag\":\"PokerCard\"},{\"contents\":[\"King\",\"Clubs\"],\"tag\":"
-    "\"PokerCard\"},{\"contents\":[\"Three\",\"Spades\"],\"tag\":\"PokerCard\"}"
-    ",{\"contents\":[\"King\",\"Diamonds\"],\"tag\":\"PokerCard\"},{"
-    "\"contents\":[\"Eight\",\"Spades\"],\"tag\":\"PokerCard\"},{\"contents\":["
-    "\"Four\",\"Diamonds\"],\"tag\":\"PokerCard\"},{\"contents\":[\"Three\","
-    "\"Hearts\"],\"tag\":\"PokerCard\"},{\"contents\":[\"Ace\",\"Hearts\"],"
-    "\"tag\":\"PokerCard\"},{\"contents\":[\"Five\",\"Hearts\"],\"tag\":"
-    "\"PokerCard\"},{\"contents\":[\"Two\",\"Diamonds\"],\"tag\":\"PokerCard\"}"
-    ",{\"contents\":[\"King\",\"Spades\"],\"tag\":\"PokerCard\"},{\"contents\":"
-    "[\"Queen\",\"Diamonds\"],\"tag\":\"PokerCard\"},{\"contents\":[\"Six\","
-    "\"Clubs\"],\"tag\":\"PokerCard\"},{\"contents\":[\"Ace\",\"Diamonds\"],"
-    "\"tag\":\"PokerCard\"},{\"contents\":[\"Seven\",\"Spades\"],\"tag\":"
-    "\"PokerCard\"},{\"contents\":[\"Eight\",\"Hearts\"],\"tag\":\"PokerCard\"}"
-    ",{\"contents\":[\"Nine\",\"Spades\"],\"tag\":\"PokerCard\"},{\"contents\":"
-    "[\"Five\",\"Clubs\"],\"tag\":\"PokerCard\"},{\"contents\":[\"Ace\","
-    "\"Spades\"],\"tag\":\"PokerCard\"},{\"contents\":[\"Four\",\"Clubs\"],"
-    "\"tag\":\"PokerCard\"},{\"contents\":[\"Four\",\"Hearts\"],\"tag\":"
-    "\"PokerCard\"},{\"contents\":[\"King\",\"Hearts\"],\"tag\":\"PokerCard\"},"
-    "{\"contents\":[\"Nine\",\"Diamonds\"],\"tag\":\"PokerCard\"},{"
-    "\"contents\":[\"Three\",\"Diamonds\"],\"tag\":\"PokerCard\"},{\"tag\":"
-    "\"Phoenix\"},{\"contents\":[\"Two\",\"Spades\"],\"tag\":\"PokerCard\"},{"
-    "\"contents\":[\"Queen\",\"Hearts\"],\"tag\":\"PokerCard\"},{\"contents\":["
-    "\"Ten\",\"Clubs\"],\"tag\":\"PokerCard\"},{\"contents\":[\"Three\","
-    "\"Clubs\"],\"tag\":\"PokerCard\"},{\"contents\":[\"Jack\",\"Hearts\"],"
-    "\"tag\":\"PokerCard\"},{\"contents\":[\"Five\",\"Spades\"],\"tag\":"
-    "\"PokerCard\"},{\"contents\":[\"Two\",\"Hearts\"],\"tag\":\"PokerCard\"},{"
-    "\"tag\":\"Dog\"},{\"contents\":[\"Four\",\"Spades\"],\"tag\":"
-    "\"PokerCard\"},{\"contents\":[\"Five\",\"Diamonds\"],\"tag\":"
-    "\"PokerCard\"},{\"contents\":[\"Eight\",\"Clubs\"],\"tag\":\"PokerCard\"},"
-    "{\"contents\":[\"Ten\",\"Spades\"],\"tag\":\"PokerCard\"},{\"contents\":["
-    "\"Jack\",\"Diamonds\"],\"tag\":\"PokerCard\"},{\"contents\":[\"Ten\","
-    "\"Diamonds\"],\"tag\":\"PokerCard\"},{\"tag\":\"Dragon\"},{\"contents\":["
-    "\"Ace\",\"Clubs\"],\"tag\":\"PokerCard\"},{\"contents\":[\"Seven\","
-    "\"Diamonds\"],\"tag\":\"PokerCard\"},{\"contents\":[\"Seven\",\"Hearts\"],"
-    "\"tag\":\"PokerCard\"},{\"contents\":[\"Seven\",\"Clubs\"],\"tag\":"
-    "\"PokerCard\"},{\"contents\":[\"Six\",\"Spades\"],\"tag\":\"PokerCard\"},{"
-    "\"tag\":\"Mahjong\"},{\"contents\":[\"Two\",\"Clubs\"],\"tag\":"
-    "\"PokerCard\"},{\"contents\":[\"Queen\",\"Spades\"],\"tag\":\"PokerCard\"}"
-    ",{\"contents\":[\"Eight\",\"Diamonds\"],\"tag\":\"PokerCard\"},{"
-    "\"contents\":[\"Jack\",\"Clubs\"],\"tag\":\"PokerCard\"},{\"contents\":["
-    "\"Nine\",\"Hearts\"],\"tag\":\"PokerCard\"},{\"contents\":[\"Jack\","
-    "\"Spades\"],\"tag\":\"PokerCard\"},{\"contents\":[\"Nine\",\"Clubs\"],"
-    "\"tag\":\"PokerCard\"},{\"contents\":[\"Six\",\"Hearts\"],\"tag\":"
-    "\"PokerCard\"},{\"contents\":[\"Ten\",\"Hearts\"],\"tag\":\"PokerCard\"},{"
-    "\"contents\":[\"Six\",\"Diamonds\"],\"tag\":\"PokerCard\"}],\"tag\":"
+    "2\"]},\"gamePhase\":{\"contents\":[{\"contents\":[\"Queen\",\"Red\"],"
+    "\"tag\":\"PokerCard\"},{\"contents\":[\"King\",\"Red\"],\"tag\":"
+    "\"PokerCard\"},{\"contents\":[\"Three\",\"Black\"],\"tag\":\"PokerCard\"}"
+    ",{\"contents\":[\"King\",\"Blue\"],\"tag\":\"PokerCard\"},{"
+    "\"contents\":[\"Eight\",\"Black\"],\"tag\":\"PokerCard\"},{\"contents\":["
+    "\"Four\",\"Blue\"],\"tag\":\"PokerCard\"},{\"contents\":[\"Three\","
+    "\"Green\"],\"tag\":\"PokerCard\"},{\"contents\":[\"Ace\",\"Green\"],"
+    "\"tag\":\"PokerCard\"},{\"contents\":[\"Five\",\"Green\"],\"tag\":"
+    "\"PokerCard\"},{\"contents\":[\"Two\",\"Blue\"],\"tag\":\"PokerCard\"}"
+    ",{\"contents\":[\"King\",\"Black\"],\"tag\":\"PokerCard\"},{\"contents\":"
+    "[\"Queen\",\"Blue\"],\"tag\":\"PokerCard\"},{\"contents\":[\"Six\","
+    "\"Red\"],\"tag\":\"PokerCard\"},{\"contents\":[\"Ace\",\"Blue\"],"
+    "\"tag\":\"PokerCard\"},{\"contents\":[\"Seven\",\"Black\"],\"tag\":"
+    "\"PokerCard\"},{\"contents\":[\"Eight\",\"Green\"],\"tag\":\"PokerCard\"}"
+    ",{\"contents\":[\"Nine\",\"Black\"],\"tag\":\"PokerCard\"},{\"contents\":"
+    "[\"Five\",\"Red\"],\"tag\":\"PokerCard\"},{\"contents\":[\"Ace\","
+    "\"Black\"],\"tag\":\"PokerCard\"},{\"contents\":[\"Four\",\"Red\"],"
+    "\"tag\":\"PokerCard\"},{\"contents\":[\"Four\",\"Green\"],\"tag\":"
+    "\"PokerCard\"},{\"contents\":[\"King\",\"Green\"],\"tag\":\"PokerCard\"},"
+    "{\"contents\":[\"Nine\",\"Blue\"],\"tag\":\"PokerCard\"},{"
+    "\"contents\":[\"Three\",\"Blue\"],\"tag\":\"PokerCard\"},{\"tag\":"
+    "\"Phoenix\"},{\"contents\":[\"Two\",\"Black\"],\"tag\":\"PokerCard\"},{"
+    "\"contents\":[\"Queen\",\"Green\"],\"tag\":\"PokerCard\"},{\"contents\":["
+    "\"Ten\",\"Red\"],\"tag\":\"PokerCard\"},{\"contents\":[\"Three\","
+    "\"Red\"],\"tag\":\"PokerCard\"},{\"contents\":[\"Jack\",\"Green\"],"
+    "\"tag\":\"PokerCard\"},{\"contents\":[\"Five\",\"Black\"],\"tag\":"
+    "\"PokerCard\"},{\"contents\":[\"Two\",\"Green\"],\"tag\":\"PokerCard\"},{"
+    "\"tag\":\"Dog\"},{\"contents\":[\"Four\",\"Black\"],\"tag\":"
+    "\"PokerCard\"},{\"contents\":[\"Five\",\"Blue\"],\"tag\":"
+    "\"PokerCard\"},{\"contents\":[\"Eight\",\"Red\"],\"tag\":\"PokerCard\"},"
+    "{\"contents\":[\"Ten\",\"Black\"],\"tag\":\"PokerCard\"},{\"contents\":["
+    "\"Jack\",\"Blue\"],\"tag\":\"PokerCard\"},{\"contents\":[\"Ten\","
+    "\"Blue\"],\"tag\":\"PokerCard\"},{\"tag\":\"Dragon\"},{\"contents\":["
+    "\"Ace\",\"Red\"],\"tag\":\"PokerCard\"},{\"contents\":[\"Seven\","
+    "\"Blue\"],\"tag\":\"PokerCard\"},{\"contents\":[\"Seven\",\"Green\"],"
+    "\"tag\":\"PokerCard\"},{\"contents\":[\"Seven\",\"Red\"],\"tag\":"
+    "\"PokerCard\"},{\"contents\":[\"Six\",\"Black\"],\"tag\":\"PokerCard\"},{"
+    "\"tag\":\"Mahjong\"},{\"contents\":[\"Two\",\"Red\"],\"tag\":"
+    "\"PokerCard\"},{\"contents\":[\"Queen\",\"Black\"],\"tag\":\"PokerCard\"}"
+    ",{\"contents\":[\"Eight\",\"Blue\"],\"tag\":\"PokerCard\"},{"
+    "\"contents\":[\"Jack\",\"Red\"],\"tag\":\"PokerCard\"},{\"contents\":["
+    "\"Nine\",\"Green\"],\"tag\":\"PokerCard\"},{\"contents\":[\"Jack\","
+    "\"Black\"],\"tag\":\"PokerCard\"},{\"contents\":[\"Nine\",\"Red\"],"
+    "\"tag\":\"PokerCard\"},{\"contents\":[\"Six\",\"Green\"],\"tag\":"
+    "\"PokerCard\"},{\"contents\":[\"Ten\",\"Green\"],\"tag\":\"PokerCard\"},{"
+    "\"contents\":[\"Six\",\"Blue\"],\"tag\":\"PokerCard\"}],\"tag\":"
     "\"Dealing\"},\"generator\":[9044394885522251889,15525276302677374087],"
     "\"hands\":{\"P1\":[],\"P2\":[],\"P3\":[],\"P4\":[]},\"scores\":{\"Team "
     "1\":0,\"Team "
@@ -541,13 +541,228 @@ int str_to_int(const char *str) {
   int res = strtol(str, &endptr, 10);
   if (errno != 0) {
     perror("strtol");
-    exit(EXIT_FAILURE);
+    assert(0);
   }
   if (endptr == str) {
     fprintf(stderr, "No digits were found\n");
-    exit(EXIT_FAILURE);
+    assert(0);
   }
   return res;
+}
+
+int parse_game_phase_tag(Game *game, jsmntok_t *game_token,
+                         const char *game_json) {
+  jsmntok_t *current_token = game_token;
+  assert(current_token->type == JSMN_STRING &&
+         "Game phase tag must be a string.");
+  if (json_str_equal(game_json, current_token, "Starting")) {
+    game->gamePhase.type = Starting;
+  } else if (json_str_equal(game_json, current_token, "Dealing")) {
+    game->gamePhase.type = Dealing;
+  } else if (json_str_equal(game_json, current_token, "Distributing")) {
+    game->gamePhase.type = Distributing;
+  } else if (json_str_equal(game_json, current_token, "Playing")) {
+    game->gamePhase.type = Playing;
+  } else if (json_str_equal(game_json, current_token,
+                            "GiveAwayLooserTricksAndHands")) {
+    game->gamePhase.type = GiveAwayLooserTricksAndHands;
+  } else if (json_str_equal(game_json, current_token, "Scoring")) {
+    game->gamePhase.type = Scoring;
+  } else if (json_str_equal(game_json, current_token, "NextRound")) {
+    game->gamePhase.type = NextRound;
+  } else if (json_str_equal(game_json, current_token, "Finished")) {
+    game->gamePhase.type = Finished;
+  } else {
+    fprintf(stderr, "Unknown game phose: %.*s\n",
+            current_token->end - current_token->start,
+            game_json + current_token->start);
+    assert(0);
+  }
+  ++current_token;
+  return current_token - game_token;
+}
+
+int parse_playing_card(Card *card, jsmntok_t *game_token,
+                       const char *game_json) {
+  jsmntok_t *current_token = game_token;
+
+  assert(current_token->type == JSMN_OBJECT &&
+         "Playing card must be a json object");
+  int object_size = current_token->size;
+  assert((object_size == 1 || object_size == 2) &&
+         "Object must contain tag and/or content");
+  ++current_token;
+
+  for (int o = 0; o < object_size; ++o) {
+    jsmntok_t *key = current_token;
+    ++current_token;
+
+    unsigned long parsed_keys_mask = 0;
+    unsigned long parsed_keys_mask_cmp = 0;
+    if (json_str_equal(game_json, key, "contents")) {
+      parsed_keys_mask |= 1 << 1;
+      assert(current_token->type == JSMN_ARRAY &&
+             "Card content must be an array");
+      int array_size = current_token->size;
+      assert(array_size == 2 && "Card content array size must be 2");
+      ++current_token;
+
+      assert(current_token->type == JSMN_STRING &&
+             "First card content must be a string");
+      if (json_str_equal(game_json, current_token, "Two")) {
+        card->number = 2;
+      } else if (json_str_equal(game_json, current_token, "Three")) {
+        card->number = 3;
+      } else if (json_str_equal(game_json, current_token, "Four")) {
+        card->number = 4;
+      } else if (json_str_equal(game_json, current_token, "Five")) {
+        card->number = 5;
+      } else if (json_str_equal(game_json, current_token, "Six")) {
+        card->number = 6;
+      } else if (json_str_equal(game_json, current_token, "Seven")) {
+        card->number = 7;
+      } else if (json_str_equal(game_json, current_token, "Eight")) {
+        card->number = 8;
+      } else if (json_str_equal(game_json, current_token, "Nine")) {
+        card->number = 9;
+      } else if (json_str_equal(game_json, current_token, "Ten")) {
+        card->number = 10;
+      } else if (json_str_equal(game_json, current_token, "Jack")) {
+        card->number = 11;
+      } else if (json_str_equal(game_json, current_token, "Queen")) {
+        card->number = 12;
+      } else if (json_str_equal(game_json, current_token, "King")) {
+        card->number = 13;
+      } else if (json_str_equal(game_json, current_token, "Ace")) {
+        card->number = 14;
+      } else {
+        fprintf(stderr, "Unknown card value: %.*s\n",
+                current_token->end - current_token->start,
+                game_json + current_token->start);
+        assert(0);
+      }
+      ++current_token;
+
+      assert(current_token->type == JSMN_STRING &&
+             "Second card content must be a string");
+      if (json_str_equal(game_json, current_token, "Red")) {
+        card->color = RED_CARD;
+      } else if (json_str_equal(game_json, current_token, "Green")) {
+        card->color = GREEN_CARD;
+      } else if (json_str_equal(game_json, current_token, "Blue")) {
+        card->color = BLUE_CARD;
+      } else if (json_str_equal(game_json, current_token, "Black")) {
+        card->color = BLACK_CARD;
+      } else {
+        fprintf(stderr, "Unknown card color: %.*s\n",
+                current_token->end - current_token->start,
+                game_json + current_token->start);
+        assert(0);
+      }
+      ++current_token;
+
+    } else if (json_str_equal(game_json, key, "tag")) {
+      // data TichuCard = PokerCard (Value, Color) | Dragon | Phoenix | Mahjong
+      // | Dog
+      parsed_keys_mask |= 1 << 2;
+      assert(current_token->type == JSMN_STRING &&
+             "The card tag must be a string");
+      if (json_str_equal(game_json, current_token, "PokerCard")) {
+        // IGNORE
+      } else if (json_str_equal(game_json, current_token, "Dragon")) {
+        card->color = DRAGON;
+      } else if (json_str_equal(game_json, current_token, "Phoenix")) {
+        card->color = PHOENIX;
+      } else if (json_str_equal(game_json, current_token, "Mahjong")) {
+        card->color = MAHJONG;
+      } else if (json_str_equal(game_json, current_token, "Dog")) {
+        card->color = DOG;
+      } else {
+        fprintf(stderr, "Unknown card color: %.*s\n",
+                current_token->end - current_token->start,
+                game_json + current_token->start);
+        assert(0);
+      }
+      ++current_token;
+    } else {
+      fprintf(stderr, "Unknown key: %.*s\n", key->end - key->start,
+              game_json + key->start);
+      assert(0);
+    }
+    parsed_keys_mask_cmp |= 1 << (o + 1);
+    assert((parsed_keys_mask == parsed_keys_mask_cmp ||
+            parsed_keys_mask == (1 << 2)) &&
+           "Some keys have not been parsed.");
+  }
+
+  return current_token - game_token;
+}
+
+int parse_game_phase_content(Game *game, jsmntok_t *game_token,
+                             const char *game_json) {
+  jsmntok_t *current_token = game_token;
+  assert(current_token->type == JSMN_ARRAY &&
+         "Game phase content must be an array.");
+  int array_size = current_token->size;
+  ++current_token;
+  if (array_size == 2 && current_token->type == JSMN_STRING &&
+      (current_token + 1)->type == JSMN_PRIMITIVE) {
+    // The Playing Phase
+    assert(0 && "Not yet implemented.");
+  } else if (current_token->type == JSMN_OBJECT) {
+    // The Dealing Phase
+    assert(array_size == LENGTH(game->gamePhase.cards) && "To many cards");
+    for (int a = 0; a < array_size; ++a) {
+      Card card = {0};
+      current_token += parse_playing_card(&card, current_token, game_json);
+      game->gamePhase.cards[a] = card;
+    }
+  } else {
+    fprintf(stderr, "Unknown type for game phase content: %d\n",
+            current_token->type);
+    assert(0);
+  }
+  return current_token - game_token;
+}
+
+int parse_game_phase(Game *game, jsmntok_t *game_token, const char *game_json) {
+  jsmntok_t *current_token = game_token;
+  assert(current_token->type == JSMN_OBJECT && "Game Phase must be an object.");
+  int object_size = current_token->size;
+  assert((object_size == 1 || object_size == 2) &&
+         "It must contain tag and/or content.");
+  ++current_token;
+
+  if (object_size == 1) {
+    assert(json_str_equal(game_json, current_token, "tag") &&
+           "If only one key it must be tag.");
+    ++current_token;
+    current_token += parse_game_phase_tag(game, current_token, game_json);
+  } else {
+    for (int o = 0; o < object_size; ++o) {
+      jsmntok_t *key = current_token;
+      ++current_token;
+
+      unsigned long parsed_keys_mask = 0;
+      unsigned long parsed_keys_mask_cmp = 0;
+      if (json_str_equal(game_json, key, "contents")) {
+        parsed_keys_mask |= 1 << 1;
+        current_token +=
+            parse_game_phase_content(game, current_token, game_json);
+      } else if (json_str_equal(game_json, key, "tag")) {
+        parsed_keys_mask |= 1 << 2;
+        current_token += parse_game_phase_tag(game, current_token, game_json);
+      } else {
+        fprintf(stderr, "Unknown key: %.*s\n", key->end - key->start,
+                game_json + key->start);
+        assert(0);
+      }
+      parsed_keys_mask_cmp |= 1 << (o + 1);
+      assert(parsed_keys_mask == parsed_keys_mask_cmp &&
+             "Some keys have not been parsed.");
+    }
+  }
+  return current_token - game_token;
 }
 
 int parse_game_config(Game *game, jsmntok_t *game_token,
@@ -565,7 +780,7 @@ int parse_game_config(Game *game, jsmntok_t *game_token,
     key = current_token;
 
     ++current_token;
-    if (key_equal(game_json, key, "scoreLimit")) {
+    if (json_str_equal(game_json, key, "scoreLimit")) {
       parsed_keys_mask |= 1 << 1;
       assert(current_token->type == JSMN_PRIMITIVE &&
              "Score Limit must be a primitive.");
@@ -573,7 +788,7 @@ int parse_game_config(Game *game, jsmntok_t *game_token,
       game->gameConfig.scoreLimit =
           str_to_int(game_json + current_token->start);
       ++current_token;
-    } else if (key_equal(game_json, key, "sittingOrder")) {
+    } else if (json_str_equal(game_json, key, "sittingOrder")) {
       parsed_keys_mask |= 1 << 2;
       assert(current_token->type == JSMN_ARRAY &&
              "Sitting order must be an array.");
@@ -590,7 +805,7 @@ int parse_game_config(Game *game, jsmntok_t *game_token,
         ++current_token;
       }
 
-    } else if (key_equal(game_json, key, "teamNames")) {
+    } else if (json_str_equal(game_json, key, "teamNames")) {
       parsed_keys_mask |= 1 << 3;
       assert(current_token->type == JSMN_ARRAY &&
              "Team names must be an array.");
@@ -608,6 +823,7 @@ int parse_game_config(Game *game, jsmntok_t *game_token,
     } else {
       fprintf(stderr, "Unknown key: %.*s\n", key->end - key->start,
               game_json + key->start);
+      assert(0);
     }
 
     parsed_keys_mask_cmp |= 1 << (o + 1);
@@ -632,47 +848,64 @@ int parse_game(Game *game, jsmntok_t *game_token, const char *game_json) {
   for (int o = 0; o < object_size; ++o) {
     key = current_token;
     ++current_token;
-    if (key_equal(game_json, key, "board")) {
+    if (json_str_equal(game_json, key, "board")) {
       parsed_keys_mask |= 1 << 1;
       current_token += parse_board(game, current_token, game_json);
 
-    } else if (key_equal(game_json, key, "currentDealer")) {
+    } else if (json_str_equal(game_json, key, "currentDealer")) {
       parsed_keys_mask |= 1 << 2;
       assert(current_token->type == JSMN_STRING &&
              "Current dealer must be a string.");
       SAFECPY(game->currentDealer, game_json + current_token->start,
               current_token->end - current_token->start);
       ++current_token;
-    } else if (key_equal(game_json, key, "finishOrder")) {
+    } else if (json_str_equal(game_json, key, "finishOrder")) {
       parsed_keys_mask |= 1 << 3;
       current_token += parse_finish_order(game, current_token, game_json);
-    } else if (key_equal(game_json, key, "gameConfig")) {
+    } else if (json_str_equal(game_json, key, "gameConfig")) {
       parsed_keys_mask |= 1 << 4;
       current_token += parse_game_config(game, current_token, game_json);
 
-    } else if (key_equal(game_json, key, "gamePhase")) {
-      printf("Game Phase\n");
+    } else if (json_str_equal(game_json, key, "gamePhase")) {
       parsed_keys_mask |= 1 << 5;
+      current_token += parse_game_phase(game, current_token, game_json);
 
-    } else if (key_equal(game_json, key, "generator")) {
+    } else if (json_str_equal(game_json, key, "generator")) {
       parsed_keys_mask |= 1 << 6;
-      // IGNORE
-    } else if (key_equal(game_json, key, "hands")) {
+      assert(current_token->type == JSMN_ARRAY && current_token->size == 2 &&
+             "Generator must be an array of size 2");
+      ++current_token;
+      assert(current_token->type == JSMN_PRIMITIVE &&
+             "First generator must be a number");
+      ++current_token;
+      assert(current_token->type == JSMN_PRIMITIVE &&
+             "Second generator must be a number");
+      ++current_token;
+
+      // NOTE: Don't save it at the moment.
+    } else if (json_str_equal(game_json, key, "hands")) {
+
       parsed_keys_mask |= 1 << 7;
+      assert(0 && "Not yet implemented.");
 
-    } else if (key_equal(game_json, key, "shouldGameStop")) {
+    } else if (json_str_equal(game_json, key, "shouldGameStop")) {
       parsed_keys_mask |= 1 << 8;
+      assert(0 && "Not yet implemented.");
 
-    } else if (key_equal(game_json, key, "tichus")) {
+    } else if (json_str_equal(game_json, key, "tichus")) {
       parsed_keys_mask |= 1 << 9;
+      assert(0 && "Not yet implemented.");
 
-    } else if (key_equal(game_json, key, "tricks")) {
+    } else if (json_str_equal(game_json, key, "tricks")) {
       parsed_keys_mask |= 1 << 10;
-    } else if (key_equal(game_json, key, "winnerTeams")) {
+      assert(0 && "Not yet implemented.");
+    } else if (json_str_equal(game_json, key, "winnerTeams")) {
       parsed_keys_mask |= 1 << 11;
+      assert(0 && "Not yet implemented.");
     } else {
       fprintf(stderr, "Unknown key: %.*s\n", key->end - key->start,
               game_json + key->start);
+      assert(0);
     }
     parsed_keys_mask_cmp |= 1 << (o + 1);
   }
@@ -690,7 +923,7 @@ void parse_game_and_actions(Game *game, const char *game_json) {
   jsmntok_t *current_token = &json_tokens[0];
   if (num_tokens < 0) {
     print_json_error(num_tokens);
-    exit(EXIT_FAILURE);
+    assert(0);
   }
   print_tokens(json_tokens, num_tokens, game_json, 0);
   assert(num_tokens > 0 && "Not enough tokens.");

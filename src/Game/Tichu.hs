@@ -23,7 +23,7 @@ import Game.Utils
 
 orderedDeck :: TichuCards
 orderedDeck =
-    [ PokerCard (v, c) | v <- [Two .. Ace], c <- [Spades .. Clubs]
+    [ PokerCard (v, c) | v <- [Two .. Ace], c <- [Red .. Black]
     ]
         ++ [Dragon, Phoenix, Mahjong, Dog]
 

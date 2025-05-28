@@ -76,7 +76,7 @@ typedef enum {
 
 typedef struct {
   GamePhaseType type;
-  Card cards[56];
+  Card cards[TOTAL_CARDS];
   PlayerName playerName[MAX_BYTES_NAME];
   Passes numPasses;
 } GamePhase;

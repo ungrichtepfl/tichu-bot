@@ -21,7 +21,7 @@ data Value
     | Ace
     deriving (Show, Eq, Ord, Enum, Bounded, Read)
 
-data Color = Spades | Hearts | Diamonds | Clubs
+data Color = Red | Green | Blue | Black
     deriving (Show, Eq, Enum, Read)
 
 data TichuCard = PokerCard (Value, Color) | Dragon | Phoenix | Mahjong | Dog
