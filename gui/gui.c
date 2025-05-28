@@ -1,6 +1,7 @@
 #include "game.h"
 #include "jsmn.h"
 #include <assert.h>
+#include <errno.h>
 #include <raylib.h>
 #include <stdbool.h>
 #include <stddef.h>
@@ -40,7 +41,7 @@
 #define NUM_JSON_TOKENS (1 << 10)
 jsmn_parser json_parser;
 jsmntok_t json_tokens[NUM_JSON_TOKENS];
-#define SAFECPY(g, t, n) strncpy(g, t, MIN(sizeof(g), (unsigned long)n))
+#define SAFECPY(g, t, n) strncpy(g, t, MIN(sizeof(g) - 1, (unsigned long)n))
 
 typedef struct {
   Texture2D red[CARDS_PER_COLOR];
@@ -342,7 +343,7 @@ void update_draw(void) {
   EndDrawing();
 }
 
-bool jsoneq(const char *json, jsmntok_t *tok, const char *s) {
+bool key_equal(const char *json, jsmntok_t *tok, const char *s) {
   if (tok->type == JSMN_STRING && (int)strlen(s) == tok->end - tok->start &&
       strncmp(json + tok->start, s, tok->end - tok->start) == 0) {
     return true;
@@ -507,6 +508,115 @@ int print_tokens(jsmntok_t *current_token, int num_tokens, const char *json,
   return 0;
 }
 
+int parse_board(Game *game, jsmntok_t *game_token, const char *game_json) {
+
+  jsmntok_t *current_token = game_token;
+  assert(current_token->type == JSMN_ARRAY && "Game board must be an array");
+  int array_size = current_token->size;
+  ++current_token;
+  for (int a = 0; a < array_size; ++a) {
+    (void)game;
+    (void)game_json;
+    assert(0 && "Not implemented yet");
+  }
+  return current_token - game_token;
+}
+int parse_finish_order(Game *game, jsmntok_t *game_token,
+                       const char *game_json) {
+  jsmntok_t *current_token = game_token;
+  assert(current_token->type == JSMN_ARRAY && "Finish order must be an array.");
+  int array_size = current_token->size;
+  ++current_token;
+  for (int a = 0; a < array_size; ++a) {
+    (void)game;
+    (void)game_json;
+    assert(0 && "Not implemented yet");
+  }
+  return current_token - game_token;
+}
+
+int str_to_int(const char *str) {
+  errno = 0;
+  char *endptr;
+  int res = strtol(str, &endptr, 10);
+  if (errno != 0) {
+    perror("strtol");
+    exit(EXIT_FAILURE);
+  }
+  if (endptr == str) {
+    fprintf(stderr, "No digits were found\n");
+    exit(EXIT_FAILURE);
+  }
+  return res;
+}
+
+int parse_game_config(Game *game, jsmntok_t *game_token,
+                      const char *game_json) {
+  jsmntok_t *current_token = game_token;
+  assert(current_token->type == JSMN_OBJECT &&
+         "Game config must be an object.");
+  int object_size = current_token->size;
+  ++current_token;
+
+  unsigned long parsed_keys_mask = 0;
+  unsigned long parsed_keys_mask_cmp = 0;
+  jsmntok_t *key = NULL;
+  for (int o = 0; o < object_size; ++o) {
+    key = current_token;
+
+    ++current_token;
+    if (key_equal(game_json, key, "scoreLimit")) {
+      parsed_keys_mask |= 1 << 1;
+      assert(current_token->type == JSMN_PRIMITIVE &&
+             "Score Limit must be a primitive.");
+
+      game->gameConfig.scoreLimit =
+          str_to_int(game_json + current_token->start);
+      ++current_token;
+    } else if (key_equal(game_json, key, "sittingOrder")) {
+      parsed_keys_mask |= 1 << 2;
+      assert(current_token->type == JSMN_ARRAY &&
+             "Sitting order must be an array.");
+      int array_size = current_token->size;
+      ++current_token;
+      assert(LENGTH(game->gameConfig.sittingOrder) == array_size &&
+             "Too many or too little elements for the sitting order.");
+      for (int a = 0; a < array_size; ++a) {
+        assert(current_token->type == JSMN_STRING &&
+               "Element of sitting order must be a string.");
+        SAFECPY(game->gameConfig.sittingOrder[a],
+                game_json + current_token->start,
+                current_token->end - current_token->start);
+        ++current_token;
+      }
+
+    } else if (key_equal(game_json, key, "teamNames")) {
+      parsed_keys_mask |= 1 << 3;
+      assert(current_token->type == JSMN_ARRAY &&
+             "Team names must be an array.");
+      int array_size = current_token->size;
+      ++current_token;
+      assert(LENGTH(game->gameConfig.teamNames) == array_size &&
+             "Too many or too little elements for the team names.");
+      for (int a = 0; a < array_size; ++a) {
+        assert(current_token->type == JSMN_STRING &&
+               "Element of team names must be a string.");
+        SAFECPY(game->gameConfig.teamNames[a], game_json + current_token->start,
+                current_token->end - current_token->start);
+        ++current_token;
+      }
+    } else {
+      fprintf(stderr, "Unknown key: %.*s\n", key->end - key->start,
+              game_json + key->start);
+    }
+
+    parsed_keys_mask_cmp |= 1 << (o + 1);
+  }
+  assert(parsed_keys_mask == parsed_keys_mask_cmp &&
+         "Some keys have not been parsed.");
+  return current_token - game_token;
+}
+
 int parse_game(Game *game, jsmntok_t *game_token, const char *game_json) {
   memset(game, 0, sizeof(*game));
   jsmntok_t *current_token = game_token;
@@ -522,60 +632,43 @@ int parse_game(Game *game, jsmntok_t *game_token, const char *game_json) {
   for (int o = 0; o < object_size; ++o) {
     key = current_token;
     ++current_token;
-    if (jsoneq(game_json, key, "board")) {
+    if (key_equal(game_json, key, "board")) {
       parsed_keys_mask |= 1 << 1;
-      assert(current_token->type == JSMN_ARRAY &&
-             "Game board must be an array");
-      int array_size = current_token->size;
-      ++current_token;
-      for (int a = 0; a < array_size; ++a) {
-        // TODO: fill game
-      }
+      current_token += parse_board(game, current_token, game_json);
 
-    } else if (jsoneq(game_json, key, "currentDealer")) {
+    } else if (key_equal(game_json, key, "currentDealer")) {
       parsed_keys_mask |= 1 << 2;
       assert(current_token->type == JSMN_STRING &&
              "Current dealer must be a string.");
       SAFECPY(game->currentDealer, game_json + current_token->start,
               current_token->end - current_token->start);
       ++current_token;
-    } else if (jsoneq(game_json, key, "finishOrder")) {
+    } else if (key_equal(game_json, key, "finishOrder")) {
       parsed_keys_mask |= 1 << 3;
-      assert(current_token->type == JSMN_ARRAY &&
-             "Finish order must be an array.");
-      int array_size = current_token->size;
-      ++current_token;
-      for (int a = 0; a < array_size; ++a) {
-        // TODO: fill game
-      }
-    } else if (jsoneq(game_json, key, "gameConfig")) {
+      current_token += parse_finish_order(game, current_token, game_json);
+    } else if (key_equal(game_json, key, "gameConfig")) {
       parsed_keys_mask |= 1 << 4;
-      assert(current_token->type == JSMN_OBJECT &&
-             "Game config must be an object.");
-      int object_size = current_token->size;
-      ++current_token;
-      for (int o = 0; o < object_size; ++o) {
-        // TODO: fill game
-      }
+      current_token += parse_game_config(game, current_token, game_json);
 
-    } else if (jsoneq(game_json, key, "gamePhase")) {
+    } else if (key_equal(game_json, key, "gamePhase")) {
+      printf("Game Phase\n");
       parsed_keys_mask |= 1 << 5;
 
-    } else if (jsoneq(game_json, key, "generator")) {
+    } else if (key_equal(game_json, key, "generator")) {
       parsed_keys_mask |= 1 << 6;
       // IGNORE
-    } else if (jsoneq(game_json, key, "hands")) {
+    } else if (key_equal(game_json, key, "hands")) {
       parsed_keys_mask |= 1 << 7;
 
-    } else if (jsoneq(game_json, key, "shouldGameStop")) {
+    } else if (key_equal(game_json, key, "shouldGameStop")) {
       parsed_keys_mask |= 1 << 8;
 
-    } else if (jsoneq(game_json, key, "tichus")) {
+    } else if (key_equal(game_json, key, "tichus")) {
       parsed_keys_mask |= 1 << 9;
 
-    } else if (jsoneq(game_json, key, "tricks")) {
+    } else if (key_equal(game_json, key, "tricks")) {
       parsed_keys_mask |= 1 << 10;
-    } else if (jsoneq(game_json, key, "winnerTeams")) {
+    } else if (key_equal(game_json, key, "winnerTeams")) {
       parsed_keys_mask |= 1 << 11;
     } else {
       fprintf(stderr, "Unknown key: %.*s\n", key->end - key->start,
@@ -597,7 +690,7 @@ void parse_game_and_actions(Game *game, const char *game_json) {
   jsmntok_t *current_token = &json_tokens[0];
   if (num_tokens < 0) {
     print_json_error(num_tokens);
-    exit(1);
+    exit(EXIT_FAILURE);
   }
   print_tokens(json_tokens, num_tokens, game_json, 0);
   assert(num_tokens > 0 && "Not enough tokens.");
