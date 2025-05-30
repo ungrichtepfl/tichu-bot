@@ -344,11 +344,29 @@ void update_draw(void) {
 }
 
 bool json_str_equal(const char *json, jsmntok_t *tok, const char *s) {
-  if (tok->type == JSMN_STRING && (int)strlen(s) == tok->end - tok->start &&
+  assert(tok->type == JSMN_STRING && "Token must be a string.");
+  if ((int)strlen(s) == tok->end - tok->start &&
       strncmp(json + tok->start, s, tok->end - tok->start) == 0) {
     return true;
   }
   return false;
+}
+
+bool json_bool(const char *json, jsmntok_t *tok) {
+  const char *t = "true";
+  const char *f = "false";
+  assert(tok->type == JSMN_PRIMITIVE && "Boolean must be a primitive.");
+  if ((int)strlen(t) == tok->end - tok->start &&
+      strncmp(json + tok->start, t, tok->end - tok->start) == 0) {
+    return true;
+  } else if ((int)strlen(f) == tok->end - tok->start &&
+             strncmp(json + tok->start, f, tok->end - tok->start) == 0) {
+    return false;
+  } else {
+    fprintf(stderr, "Not a boolean: %.*s\n", tok->end - tok->start,
+            json + tok->start);
+    assert(0);
+  }
 }
 
 const char *test_json =
@@ -600,7 +618,7 @@ int parse_playing_card(Card *card, jsmntok_t *game_token,
     unsigned long parsed_keys_mask = 0;
     unsigned long parsed_keys_mask_cmp = 0;
     if (json_str_equal(game_json, key, "contents")) {
-      parsed_keys_mask |= 1 << 1;
+      parsed_keys_mask |= 1 << 0;
       assert(current_token->type == JSMN_ARRAY &&
              "Card content must be an array");
       int array_size = current_token->size;
@@ -664,7 +682,7 @@ int parse_playing_card(Card *card, jsmntok_t *game_token,
     } else if (json_str_equal(game_json, key, "tag")) {
       // data TichuCard = PokerCard (Value, Color) | Dragon | Phoenix | Mahjong
       // | Dog
-      parsed_keys_mask |= 1 << 2;
+      parsed_keys_mask |= 1 << 1;
       assert(current_token->type == JSMN_STRING &&
              "The card tag must be a string");
       if (json_str_equal(game_json, current_token, "PokerCard")) {
@@ -689,9 +707,9 @@ int parse_playing_card(Card *card, jsmntok_t *game_token,
               game_json + key->start);
       assert(0);
     }
-    parsed_keys_mask_cmp |= 1 << (o + 1);
+    parsed_keys_mask_cmp |= 1 << o;
     assert((parsed_keys_mask == parsed_keys_mask_cmp ||
-            parsed_keys_mask == (1 << 2)) &&
+            parsed_keys_mask == 1 << 1) &&
            "Some keys have not been parsed.");
   }
 
@@ -746,18 +764,18 @@ int parse_game_phase(Game *game, jsmntok_t *game_token, const char *game_json) {
       unsigned long parsed_keys_mask = 0;
       unsigned long parsed_keys_mask_cmp = 0;
       if (json_str_equal(game_json, key, "contents")) {
-        parsed_keys_mask |= 1 << 1;
+        parsed_keys_mask |= 1 << 0;
         current_token +=
             parse_game_phase_content(game, current_token, game_json);
       } else if (json_str_equal(game_json, key, "tag")) {
-        parsed_keys_mask |= 1 << 2;
+        parsed_keys_mask |= 1 << 1;
         current_token += parse_game_phase_tag(game, current_token, game_json);
       } else {
         fprintf(stderr, "Unknown key: %.*s\n", key->end - key->start,
                 game_json + key->start);
         assert(0);
       }
-      parsed_keys_mask_cmp |= 1 << (o + 1);
+      parsed_keys_mask_cmp |= 1 << o;
       assert(parsed_keys_mask == parsed_keys_mask_cmp &&
              "Some keys have not been parsed.");
     }
@@ -781,7 +799,7 @@ int parse_game_config(Game *game, jsmntok_t *game_token,
 
     ++current_token;
     if (json_str_equal(game_json, key, "scoreLimit")) {
-      parsed_keys_mask |= 1 << 1;
+      parsed_keys_mask |= 1 << 0;
       assert(current_token->type == JSMN_PRIMITIVE &&
              "Score Limit must be a primitive.");
 
@@ -789,7 +807,7 @@ int parse_game_config(Game *game, jsmntok_t *game_token,
           str_to_int(game_json + current_token->start);
       ++current_token;
     } else if (json_str_equal(game_json, key, "sittingOrder")) {
-      parsed_keys_mask |= 1 << 2;
+      parsed_keys_mask |= 1 << 1;
       assert(current_token->type == JSMN_ARRAY &&
              "Sitting order must be an array.");
       int array_size = current_token->size;
@@ -806,7 +824,7 @@ int parse_game_config(Game *game, jsmntok_t *game_token,
       }
 
     } else if (json_str_equal(game_json, key, "teamNames")) {
-      parsed_keys_mask |= 1 << 3;
+      parsed_keys_mask |= 1 << 2;
       assert(current_token->type == JSMN_ARRAY &&
              "Team names must be an array.");
       int array_size = current_token->size;
@@ -826,7 +844,7 @@ int parse_game_config(Game *game, jsmntok_t *game_token,
       assert(0);
     }
 
-    parsed_keys_mask_cmp |= 1 << (o + 1);
+    parsed_keys_mask_cmp |= 1 << o;
   }
   assert(parsed_keys_mask == parsed_keys_mask_cmp &&
          "Some keys have not been parsed.");
@@ -844,7 +862,7 @@ int get_sitting_order_index(
 }
 
 int get_team_name_index(TeamName team_names[NUM_TEAMS][MAX_BYTES_NAME],
-                        TeamName *team_name, int str_len) {
+                        const TeamName *team_name, int str_len) {
   for (int i = 0; i < NUM_TEAMS; ++i)
     if (strncmp(team_names[i], team_name, str_len) == 0)
       return i;
@@ -861,15 +879,15 @@ int parse_hands(Game *game, jsmntok_t *game_token, const char *game_json,
   assert(object_size == NUM_PLAYERS &&
          "The there must be keys for each player.");
   ++current_token;
-  int parsed_keys_mask = 0;
-  int parsed_keys_mask_cmp = 0;
+  unsigned long parsed_keys_mask = 0;
+  unsigned long parsed_keys_mask_cmp = 0;
   for (int o = 0; o < object_size; ++o) {
     jsmntok_t *key = current_token;
     assert(key->type == JSMN_STRING && "The key must be a string.");
     int idx = get_sitting_order_index(*sitting_order, game_json + key->start,
                                       key->end - key->start);
     parsed_keys_mask |= 1 << idx;
-    parsed_keys_mask_cmp |= (1 << o);
+    parsed_keys_mask_cmp |= 1 << o;
     ++current_token;
 
     assert(current_token->type == JSMN_ARRAY &&
@@ -886,6 +904,35 @@ int parse_hands(Game *game, jsmntok_t *game_token, const char *game_json,
   }
   assert(parsed_keys_mask_cmp == parsed_keys_mask &&
          "Some players hands have not been parsed.");
+  return current_token - game_token;
+}
+
+int parse_scores(Game *game, jsmntok_t *game_token, const char *game_json,
+                 PlayerName (*team_names)[NUM_TEAMS][MAX_BYTES_NAME]) {
+  jsmntok_t *current_token = game_token;
+  assert(team_names != NULL && "Game config must be parsed at this point.");
+  assert(current_token->type == JSMN_OBJECT && "The scores must be an object");
+  int object_size = current_token->size;
+  assert(object_size == NUM_TEAMS && "The there must be keys for each team.");
+  ++current_token;
+  unsigned long parsed_keys_mask = 0;
+  unsigned long parsed_keys_mask_cmp = 0;
+  for (int o = 0; o < object_size; ++o) {
+    jsmntok_t *key = current_token;
+    assert(key->type == JSMN_STRING && "The key must be a string.");
+    int idx = get_team_name_index(*team_names, game_json + key->start,
+                                  key->end - key->start);
+    parsed_keys_mask |= 1 << idx;
+    parsed_keys_mask_cmp |= 1 << o;
+    ++current_token;
+
+    assert(current_token->type == JSMN_PRIMITIVE &&
+           "The score must be a number.");
+    game->scores[idx] = str_to_int(game_json + current_token->start);
+    ++current_token;
+  }
+  assert(parsed_keys_mask_cmp == parsed_keys_mask &&
+         "Some scores have not been parsed.");
   return current_token - game_token;
 }
 
@@ -907,29 +954,29 @@ int parse_game(Game *game, jsmntok_t *game_token, const char *game_json) {
     key = current_token;
     ++current_token;
     if (json_str_equal(game_json, key, "board")) {
-      parsed_keys_mask |= 1 << 1;
+      parsed_keys_mask |= 1 << 0;
       current_token += parse_board(game, current_token, game_json);
 
     } else if (json_str_equal(game_json, key, "currentDealer")) {
-      parsed_keys_mask |= 1 << 2;
+      parsed_keys_mask |= 1 << 1;
       assert(current_token->type == JSMN_STRING &&
              "Current dealer must be a string.");
       SAFECPY(game->currentDealer, game_json + current_token->start,
               current_token->end - current_token->start);
       ++current_token;
     } else if (json_str_equal(game_json, key, "finishOrder")) {
-      parsed_keys_mask |= 1 << 3;
+      parsed_keys_mask |= 1 << 2;
       current_token += parse_finish_order(game, current_token, game_json);
     } else if (json_str_equal(game_json, key, "gameConfig")) {
-      parsed_keys_mask |= 1 << 4;
+      parsed_keys_mask |= 1 << 3;
       current_token += parse_game_config(game, current_token, game_json);
       sitting_order = &game->gameConfig.sittingOrder;
       team_names = &game->gameConfig.teamNames;
     } else if (json_str_equal(game_json, key, "gamePhase")) {
-      parsed_keys_mask |= 1 << 5;
+      parsed_keys_mask |= 1 << 4;
       current_token += parse_game_phase(game, current_token, game_json);
     } else if (json_str_equal(game_json, key, "generator")) {
-      parsed_keys_mask |= 1 << 6;
+      parsed_keys_mask |= 1 << 5;
       assert(current_token->type == JSMN_ARRAY && current_token->size == 2 &&
              "Generator must be an array of size 2");
       ++current_token;
@@ -942,25 +989,25 @@ int parse_game(Game *game, jsmntok_t *game_token, const char *game_json) {
 
       // NOTE: Don't save it at the moment.
     } else if (json_str_equal(game_json, key, "hands")) {
-      parsed_keys_mask |= 1 << 7;
+      parsed_keys_mask |= 1 << 6;
       current_token +=
           parse_hands(game, current_token, game_json, sitting_order);
     } else if (json_str_equal(game_json, key, "scores")) {
-      parsed_keys_mask |= 1 << 8;
-      assert(0 && "Not yet implemented.");
+      parsed_keys_mask |= 1 << 7;
+      current_token += parse_scores(game, current_token, game_json, team_names);
     } else if (json_str_equal(game_json, key, "shouldGameStop")) {
+      parsed_keys_mask |= 1 << 8;
+      game->shouldGameStop = json_bool(game_json, current_token);
+      ++current_token;
+    } else if (json_str_equal(game_json, key, "tichus")) {
       parsed_keys_mask |= 1 << 9;
       assert(0 && "Not yet implemented.");
 
-    } else if (json_str_equal(game_json, key, "tichus")) {
+    } else if (json_str_equal(game_json, key, "tricks")) {
       parsed_keys_mask |= 1 << 10;
       assert(0 && "Not yet implemented.");
-
-    } else if (json_str_equal(game_json, key, "tricks")) {
-      parsed_keys_mask |= 1 << 11;
-      assert(0 && "Not yet implemented.");
     } else if (json_str_equal(game_json, key, "winnerTeams")) {
-      parsed_keys_mask |= 1 << 12;
+      parsed_keys_mask |= 1 << 11;
       (void)team_names;
       assert(0 && "Not yet implemented.");
     } else {
@@ -968,7 +1015,7 @@ int parse_game(Game *game, jsmntok_t *game_token, const char *game_json) {
               game_json + key->start);
       assert(0);
     }
-    parsed_keys_mask_cmp |= 1 << (o + 1);
+    parsed_keys_mask_cmp |= 1 << o;
   }
   assert(parsed_keys_mask == parsed_keys_mask_cmp &&
          "Some keys have not been parsed.");
