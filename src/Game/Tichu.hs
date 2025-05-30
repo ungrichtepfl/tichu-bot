@@ -39,7 +39,7 @@ initialTichus names = Map.fromList [(n, Nothing) | n <- names]
 initialScores :: [TeamName] -> Map TeamName Score
 initialScores names = Map.fromList [(n, 0) | n <- names]
 
-newGame :: GameConfig -> Int -> (Game, Map PlayerName [PlayerAction])
+newGame :: GameConfig -> Int -> (Game, Maybe (Map PlayerName [PlayerAction]))
 newGame config seed =
     let gen = mkStdGen seed
         game =
@@ -117,10 +117,13 @@ isValidForBoard [] _ = True
 isValidForBoard ((SingleCard [Phoenix]) : rest) combi = isValidForBoard rest combi
 isValidForBoard (boardCombi : _) combi = canBePlayedOnTop combi boardCombi
 
-allPossiblePlayerActions :: Game -> Map PlayerName [PlayerAction]
+allPossiblePlayerActions :: Game -> Maybe (Map PlayerName [PlayerAction])
 allPossiblePlayerActions game =
     let pln = playerNames' game
-     in Map.fromList $ zip pln (possiblePlayerActions game <$> pln)
+        actions = possiblePlayerActions game <$> pln
+     in if all null actions
+            then Nothing
+            else Just $ Map.fromList $ zip pln actions
 
 possiblePlayerActions :: Game -> PlayerName -> [PlayerAction]
 possiblePlayerActions game pn =
@@ -145,8 +148,7 @@ possiblePlayerActions game pn =
                                         combinations
                                     )
                                     ++ [Pass]
-            Dealing _ -> defaultActions -- TODO: Add GrandTichu
-            Distributing -> defaultActions
+            Dealing _ -> [] -- TODO: Add GrandTichu
             _ -> []
   where
     pass :: [PlayerAction]
@@ -244,14 +246,26 @@ finish :: Game -> Game
 finish game = do
     game{shouldGameStop = True}
 
-updateGame :: Game -> (PlayerName, PlayerAction) -> (Game, Map PlayerName [PlayerAction])
+updateGame :: Game -> Maybe (PlayerName, PlayerAction) -> (Game, Maybe (Map PlayerName [PlayerAction]))
 updateGame game playersAction =
     let
         game' = case gamePhase game of
             Starting -> startGame game
             Dealing _ -> dealAllCards game
-            Distributing -> distribute game playersAction
-            Playing _ _ -> applyPlayerAction game playersAction
+            Distributing ->
+                distribute
+                    game
+                    ( case playersAction of
+                        Just action -> action
+                        Nothing -> error "There must be an action"
+                    )
+            Playing _ _ ->
+                applyPlayerAction
+                    game
+                    ( case playersAction of
+                        Just action -> action
+                        Nothing -> error "There must be an action"
+                    )
             NextRound -> nextRound game
             GiveAwayLooserTricksAndHands -> giveAwayLooserTricksAndHands game
             Scoring -> score game

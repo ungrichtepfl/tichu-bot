@@ -1,9 +1,9 @@
 #include "game.h"
 #include "jsmn.h"
+#include "test_json.h"
 #include <assert.h>
 #include <errno.h>
 #include <raylib.h>
-#include <stdbool.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -38,7 +38,7 @@
 #define ASSET_PATH "./gui/images/"
 #define CARD_ASSET_REL_PATH "cards/"
 
-#define NUM_JSON_TOKENS (1 << 10)
+#define NUM_JSON_TOKENS (1 << 12)
 jsmn_parser json_parser;
 jsmntok_t json_tokens[NUM_JSON_TOKENS];
 #define SAFECPY(g, t, n) strncpy(g, t, MIN(sizeof(g) - 1, (unsigned long)n))
@@ -368,64 +368,6 @@ bool json_bool(const char *json, jsmntok_t *tok) {
   }
 }
 
-const char *test_json =
-    "[{\"board\":[],\"currentDealer\":\"P4\",\"finishOrder\":[],\"gameConfig\":"
-    "{\"scoreLimit\":1000,\"sittingOrder\":[\"P1\",\"P2\",\"P3\",\"P4\"],"
-    "\"teamNames\":[\"Team 1\",\"Team "
-    "2\"]},\"gamePhase\":{\"contents\":[{\"contents\":[\"Queen\",\"Red\"],"
-    "\"tag\":\"PokerCard\"},{\"contents\":[\"King\",\"Red\"],\"tag\":"
-    "\"PokerCard\"},{\"contents\":[\"Three\",\"Black\"],\"tag\":\"PokerCard\"}"
-    ",{\"contents\":[\"King\",\"Blue\"],\"tag\":\"PokerCard\"},{"
-    "\"contents\":[\"Eight\",\"Black\"],\"tag\":\"PokerCard\"},{\"contents\":["
-    "\"Four\",\"Blue\"],\"tag\":\"PokerCard\"},{\"contents\":[\"Three\","
-    "\"Green\"],\"tag\":\"PokerCard\"},{\"contents\":[\"Ace\",\"Green\"],"
-    "\"tag\":\"PokerCard\"},{\"contents\":[\"Five\",\"Green\"],\"tag\":"
-    "\"PokerCard\"},{\"contents\":[\"Two\",\"Blue\"],\"tag\":\"PokerCard\"}"
-    ",{\"contents\":[\"King\",\"Black\"],\"tag\":\"PokerCard\"},{\"contents\":"
-    "[\"Queen\",\"Blue\"],\"tag\":\"PokerCard\"},{\"contents\":[\"Six\","
-    "\"Red\"],\"tag\":\"PokerCard\"},{\"contents\":[\"Ace\",\"Blue\"],"
-    "\"tag\":\"PokerCard\"},{\"contents\":[\"Seven\",\"Black\"],\"tag\":"
-    "\"PokerCard\"},{\"contents\":[\"Eight\",\"Green\"],\"tag\":\"PokerCard\"}"
-    ",{\"contents\":[\"Nine\",\"Black\"],\"tag\":\"PokerCard\"},{\"contents\":"
-    "[\"Five\",\"Red\"],\"tag\":\"PokerCard\"},{\"contents\":[\"Ace\","
-    "\"Black\"],\"tag\":\"PokerCard\"},{\"contents\":[\"Four\",\"Red\"],"
-    "\"tag\":\"PokerCard\"},{\"contents\":[\"Four\",\"Green\"],\"tag\":"
-    "\"PokerCard\"},{\"contents\":[\"King\",\"Green\"],\"tag\":\"PokerCard\"},"
-    "{\"contents\":[\"Nine\",\"Blue\"],\"tag\":\"PokerCard\"},{"
-    "\"contents\":[\"Three\",\"Blue\"],\"tag\":\"PokerCard\"},{\"tag\":"
-    "\"Phoenix\"},{\"contents\":[\"Two\",\"Black\"],\"tag\":\"PokerCard\"},{"
-    "\"contents\":[\"Queen\",\"Green\"],\"tag\":\"PokerCard\"},{\"contents\":["
-    "\"Ten\",\"Red\"],\"tag\":\"PokerCard\"},{\"contents\":[\"Three\","
-    "\"Red\"],\"tag\":\"PokerCard\"},{\"contents\":[\"Jack\",\"Green\"],"
-    "\"tag\":\"PokerCard\"},{\"contents\":[\"Five\",\"Black\"],\"tag\":"
-    "\"PokerCard\"},{\"contents\":[\"Two\",\"Green\"],\"tag\":\"PokerCard\"},{"
-    "\"tag\":\"Dog\"},{\"contents\":[\"Four\",\"Black\"],\"tag\":"
-    "\"PokerCard\"},{\"contents\":[\"Five\",\"Blue\"],\"tag\":"
-    "\"PokerCard\"},{\"contents\":[\"Eight\",\"Red\"],\"tag\":\"PokerCard\"},"
-    "{\"contents\":[\"Ten\",\"Black\"],\"tag\":\"PokerCard\"},{\"contents\":["
-    "\"Jack\",\"Blue\"],\"tag\":\"PokerCard\"},{\"contents\":[\"Ten\","
-    "\"Blue\"],\"tag\":\"PokerCard\"},{\"tag\":\"Dragon\"},{\"contents\":["
-    "\"Ace\",\"Red\"],\"tag\":\"PokerCard\"},{\"contents\":[\"Seven\","
-    "\"Blue\"],\"tag\":\"PokerCard\"},{\"contents\":[\"Seven\",\"Green\"],"
-    "\"tag\":\"PokerCard\"},{\"contents\":[\"Seven\",\"Red\"],\"tag\":"
-    "\"PokerCard\"},{\"contents\":[\"Six\",\"Black\"],\"tag\":\"PokerCard\"},{"
-    "\"tag\":\"Mahjong\"},{\"contents\":[\"Two\",\"Red\"],\"tag\":"
-    "\"PokerCard\"},{\"contents\":[\"Queen\",\"Black\"],\"tag\":\"PokerCard\"}"
-    ",{\"contents\":[\"Eight\",\"Blue\"],\"tag\":\"PokerCard\"},{"
-    "\"contents\":[\"Jack\",\"Red\"],\"tag\":\"PokerCard\"},{\"contents\":["
-    "\"Nine\",\"Green\"],\"tag\":\"PokerCard\"},{\"contents\":[\"Jack\","
-    "\"Black\"],\"tag\":\"PokerCard\"},{\"contents\":[\"Nine\",\"Red\"],"
-    "\"tag\":\"PokerCard\"},{\"contents\":[\"Six\",\"Green\"],\"tag\":"
-    "\"PokerCard\"},{\"contents\":[\"Ten\",\"Green\"],\"tag\":\"PokerCard\"},{"
-    "\"contents\":[\"Six\",\"Blue\"],\"tag\":\"PokerCard\"}],\"tag\":"
-    "\"Dealing\"},\"generator\":[9044394885522251889,15525276302677374087],"
-    "\"hands\":{\"P1\":[],\"P2\":[],\"P3\":[],\"P4\":[]},\"scores\":{\"Team "
-    "1\":0,\"Team "
-    "2\":0},\"shouldGameStop\":false,\"tichus\":{\"P1\":null,\"P2\":null,"
-    "\"P3\":null,\"P4\":null},\"tricks\":{\"P1\":[],\"P2\":[],\"P3\":[],\"P4\":"
-    "[]},\"winnerTeams\":[]},{\"P1\":[{\"tag\":\"Stop\"}],\"P2\":[{\"tag\":"
-    "\"Stop\"}],\"P3\":[{\"tag\":\"Stop\"}],\"P4\":[{\"tag\":\"Stop\"}]}]\r\n";
-
 void print_json_error(int err) {
   switch (err) {
   case JSMN_ERROR_NOMEM: {
@@ -748,7 +690,8 @@ int parse_game_phase_content(Game *game, jsmntok_t *game_token,
     ++current_token;
   } else if (current_token->type == JSMN_OBJECT) {
     // The Dealing Phase
-    assert(array_size == LENGTH(game->gamePhase.cards) && "To many or too little cards");
+    assert(array_size == LENGTH(game->gamePhase.cards) &&
+           "To many or too little cards");
     for (int a = 0; a < array_size; ++a) {
       Card card = {0};
       current_token += parse_playing_card(&card, current_token, game_json);
@@ -912,8 +855,8 @@ int parse_hands(Game *game, jsmntok_t *game_token, const char *game_json,
     assert(current_token->type == JSMN_ARRAY &&
            "The hands must contain an array");
     int array_size = current_token->size;
-    assert((unsigned long)array_size < LENGTH(game->hands[0]) &&
-           "Array size must be smaller the hands array.");
+    assert((unsigned long)array_size <= LENGTH(game->hands[0]) &&
+           "Array size must be smaller or equal the hands array.");
     ++current_token;
     for (int a = 0; a < array_size; ++a) {
       current_token +=
@@ -1156,7 +1099,6 @@ void parse_game_and_actions(Game *game, const char *game_json) {
     print_json_error(num_tokens);
     assert(0);
   }
-  print_tokens(json_tokens, num_tokens, game_json, 0);
   assert(num_tokens > 0 && "Not enough tokens.");
   assert(current_token->type == JSMN_ARRAY &&
          "First element must be an array.");

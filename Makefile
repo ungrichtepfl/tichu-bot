@@ -20,14 +20,14 @@ wasm-build:
 	stack build --only-configure # HACK: generates the cabal file
 	python3 ./patch_cabal.py $(wasm_exe) ./$(package).cabal # HACK: patches cabal file to work with wasm32-wasi-cabal
 	wasm32-wasi-cabal build $(wasm_exe)
+	cp "dist-newstyle/build/wasm32-wasi/ghc-$(ghc_wasm_version)/$(package)-$(pkg_version)/x/$(wasm_exe)/build/$(wasm_exe)/$(wasm_exe).wasm" $(wasm_dir)/
+	"$$(wasm32-wasi-ghc --print-libdir)"/post-link.mjs -i $(wasm_dir)/$(wasm_exe).wasm -o $(wasm_dir)/ghc_wasm_jsffi.js
 
 .PHONE: wasm-run
 wasm-run: wasm-build
-	cp "dist-newstyle/build/wasm32-wasi/ghc-$(ghc_wasm_version)/$(package)-$(pkg_version)/x/$(wasm_exe)/build/$(wasm_exe)/$(wasm_exe).wasm" $(wasm_dir)/
-	"$$(wasm32-wasi-ghc --print-libdir)"/post-link.mjs -i $(wasm_dir)/$(wasm_exe).wasm -o $(wasm_dir)/ghc_wasm_jsffi.js
 	python3 -m http.server --directory $(wasm_dir)
 
-CFLAGS:= -Wall -Werror -Wextra -Wpedantic -ggdb
+CFLAGS:= -Wall -Werror -Wextra -Wpedantic -Wno-overlength-strings -ggdb -std=c23 -pedantic
 CSRC:=gui/gui.c
 COUT_OBJ:=cout/gui.o
 COUT_EXE:=cout/gui

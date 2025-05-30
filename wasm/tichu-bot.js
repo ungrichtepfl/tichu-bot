@@ -47,9 +47,11 @@ setTimeout(() => {
     if (!game.shouldStop) {
       wasi.instance.exports.updateGame(JSON.stringify(game),
         JSON.stringify(playersAction)).then((jsonGameOutput) => {
+          console.log(jsonGameOutput);
           const gameOutput = JSON.parse(jsonGameOutput);
-          console.log(gameOutput)
-          // setTimeout(() => updateGame(gameOutput), 1);
+          if (gameOutput[1] == null) {
+            setTimeout(() => updateGame(gameOutput[0], gameOutput[1]), 1);
+          }
         })
     }
   };
@@ -62,7 +64,7 @@ setTimeout(() => {
     const [game, awailableActions] = JSON.parse(jsonGame);
     console.log(game);
     console.log(awailableActions);
-    const action = ["P1", {tag: "Pass"}]
+    const action = ["P1", { tag: "Pass" }]
     updateGame(game, action);
   })
 }, 200);
