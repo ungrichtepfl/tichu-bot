@@ -344,8 +344,7 @@ void update_draw(void) {
 }
 
 bool json_str_equal(const char *json, jsmntok_t *tok, const char *s) {
-  assert(tok->type == JSMN_STRING && "Token must be a string.");
-  if ((int)strlen(s) == tok->end - tok->start &&
+  if (tok->type == JSMN_STRING && (int)strlen(s) == tok->end - tok->start &&
       strncmp(json + tok->start, s, tok->end - tok->start) == 0) {
     return true;
   }
@@ -936,6 +935,61 @@ int parse_scores(Game *game, jsmntok_t *game_token, const char *game_json,
   return current_token - game_token;
 }
 
+int parse_tichus(Game *game, jsmntok_t *game_token, const char *game_json,
+                 PlayerName (*sitting_order)[NUM_PLAYERS][MAX_BYTES_NAME]) {
+  jsmntok_t *current_token = game_token;
+  assert(sitting_order != NULL && "Game config must be parsed at this point.");
+  assert(current_token->type == JSMN_OBJECT && "The tichus must be an object");
+  int object_size = current_token->size;
+  assert(object_size == NUM_PLAYERS &&
+         "The there must be keys for each player.");
+  ++current_token;
+  unsigned long parsed_keys_mask = 0;
+  unsigned long parsed_keys_mask_cmp = 0;
+  for (int o = 0; o < object_size; ++o) {
+    jsmntok_t *key = current_token;
+    assert(key->type == JSMN_STRING && "The key must be a string.");
+    int idx = get_sitting_order_index(*sitting_order, game_json + key->start,
+                                      key->end - key->start);
+    parsed_keys_mask |= 1 << idx;
+    parsed_keys_mask_cmp |= 1 << o;
+    ++current_token;
+
+    if (current_token->type == JSMN_PRIMITIVE) {
+      assert(*(game_json + current_token->start) == 'n' &&
+             "If it is a primitive it must be null.");
+      game->tichus[idx] = NoTichu;
+      ++current_token;
+
+    } else if (current_token->type == JSMN_OBJECT) {
+      assert(current_token->size == 1 && "There must only be one tichu type.");
+      ++current_token;
+      assert(json_str_equal(game_json, current_token, "tag") &&
+             "The key must be called tag.");
+      ++current_token;
+      if (json_str_equal(game_json, current_token, "Tichu")) {
+        game->tichus[idx] = Tichu;
+      } else if (json_str_equal(game_json, current_token, "GrandTichu")) {
+        game->tichus[idx] = GrandTichu;
+      } else {
+        fprintf(stderr, "Unknown Tichu Type: %.*s\n",
+                current_token->end - current_token->start,
+                game_json + current_token->start);
+        assert(0);
+      }
+      ++current_token;
+    } else {
+      fprintf(stderr, "Unknown Json Type %d for %.*s\n", current_token->type,
+              current_token->end - current_token->start,
+              game_json + current_token->start);
+      assert(0);
+    }
+  }
+  assert(parsed_keys_mask_cmp == parsed_keys_mask &&
+         "Some players tichus have not been parsed.");
+  return current_token - game_token;
+}
+
 int parse_game(Game *game, jsmntok_t *game_token, const char *game_json) {
   memset(game, 0, sizeof(*game));
   jsmntok_t *current_token = game_token;
@@ -1001,7 +1055,8 @@ int parse_game(Game *game, jsmntok_t *game_token, const char *game_json) {
       ++current_token;
     } else if (json_str_equal(game_json, key, "tichus")) {
       parsed_keys_mask |= 1 << 9;
-      assert(0 && "Not yet implemented.");
+      current_token +=
+          parse_tichus(game, current_token, game_json, sitting_order);
 
     } else if (json_str_equal(game_json, key, "tricks")) {
       parsed_keys_mask |= 1 << 10;
