@@ -42,6 +42,8 @@ wasi.initialize(wasm, {
   ghc_wasm_jsffi: ghc_wasm_jsffi(jsffiExports)
 });
 // Wait 200 then run the function
+var player = 0;
+var update = 0;
 setTimeout(() => {
   const updateGame = (game, playersAction) => {
     if (!game.shouldStop) {
@@ -51,6 +53,11 @@ setTimeout(() => {
           const gameOutput = JSON.parse(jsonGameOutput);
           if (gameOutput[1] == null) {
             setTimeout(() => updateGame(gameOutput[0], gameOutput[1]), 1);
+          } else if (update < 3) {
+            player = (player + 1) % 4;
+            update++;
+            const p = "P" + (player + 1);
+            setTimeout(() => updateGame(gameOutput[0], [p, gameOutput[1][p][2]]), 1);
           }
         })
     }

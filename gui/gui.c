@@ -328,11 +328,8 @@ void draw_cards(void) {
   }
 }
 
-void setup_global_json_parser(void) { jsmn_init(&json_parser); }
-
 void init(void) {
   setup_global_game_state();
-  setup_global_json_parser();
   InitWindow(WIN_WIDTH, WIN_HEIHT, "Tichu");
   load_global_assets();
 #if !WASM
@@ -1383,6 +1380,7 @@ int parse_game(Game *game, jsmntok_t *game_token, const char *game_json) {
 
 void parse_game_and_actions(GameState *game_state, const char *game_json) {
 
+  jsmn_init(&json_parser);
   int num_tokens = jsmn_parse(&json_parser, game_json, strlen(game_json),
                               json_tokens, NUM_JSON_TOKENS);
   jsmntok_t *current_token = &json_tokens[0];
@@ -1390,12 +1388,11 @@ void parse_game_and_actions(GameState *game_state, const char *game_json) {
     print_json_error(num_tokens);
     assert(0);
   }
+  /* print_tokens(json_tokens, num_tokens, game_json, 0); */
   assert(num_tokens > 0 && "Not enough tokens.");
   assert(current_token->type == JSMN_ARRAY &&
          "First element must be an array.");
-  assert(current_token->size == 3 &&
-         "There must be 2 elements in the array. There is a bug in the json "
-         "library so it shows one more if the root element is an array.");
+  assert(current_token->size == 2 && "There must be 2 elements in the array.");
   ++current_token;
   current_token += parse_game(&game_state->game, current_token, game_json);
   current_token += parse_game_actions(game_state, current_token, game_json);
@@ -1408,6 +1405,8 @@ int main(void) {
   /* init(); */
 
   parse_game_and_actions(&g_game_state, test_json);
+  parse_game_and_actions(&g_game_state, test_json1);
+  parse_game_and_actions(&g_game_state, test_json2);
 
   /* while (!WindowShouldClose()) { */
   /*   update_draw(); */
