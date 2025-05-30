@@ -65,14 +65,26 @@ typedef struct {
   CardPose card_pose[TOTAL_CARDS];
   size_t render_prio[TOTAL_CARDS];
   int selected_piece_idx;
-} State;
+} RenderState;
 
-State g_state = {0};
+RenderState g_render_state = {0};
+
+typedef struct {
+  Game game;
+  /// Dynamically allocated players actions
+  PlayerAction *player_actions[NUM_PLAYERS];
+  unsigned long long num_actions[NUM_PLAYERS];
+} GameState;
+
+GameState g_game_state = {0};
+static_assert(LENGTH(g_game_state.player_actions) ==
+                  LENGTH(g_game_state.num_actions),
+              "Must be the same length");
 
 void set_highest_prio(size_t idx) {
   int cut = -1;
-  for (int i = 0; (size_t)i < LENGTH(g_state.render_prio); ++i) {
-    if (g_state.render_prio[i] == idx) {
+  for (int i = 0; (size_t)i < LENGTH(g_render_state.render_prio); ++i) {
+    if (g_render_state.render_prio[i] == idx) {
       cut = i;
       break;
     }
@@ -82,9 +94,9 @@ void set_highest_prio(size_t idx) {
                     "something wrong in the init function.");
     return;
   }
-  memmove(&g_state.render_prio[1], &g_state.render_prio[0],
-          cut * sizeof(g_state.render_prio[0]));
-  g_state.render_prio[0] = idx;
+  memmove(&g_render_state.render_prio[1], &g_render_state.render_prio[0],
+          cut * sizeof(g_render_state.render_prio[0]));
+  g_render_state.render_prio[0] = idx;
 }
 
 size_t get_card_index(Card card) {
@@ -95,7 +107,7 @@ size_t get_card_index(Card card) {
 }
 
 CardPose get_card_pose(Card card) {
-  return g_state.card_pose[get_card_index(card)];
+  return g_render_state.card_pose[get_card_index(card)];
 }
 
 Card get_card_from_index(size_t index) {
@@ -261,18 +273,18 @@ void update_card_position(void) {
   static Vector2 previous_mouse_touch = {0};
   if (is_mouse_down()) {
     Vector2 mouse_touch = get_mouse_position();
-    if (g_state.selected_piece_idx >= 0) {
-      g_state.card_pose[g_state.selected_piece_idx].pos.x +=
+    if (g_render_state.selected_piece_idx >= 0) {
+      g_render_state.card_pose[g_render_state.selected_piece_idx].pos.x +=
           mouse_touch.x - previous_mouse_touch.x;
-      g_state.card_pose[g_state.selected_piece_idx].pos.y +=
+      g_render_state.card_pose[g_render_state.selected_piece_idx].pos.y +=
           mouse_touch.y - previous_mouse_touch.y;
     } else {
-      for (size_t i = 0; i < LENGTH(g_state.render_prio); ++i) {
-        size_t idx = g_state.render_prio[i];
+      for (size_t i = 0; i < LENGTH(g_render_state.render_prio); ++i) {
+        size_t idx = g_render_state.render_prio[i];
         Card card = get_card_from_index(idx);
         Rectangle card_rec = get_card_rectangle(card);
         if (CheckCollisionPointRec(mouse_touch, card_rec)) {
-          g_state.selected_piece_idx = idx;
+          g_render_state.selected_piece_idx = idx;
           set_highest_prio(idx);
           break;
         }
@@ -280,36 +292,37 @@ void update_card_position(void) {
     }
     previous_mouse_touch = mouse_touch;
   } else {
-    g_state.selected_piece_idx = -1;
+    g_render_state.selected_piece_idx = -1;
   }
 }
 
 void setup_global_game_state(void) {
-  g_state.selected_piece_idx = -1; // Nothing selected
+  g_render_state.selected_piece_idx = -1; // Nothing selected
 
-  for (size_t i = 0; i < LENGTH(g_state.render_prio); ++i) {
-    g_state.render_prio[i] = i;
+  for (size_t i = 0; i < LENGTH(g_render_state.render_prio); ++i) {
+    g_render_state.render_prio[i] = i;
   }
 
-  for (size_t i = 0; i < LENGTH(g_state.card_pose); ++i) {
+  for (size_t i = 0; i < LENGTH(g_render_state.card_pose); ++i) {
     int col = NUM_COLORS + 1;
     // No scale
-    g_state.card_pose[i].scale = 1.f;
+    g_render_state.card_pose[i].scale = 1.f;
     // No rotation
-    g_state.card_pose[i].rot = 0.f;
+    g_render_state.card_pose[i].rot = 0.f;
 
     // Evenly space the cards
-    g_state.card_pose[i].pos.x = (i % col) * ((float)WIN_WIDTH / col);
-    g_state.card_pose[i].pos.y = ((float)i / col) * ((float)WIN_HEIHT / col);
+    g_render_state.card_pose[i].pos.x = (i % col) * ((float)WIN_WIDTH / col);
+    g_render_state.card_pose[i].pos.y =
+        ((float)i / col) * ((float)WIN_HEIHT / col);
     // Set the last 4 cards to be in the middle
   }
 }
 
 void draw_cards(void) {
-  for (int i = (int)LENGTH(g_state.render_prio) - 1; i >= 0; --i) {
-    size_t idx = g_state.render_prio[i];
+  for (int i = (int)LENGTH(g_render_state.render_prio) - 1; i >= 0; --i) {
+    size_t idx = g_render_state.render_prio[i];
     Card card = get_card_from_index(idx);
-    CardPose pose = g_state.card_pose[idx];
+    CardPose pose = g_render_state.card_pose[idx];
     Texture2D card_texture = get_card_asset(card);
     DrawTextureEx(card_texture, pose.pos, pose.rot, pose.scale, WHITE);
   }
@@ -583,14 +596,155 @@ int parse_playing_card(Card *card, jsmntok_t *game_token,
   return current_token - game_token;
 }
 
+int parse_tichu_combination_tag(TichuCombination *tichu_combination,
+                                jsmntok_t *game_token, const char *game_json) {
+  jsmntok_t *current_token = game_token;
+
+  if (json_str_equal(game_json, current_token, "SingleCard")) {
+    tichu_combination->type = SingleCard;
+  } else if (json_str_equal(game_json, current_token, "Pair")) {
+    tichu_combination->type = Pair;
+  } else if (json_str_equal(game_json, current_token, "ThreeOfAKind")) {
+    tichu_combination->type = ThreeOfAKind;
+  } else if (json_str_equal(game_json, current_token, "Straight")) {
+    tichu_combination->type = Straight;
+  } else if (json_str_equal(game_json, current_token, "FullHouse")) {
+    tichu_combination->type = FullHouse;
+  } else if (json_str_equal(game_json, current_token, "Stairs")) {
+    tichu_combination->type = Stairs;
+  } else if (json_str_equal(game_json, current_token, "Bomb")) {
+    tichu_combination->type = Bomb;
+  } else {
+    fprintf(stderr, "Unknown tichu combination: %.*s\n",
+            current_token->end - current_token->start,
+            game_json + current_token->start);
+    assert(0);
+  }
+  ++current_token;
+
+  return current_token - game_token;
+}
+
+int parse_tichu_combination_content_cards(TichuCombination *tichu_combination,
+                                          jsmntok_t *game_token,
+                                          const char *game_json) {
+  jsmntok_t *current_token = game_token;
+
+  assert(current_token->type == JSMN_ARRAY &&
+         "The tichu cards must be an array.");
+  int array_size = current_token->size;
+  assert((unsigned long)array_size <= LENGTH(tichu_combination->cards) &&
+         "Too many cards.");
+  ++current_token;
+
+  for (int a = 0; a < array_size; ++a) {
+    current_token += parse_playing_card(&tichu_combination->cards[a],
+                                        current_token, game_json);
+  }
+
+  return current_token - game_token;
+}
+
+int parse_tichu_combination_content(TichuCombination *tichu_combination,
+                                    jsmntok_t *game_token,
+                                    const char *game_json) {
+  jsmntok_t *current_token = game_token;
+
+  assert(current_token->type == JSMN_ARRAY &&
+         "Tichu combination must be an array.");
+
+  int array_size = current_token->size;
+
+  ++current_token;
+
+  if (array_size == 1) {
+    // NOTE: There seems to only one array (No array in array)
+    current_token += parse_playing_card(&tichu_combination->cards[0],
+                                        current_token, game_json);
+  } else if (array_size == 2) {
+
+    current_token += parse_tichu_combination_content_cards(
+        tichu_combination, current_token, game_json);
+    if (json_str_equal(game_json, current_token, "Two")) {
+      tichu_combination->value = 2;
+    } else if (json_str_equal(game_json, current_token, "Three")) {
+      tichu_combination->value = 3;
+    } else if (json_str_equal(game_json, current_token, "Four")) {
+      tichu_combination->value = 4;
+    } else if (json_str_equal(game_json, current_token, "Five")) {
+      tichu_combination->value = 5;
+    } else if (json_str_equal(game_json, current_token, "Six")) {
+      tichu_combination->value = 6;
+    } else if (json_str_equal(game_json, current_token, "Seven")) {
+      tichu_combination->value = 7;
+    } else if (json_str_equal(game_json, current_token, "Eight")) {
+      tichu_combination->value = 8;
+    } else if (json_str_equal(game_json, current_token, "Nine")) {
+      tichu_combination->value = 9;
+    } else if (json_str_equal(game_json, current_token, "Ten")) {
+      tichu_combination->value = 10;
+    } else if (json_str_equal(game_json, current_token, "Jack")) {
+      tichu_combination->value = 11;
+    } else if (json_str_equal(game_json, current_token, "Queen")) {
+      tichu_combination->value = 12;
+    } else if (json_str_equal(game_json, current_token, "King")) {
+      tichu_combination->value = 13;
+    } else if (json_str_equal(game_json, current_token, "Ace")) {
+      tichu_combination->value = 14;
+    } else {
+      fprintf(stderr, "Unknown card value: %.*s\n",
+              current_token->end - current_token->start,
+              game_json + current_token->start);
+      assert(0);
+    }
+    ++current_token;
+  } else {
+    fprintf(stderr, "Unknown content size %d\n", array_size);
+    assert(0);
+  }
+
+  return current_token - game_token;
+}
+
 int parse_tichu_combination(TichuCombination *tichu_combination,
                             jsmntok_t *game_token, const char *game_json) {
   jsmntok_t *current_token = game_token;
   assert(current_token->type == JSMN_OBJECT &&
          "The tichu combination must be an object.");
-  (void)tichu_combination;
-  (void)game_json;
-  assert(0 && "Not yet implemented.");
+  int object_size = current_token->size;
+  ++current_token;
+
+  if (object_size == 1) {
+    assert(json_str_equal(game_json, current_token, "tag") &&
+           "If only one key it must be tag.");
+    ++current_token;
+    current_token += parse_tichu_combination_tag(tichu_combination,
+                                                 current_token, game_json);
+  } else {
+    unsigned long parsed_keys_mask = 0;
+    unsigned long parsed_keys_mask_cmp = 0;
+    for (int o = 0; o < object_size; ++o) {
+      jsmntok_t *key = current_token;
+      ++current_token;
+      if (json_str_equal(game_json, key, "contents")) {
+        parsed_keys_mask |= 1 << 0;
+        current_token += parse_tichu_combination_content(
+            tichu_combination, current_token, game_json);
+
+      } else if (json_str_equal(game_json, key, "tag")) {
+        parsed_keys_mask |= 1 << 1;
+        current_token += parse_tichu_combination_tag(tichu_combination,
+                                                     current_token, game_json);
+      } else {
+        fprintf(stderr, "Unknown key: %.*s\n", key->end - key->start,
+                game_json + key->start);
+        assert(0);
+      }
+      parsed_keys_mask_cmp |= 1 << o;
+    }
+    assert(parsed_keys_mask == parsed_keys_mask_cmp &&
+           "Some keys have not been parsed.");
+  }
   return current_token - game_token;
 }
 
@@ -664,7 +818,7 @@ int parse_game_phase_tag(Game *game, jsmntok_t *game_token,
   } else if (json_str_equal(game_json, current_token, "Finished")) {
     game->gamePhase.type = Finished;
   } else {
-    fprintf(stderr, "Unknown game phose: %.*s\n",
+    fprintf(stderr, "Unknown game phase: %.*s\n",
             current_token->end - current_token->start,
             game_json + current_token->start);
     assert(0);
@@ -693,9 +847,8 @@ int parse_game_phase_content(Game *game, jsmntok_t *game_token,
     assert(array_size == LENGTH(game->gamePhase.cards) &&
            "To many or too little cards");
     for (int a = 0; a < array_size; ++a) {
-      Card card = {0};
-      current_token += parse_playing_card(&card, current_token, game_json);
-      game->gamePhase.cards[a] = card;
+      current_token += parse_playing_card(&game->gamePhase.cards[a],
+                                          current_token, game_json);
     }
   } else {
     fprintf(stderr, "Unknown type for game phase content: %d\n",
@@ -988,7 +1141,146 @@ int parse_tricks(Game *game, jsmntok_t *game_token, const char *game_json,
   return current_token - game_token;
 }
 
+int parse_player_action_tag(PlayerAction *player_action, jsmntok_t *game_token,
+                            const char *game_json) {
+  jsmntok_t *current_token = game_token;
+
+  if (json_str_equal(game_json, current_token, "Pass")) {
+    player_action->type = Pass;
+  } else if (json_str_equal(game_json, current_token, "Play")) {
+    player_action->type = Play;
+  } else if (json_str_equal(game_json, current_token, "CallTichu")) {
+    player_action->type = CallTichu;
+  } else if (json_str_equal(game_json, current_token, "CallGrandTichu")) {
+    player_action->type = CallGrandTichu;
+  } else if (json_str_equal(game_json, current_token, "Stop")) {
+    player_action->type = Stop;
+  } else {
+    fprintf(stderr, "Unknown player action: %.*s\n",
+            current_token->end - current_token->start,
+            game_json + current_token->start);
+    assert(0);
+  }
+  ++current_token;
+
+  return current_token - game_token;
+}
+
+int parse_player_action_content(PlayerAction *player_action,
+                                jsmntok_t *game_token, const char *game_json) {
+
+  jsmntok_t *current_token = game_token;
+  current_token += parse_tichu_combination(&player_action->combination,
+                                           current_token, game_json);
+
+  return current_token - game_token;
+}
+
+int parse_player_action(PlayerAction *player_action, jsmntok_t *game_token,
+                        const char *game_json) {
+  jsmntok_t *current_token = game_token;
+
+  assert(current_token->type =
+             JSMN_OBJECT && "The player action must be an object.");
+  int object_size = current_token->size;
+  ++current_token;
+
+  if (object_size == 1) {
+    assert(json_str_equal(game_json, current_token, "tag") &&
+           "If only one key it must be tag.");
+    ++current_token;
+    current_token +=
+        parse_player_action_tag(player_action, current_token, game_json);
+  } else {
+    for (int o = 0; o < object_size; ++o) {
+      jsmntok_t *key = current_token;
+      ++current_token;
+
+      unsigned long parsed_keys_mask = 0;
+      unsigned long parsed_keys_mask_cmp = 0;
+      if (json_str_equal(game_json, key, "contents")) {
+        parsed_keys_mask |= 1 << 0;
+        current_token += parse_player_action_content(player_action,
+                                                     current_token, game_json);
+
+      } else if (json_str_equal(game_json, key, "tag")) {
+        parsed_keys_mask |= 1 << 1;
+        current_token +=
+            parse_player_action_tag(player_action, current_token, game_json);
+      } else {
+        fprintf(stderr, "Unknown key: %.*s\n", key->end - key->start,
+                game_json + key->start);
+        assert(0);
+      }
+      parsed_keys_mask_cmp |= 1 << o;
+      assert(parsed_keys_mask == parsed_keys_mask_cmp &&
+             "Some keys have not been parsed.");
+    }
+  }
+
+  return current_token - game_token;
+}
+
+int parse_game_actions(GameState *game_state, jsmntok_t *game_token,
+                       const char *game_json) {
+  jsmntok_t *current_token = game_token;
+  if (current_token->type == JSMN_PRIMITIVE) {
+    assert(*(game_json + current_token->start) == 'n' &&
+           "Player actions must be null");
+    for (unsigned long i = 0; i < LENGTH(game_state->player_actions); ++i) {
+      free(game_state->player_actions[i]);
+      game_state->num_actions[i] = 0;
+    }
+    ++current_token;
+  } else if (current_token->type == JSMN_OBJECT) {
+    int object_size = current_token->size;
+    assert((unsigned long)object_size == LENGTH(game_state->player_actions) &&
+           "There must be actions for each players");
+    ++current_token;
+
+    unsigned long parsed_keys_mask = 0;
+    unsigned long parsed_keys_mask_cmp = 0;
+    for (int o = 0; o < object_size; ++o) {
+
+      jsmntok_t *key = current_token;
+      assert(key->type == JSMN_STRING && "The key must be a string.");
+      int idx = get_sitting_order_index(
+          game_state->game.gameConfig.sittingOrder, game_json + key->start,
+          key->end - key->start);
+      parsed_keys_mask |= 1 << idx;
+      parsed_keys_mask_cmp |= 1 << o;
+      ++current_token;
+
+      assert(current_token->type == JSMN_ARRAY && "The  must contain an array");
+      int array_size = current_token->size;
+      game_state->player_actions[idx] =
+          realloc(game_state->player_actions[idx],
+                  array_size * sizeof(*game_state->player_actions[idx]));
+      assert(game_state->player_actions[idx] != NULL && "Out of memory.");
+      game_state->num_actions[idx] = array_size;
+      ++current_token;
+
+      for (int a = 0; a < array_size; ++a) {
+        current_token += parse_player_action(
+            &game_state->player_actions[idx][a], current_token, game_json);
+      }
+    }
+
+    assert(parsed_keys_mask_cmp == parsed_keys_mask &&
+           "Some players actions have not been parsed.");
+
+  } else {
+    fprintf(stderr, "Unknown Json Type %d for %.*s\n", current_token->type,
+            current_token->end - current_token->start,
+            game_json + current_token->start);
+    assert(0);
+  }
+
+  return current_token - game_token;
+}
+
 int parse_game(Game *game, jsmntok_t *game_token, const char *game_json) {
+
   memset(game, 0, sizeof(*game));
   jsmntok_t *current_token = game_token;
 
@@ -1089,8 +1381,7 @@ int parse_game(Game *game, jsmntok_t *game_token, const char *game_json) {
   return current_token - game_token;
 }
 
-void parse_game_and_actions(Game *game, const char *game_json) {
-  (void)game;
+void parse_game_and_actions(GameState *game_state, const char *game_json) {
 
   int num_tokens = jsmn_parse(&json_parser, game_json, strlen(game_json),
                               json_tokens, NUM_JSON_TOKENS);
@@ -1106,15 +1397,17 @@ void parse_game_and_actions(Game *game, const char *game_json) {
          "There must be 2 elements in the array. There is a bug in the json "
          "library so it shows one more if the root element is an array.");
   ++current_token;
-  current_token += parse_game(game, current_token, game_json);
+  current_token += parse_game(&game_state->game, current_token, game_json);
+  current_token += parse_game_actions(game_state, current_token, game_json);
+  assert(current_token - &json_tokens[0] == num_tokens &&
+         "Not all tokens have been parsed.");
 }
 
 #if !WASM
 int main(void) {
   /* init(); */
 
-  Game game = {0};
-  parse_game_and_actions(&game, test_json);
+  parse_game_and_actions(&g_game_state, test_json);
 
   /* while (!WindowShouldClose()) { */
   /*   update_draw(); */

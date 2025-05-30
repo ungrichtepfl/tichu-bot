@@ -34,6 +34,7 @@ typedef enum {
   DOG,
 } CardColor;
 
+
 // NOTE: Card card = {0} is used as a zero terminator it is not allowed to be a
 // valid card!
 typedef struct {
@@ -88,6 +89,7 @@ typedef enum {
   Play,
   CallTichu,
   CallGrandTichu,
+  Stop,
 } PlayerActionType;
 
 typedef struct {
