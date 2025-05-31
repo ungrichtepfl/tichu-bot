@@ -338,6 +338,8 @@ void init(void) {
 }
 
 void deinit(void) {
+  for (unsigned long i = 0; i < LENGTH(g_game_state.player_actions); ++i)
+    free(g_game_state.player_actions[i]);
   unload_global_assets();
   CloseWindow();
 }
@@ -477,8 +479,8 @@ int print_tokens(jsmntok_t *current_token, int num_tokens, const char *json,
   return 0;
 }
 
-int parse_playing_card(Card *card, jsmntok_t *game_token,
-                       const char *game_json) {
+ptrdiff_t parse_playing_card(Card *card, jsmntok_t *game_token,
+                             const char *game_json) {
   jsmntok_t *current_token = game_token;
 
   assert(current_token->type == JSMN_OBJECT &&
@@ -593,8 +595,9 @@ int parse_playing_card(Card *card, jsmntok_t *game_token,
   return current_token - game_token;
 }
 
-int parse_tichu_combination_tag(TichuCombination *tichu_combination,
-                                jsmntok_t *game_token, const char *game_json) {
+ptrdiff_t parse_tichu_combination_tag(TichuCombination *tichu_combination,
+                                      jsmntok_t *game_token,
+                                      const char *game_json) {
   jsmntok_t *current_token = game_token;
 
   if (json_str_equal(game_json, current_token, "SingleCard")) {
@@ -622,9 +625,10 @@ int parse_tichu_combination_tag(TichuCombination *tichu_combination,
   return current_token - game_token;
 }
 
-int parse_tichu_combination_content_cards(TichuCombination *tichu_combination,
-                                          jsmntok_t *game_token,
-                                          const char *game_json) {
+ptrdiff_t
+parse_tichu_combination_content_cards(TichuCombination *tichu_combination,
+                                      jsmntok_t *game_token,
+                                      const char *game_json) {
   jsmntok_t *current_token = game_token;
 
   assert(current_token->type == JSMN_ARRAY &&
@@ -642,9 +646,9 @@ int parse_tichu_combination_content_cards(TichuCombination *tichu_combination,
   return current_token - game_token;
 }
 
-int parse_tichu_combination_content(TichuCombination *tichu_combination,
-                                    jsmntok_t *game_token,
-                                    const char *game_json) {
+ptrdiff_t parse_tichu_combination_content(TichuCombination *tichu_combination,
+                                          jsmntok_t *game_token,
+                                          const char *game_json) {
   jsmntok_t *current_token = game_token;
 
   assert(current_token->type == JSMN_ARRAY &&
@@ -703,8 +707,9 @@ int parse_tichu_combination_content(TichuCombination *tichu_combination,
   return current_token - game_token;
 }
 
-int parse_tichu_combination(TichuCombination *tichu_combination,
-                            jsmntok_t *game_token, const char *game_json) {
+ptrdiff_t parse_tichu_combination(TichuCombination *tichu_combination,
+                                  jsmntok_t *game_token,
+                                  const char *game_json) {
   jsmntok_t *current_token = game_token;
   assert(current_token->type == JSMN_OBJECT &&
          "The tichu combination must be an object.");
@@ -745,7 +750,8 @@ int parse_tichu_combination(TichuCombination *tichu_combination,
   return current_token - game_token;
 }
 
-int parse_board(Game *game, jsmntok_t *game_token, const char *game_json) {
+ptrdiff_t parse_board(Game *game, jsmntok_t *game_token,
+                      const char *game_json) {
 
   jsmntok_t *current_token = game_token;
   assert(current_token->type == JSMN_ARRAY && "Game board must be an array");
@@ -759,8 +765,8 @@ int parse_board(Game *game, jsmntok_t *game_token, const char *game_json) {
   }
   return current_token - game_token;
 }
-int parse_finish_order(Game *game, jsmntok_t *game_token,
-                       const char *game_json) {
+ptrdiff_t parse_finish_order(Game *game, jsmntok_t *game_token,
+                             const char *game_json) {
   jsmntok_t *current_token = game_token;
   assert(current_token->type == JSMN_ARRAY && "Finish order must be an array.");
   int array_size = current_token->size;
@@ -792,8 +798,8 @@ int str_to_int(const char *str) {
   return res;
 }
 
-int parse_game_phase_tag(Game *game, jsmntok_t *game_token,
-                         const char *game_json) {
+ptrdiff_t parse_game_phase_tag(Game *game, jsmntok_t *game_token,
+                               const char *game_json) {
   jsmntok_t *current_token = game_token;
   assert(current_token->type == JSMN_STRING &&
          "Game phase tag must be a string.");
@@ -824,8 +830,8 @@ int parse_game_phase_tag(Game *game, jsmntok_t *game_token,
   return current_token - game_token;
 }
 
-int parse_game_phase_content(Game *game, jsmntok_t *game_token,
-                             const char *game_json) {
+ptrdiff_t parse_game_phase_content(Game *game, jsmntok_t *game_token,
+                                   const char *game_json) {
   jsmntok_t *current_token = game_token;
   assert(current_token->type == JSMN_ARRAY &&
          "Game phase content must be an array.");
@@ -855,7 +861,8 @@ int parse_game_phase_content(Game *game, jsmntok_t *game_token,
   return current_token - game_token;
 }
 
-int parse_game_phase(Game *game, jsmntok_t *game_token, const char *game_json) {
+ptrdiff_t parse_game_phase(Game *game, jsmntok_t *game_token,
+                           const char *game_json) {
   jsmntok_t *current_token = game_token;
   assert(current_token->type == JSMN_OBJECT && "Game Phase must be an object.");
   int object_size = current_token->size;
@@ -895,8 +902,8 @@ int parse_game_phase(Game *game, jsmntok_t *game_token, const char *game_json) {
   return current_token - game_token;
 }
 
-int parse_game_config(Game *game, jsmntok_t *game_token,
-                      const char *game_json) {
+ptrdiff_t parse_game_config(Game *game, jsmntok_t *game_token,
+                            const char *game_json) {
   jsmntok_t *current_token = game_token;
   assert(current_token->type == JSMN_OBJECT &&
          "Game config must be an object.");
@@ -982,8 +989,9 @@ int get_team_name_index(TeamName team_names[NUM_TEAMS][MAX_BYTES_NAME],
   assert(0 && "Team name not found.");
 }
 
-int parse_hands(Game *game, jsmntok_t *game_token, const char *game_json,
-                PlayerName (*sitting_order)[NUM_PLAYERS][MAX_BYTES_NAME]) {
+ptrdiff_t
+parse_hands(Game *game, jsmntok_t *game_token, const char *game_json,
+            PlayerName (*sitting_order)[NUM_PLAYERS][MAX_BYTES_NAME]) {
   jsmntok_t *current_token = game_token;
   assert(sitting_order != NULL && "Game config must be parsed at this point.");
   assert(current_token->type == JSMN_OBJECT && "The hands must be an object");
@@ -1018,8 +1026,8 @@ int parse_hands(Game *game, jsmntok_t *game_token, const char *game_json,
   return current_token - game_token;
 }
 
-int parse_scores(Game *game, jsmntok_t *game_token, const char *game_json,
-                 PlayerName (*team_names)[NUM_TEAMS][MAX_BYTES_NAME]) {
+ptrdiff_t parse_scores(Game *game, jsmntok_t *game_token, const char *game_json,
+                       PlayerName (*team_names)[NUM_TEAMS][MAX_BYTES_NAME]) {
   jsmntok_t *current_token = game_token;
   assert(team_names != NULL && "Game config must be parsed at this point.");
   assert(current_token->type == JSMN_OBJECT && "The scores must be an object");
@@ -1047,8 +1055,9 @@ int parse_scores(Game *game, jsmntok_t *game_token, const char *game_json,
   return current_token - game_token;
 }
 
-int parse_tichus(Game *game, jsmntok_t *game_token, const char *game_json,
-                 PlayerName (*sitting_order)[NUM_PLAYERS][MAX_BYTES_NAME]) {
+ptrdiff_t
+parse_tichus(Game *game, jsmntok_t *game_token, const char *game_json,
+             PlayerName (*sitting_order)[NUM_PLAYERS][MAX_BYTES_NAME]) {
   jsmntok_t *current_token = game_token;
   assert(sitting_order != NULL && "Game config must be parsed at this point.");
   assert(current_token->type == JSMN_OBJECT && "The tichus must be an object");
@@ -1102,8 +1111,9 @@ int parse_tichus(Game *game, jsmntok_t *game_token, const char *game_json,
   return current_token - game_token;
 }
 
-int parse_tricks(Game *game, jsmntok_t *game_token, const char *game_json,
-                 PlayerName (*sitting_order)[NUM_PLAYERS][MAX_BYTES_NAME]) {
+ptrdiff_t
+parse_tricks(Game *game, jsmntok_t *game_token, const char *game_json,
+             PlayerName (*sitting_order)[NUM_PLAYERS][MAX_BYTES_NAME]) {
   jsmntok_t *current_token = game_token;
   assert(sitting_order != NULL && "Game config must be parsed at this point.");
   assert(current_token->type == JSMN_OBJECT && "The tricks must be an object");
@@ -1138,8 +1148,9 @@ int parse_tricks(Game *game, jsmntok_t *game_token, const char *game_json,
   return current_token - game_token;
 }
 
-int parse_player_action_tag(PlayerAction *player_action, jsmntok_t *game_token,
-                            const char *game_json) {
+ptrdiff_t parse_player_action_tag(PlayerAction *player_action,
+                                  jsmntok_t *game_token,
+                                  const char *game_json) {
   jsmntok_t *current_token = game_token;
 
   if (json_str_equal(game_json, current_token, "Pass")) {
@@ -1163,8 +1174,9 @@ int parse_player_action_tag(PlayerAction *player_action, jsmntok_t *game_token,
   return current_token - game_token;
 }
 
-int parse_player_action_content(PlayerAction *player_action,
-                                jsmntok_t *game_token, const char *game_json) {
+ptrdiff_t parse_player_action_content(PlayerAction *player_action,
+                                      jsmntok_t *game_token,
+                                      const char *game_json) {
 
   jsmntok_t *current_token = game_token;
   current_token += parse_tichu_combination(&player_action->combination,
@@ -1173,8 +1185,8 @@ int parse_player_action_content(PlayerAction *player_action,
   return current_token - game_token;
 }
 
-int parse_player_action(PlayerAction *player_action, jsmntok_t *game_token,
-                        const char *game_json) {
+ptrdiff_t parse_player_action(PlayerAction *player_action,
+                              jsmntok_t *game_token, const char *game_json) {
   jsmntok_t *current_token = game_token;
 
   assert(current_token->type =
@@ -1218,8 +1230,8 @@ int parse_player_action(PlayerAction *player_action, jsmntok_t *game_token,
   return current_token - game_token;
 }
 
-int parse_game_actions(GameState *game_state, jsmntok_t *game_token,
-                       const char *game_json) {
+ptrdiff_t parse_game_actions(GameState *game_state, jsmntok_t *game_token,
+                             const char *game_json) {
   jsmntok_t *current_token = game_token;
   if (current_token->type == JSMN_PRIMITIVE) {
     assert(*(game_json + current_token->start) == 'n' &&
@@ -1250,9 +1262,9 @@ int parse_game_actions(GameState *game_state, jsmntok_t *game_token,
 
       assert(current_token->type == JSMN_ARRAY && "The  must contain an array");
       int array_size = current_token->size;
+      free(game_state->player_actions[idx]);
       game_state->player_actions[idx] =
-          realloc(game_state->player_actions[idx],
-                  array_size * sizeof(*game_state->player_actions[idx]));
+          malloc(array_size * sizeof(*game_state->player_actions[idx]));
       assert(game_state->player_actions[idx] != NULL && "Out of memory.");
       game_state->num_actions[idx] = array_size;
       ++current_token;
@@ -1276,7 +1288,7 @@ int parse_game_actions(GameState *game_state, jsmntok_t *game_token,
   return current_token - game_token;
 }
 
-int parse_game(Game *game, jsmntok_t *game_token, const char *game_json) {
+ptrdiff_t parse_game(Game *game, jsmntok_t *game_token, const char *game_json) {
 
   memset(game, 0, sizeof(*game));
   jsmntok_t *current_token = game_token;
@@ -1396,13 +1408,13 @@ void parse_game_and_actions(GameState *game_state, const char *game_json) {
   ++current_token;
   current_token += parse_game(&game_state->game, current_token, game_json);
   current_token += parse_game_actions(game_state, current_token, game_json);
-  assert(current_token - &json_tokens[0] == num_tokens &&
+  assert(current_token - &json_tokens[0] == (ptrdiff_t)num_tokens &&
          "Not all tokens have been parsed.");
 }
 
 #if !WASM
 int main(void) {
-  /* init(); */
+  init();
 
   parse_game_and_actions(&g_game_state, test_json);
   parse_game_and_actions(&g_game_state, test_json1);
@@ -1411,7 +1423,7 @@ int main(void) {
   /* while (!WindowShouldClose()) { */
   /*   update_draw(); */
   /* } */
-  /**/
-  /* deinit(); */
+
+  deinit();
 }
 #endif
