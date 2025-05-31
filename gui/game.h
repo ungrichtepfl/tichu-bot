@@ -34,7 +34,6 @@ typedef enum {
   DOG,
 } CardColor;
 
-
 // NOTE: Card card = {0} is used as a zero terminator it is not allowed to be a
 // valid card!
 typedef struct {
@@ -110,5 +109,12 @@ typedef struct {
   TeamName winnerTeams[NUM_TEAMS][MAX_BYTES_NAME];
   bool shouldGameStop;
 } Game;
+
+typedef struct {
+  Game game;
+  /// Dynamically allocated players actions
+  PlayerAction *player_actions[NUM_PLAYERS];
+  unsigned long long num_actions[NUM_PLAYERS];
+} GameState;
 
 #endif // GAME_H
