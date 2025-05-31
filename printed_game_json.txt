@@ -1,0 +1,3087 @@
+---- Size 3 ----
+- board:
+   []
+ currentDealer:
+   P4
+ finishOrder:
+   []
+ gameConfig:
+   scoreLimit:
+     1000
+   sittingOrder:
+     ---- Size 4 ----
+     P1
+     P2
+     P3
+     P4
+     ----
+   teamNames:
+     ---- Size 2 ----
+     Team 1
+     Team 2
+     ----
+ gamePhase:
+   contents:
+     ---- Size 2 ----
+     P2
+     0
+     ----
+   tag:
+     Playing
+ generator:
+   ---- Size 2 ----
+   7142569559622046617
+   6116250826991328192
+   ----
+ hands:
+   P1:
+     ---- Size 14 ----
+     tag:
+       Dog
+     contents:
+       ---- Size 2 ----
+       Three
+       Black
+       ----
+     tag:
+       PokerCard
+     contents:
+       ---- Size 2 ----
+       Four
+       Green
+       ----
+     tag:
+       PokerCard
+     contents:
+       ---- Size 2 ----
+       Five
+       Green
+       ----
+     tag:
+       PokerCard
+     contents:
+       ---- Size 2 ----
+       Six
+       Red
+       ----
+     tag:
+       PokerCard
+     contents:
+       ---- Size 2 ----
+       Six
+       Black
+       ----
+     tag:
+       PokerCard
+     contents:
+       ---- Size 2 ----
+       Eight
+       Blue
+       ----
+     tag:
+       PokerCard
+     contents:
+       ---- Size 2 ----
+       Eight
+       Red
+       ----
+     tag:
+       PokerCard
+     contents:
+       ---- Size 2 ----
+       Nine
+       Black
+       ----
+     tag:
+       PokerCard
+     contents:
+       ---- Size 2 ----
+       Nine
+       Red
+       ----
+     tag:
+       PokerCard
+     contents:
+       ---- Size 2 ----
+       Ten
+       Red
+       ----
+     tag:
+       PokerCard
+     contents:
+       ---- Size 2 ----
+       Queen
+       Black
+       ----
+     tag:
+       PokerCard
+     contents:
+       ---- Size 2 ----
+       Ace
+       Black
+       ----
+     tag:
+       PokerCard
+     tag:
+       Phoenix
+     ----
+   P2:
+     ---- Size 14 ----
+     tag:
+       Mahjong
+     contents:
+       ---- Size 2 ----
+       Two
+       Red
+       ----
+     tag:
+       PokerCard
+     contents:
+       ---- Size 2 ----
+       Two
+       Blue
+       ----
+     tag:
+       PokerCard
+     contents:
+       ---- Size 2 ----
+       Four
+       Red
+       ----
+     tag:
+       PokerCard
+     contents:
+       ---- Size 2 ----
+       Four
+       Blue
+       ----
+     tag:
+       PokerCard
+     contents:
+       ---- Size 2 ----
+       Five
+       Black
+       ----
+     tag:
+       PokerCard
+     contents:
+       ---- Size 2 ----
+       Six
+       Green
+       ----
+     tag:
+       PokerCard
+     contents:
+       ---- Size 2 ----
+       Seven
+       Blue
+       ----
+     tag:
+       PokerCard
+     contents:
+       ---- Size 2 ----
+       Jack
+       Black
+       ----
+     tag:
+       PokerCard
+     contents:
+       ---- Size 2 ----
+       Jack
+       Blue
+       ----
+     tag:
+       PokerCard
+     contents:
+       ---- Size 2 ----
+       Jack
+       Green
+       ----
+     tag:
+       PokerCard
+     contents:
+       ---- Size 2 ----
+       King
+       Green
+       ----
+     tag:
+       PokerCard
+     contents:
+       ---- Size 2 ----
+       King
+       Black
+       ----
+     tag:
+       PokerCard
+     contents:
+       ---- Size 2 ----
+       Ace
+       Blue
+       ----
+     tag:
+       PokerCard
+     ----
+   P3:
+     ---- Size 14 ----
+     contents:
+       ---- Size 2 ----
+       Two
+       Black
+       ----
+     tag:
+       PokerCard
+     contents:
+       ---- Size 2 ----
+       Three
+       Green
+       ----
+     tag:
+       PokerCard
+     contents:
+       ---- Size 2 ----
+       Three
+       Red
+       ----
+     tag:
+       PokerCard
+     contents:
+       ---- Size 2 ----
+       Five
+       Blue
+       ----
+     tag:
+       PokerCard
+     contents:
+       ---- Size 2 ----
+       Five
+       Red
+       ----
+     tag:
+       PokerCard
+     contents:
+       ---- Size 2 ----
+       Seven
+       Green
+       ----
+     tag:
+       PokerCard
+     contents:
+       ---- Size 2 ----
+       Seven
+       Red
+       ----
+     tag:
+       PokerCard
+     contents:
+       ---- Size 2 ----
+       Nine
+       Green
+       ----
+     tag:
+       PokerCard
+     contents:
+       ---- Size 2 ----
+       Nine
+       Blue
+       ----
+     tag:
+       PokerCard
+     contents:
+       ---- Size 2 ----
+       Ten
+       Green
+       ----
+     tag:
+       PokerCard
+     contents:
+       ---- Size 2 ----
+       Ten
+       Blue
+       ----
+     tag:
+       PokerCard
+     contents:
+       ---- Size 2 ----
+       Queen
+       Green
+       ----
+     tag:
+       PokerCard
+     contents:
+       ---- Size 2 ----
+       King
+       Red
+       ----
+     tag:
+       PokerCard
+     contents:
+       ---- Size 2 ----
+       Ace
+       Red
+       ----
+     tag:
+       PokerCard
+     ----
+   P4:
+     ---- Size 14 ----
+     contents:
+       ---- Size 2 ----
+       Two
+       Green
+       ----
+     tag:
+       PokerCard
+     contents:
+       ---- Size 2 ----
+       Three
+       Blue
+       ----
+     tag:
+       PokerCard
+     contents:
+       ---- Size 2 ----
+       Four
+       Black
+       ----
+     tag:
+       PokerCard
+     contents:
+       ---- Size 2 ----
+       Six
+       Blue
+       ----
+     tag:
+       PokerCard
+     contents:
+       ---- Size 2 ----
+       Seven
+       Black
+       ----
+     tag:
+       PokerCard
+     contents:
+       ---- Size 2 ----
+       Eight
+       Black
+       ----
+     tag:
+       PokerCard
+     contents:
+       ---- Size 2 ----
+       Eight
+       Green
+       ----
+     tag:
+       PokerCard
+     contents:
+       ---- Size 2 ----
+       Ten
+       Black
+       ----
+     tag:
+       PokerCard
+     contents:
+       ---- Size 2 ----
+       Jack
+       Red
+       ----
+     tag:
+       PokerCard
+     contents:
+       ---- Size 2 ----
+       Queen
+       Red
+       ----
+     tag:
+       PokerCard
+     contents:
+       ---- Size 2 ----
+       Queen
+       Blue
+       ----
+     tag:
+       PokerCard
+     contents:
+       ---- Size 2 ----
+       King
+       Blue
+       ----
+     tag:
+       PokerCard
+     contents:
+       ---- Size 2 ----
+       Ace
+       Green
+       ----
+     tag:
+       PokerCard
+     tag:
+       Dragon
+     ----
+ scores:
+   Team 1:
+     0
+   Team 2:
+     0
+ shouldGameStop:
+   false
+ tichus:
+   P1:
+     null
+   P2:
+     null
+   P3:
+     null
+   P4:
+     null
+ tricks:
+   P1:
+     []
+   P2:
+     []
+   P3:
+     []
+   P4:
+     []
+ winnerTeams:
+   []
+- P1:
+   ---- Size 3 ----
+   tag:
+     Stop
+   tag:
+     CallTichu
+   tag:
+     Pass
+   ----
+ P2:
+   ---- Size 61 ----
+   tag:
+     Stop
+   tag:
+     CallTichu
+   contents:
+     contents:
+       ---- Size 1 ----
+       tag:
+         Mahjong
+       ----
+     tag:
+       SingleCard
+   tag:
+     Play
+   contents:
+     contents:
+       ---- Size 1 ----
+       contents:
+         ---- Size 2 ----
+         Two
+         Red
+         ----
+       tag:
+         PokerCard
+       ----
+     tag:
+       SingleCard
+   tag:
+     Play
+   contents:
+     contents:
+       ---- Size 1 ----
+       contents:
+         ---- Size 2 ----
+         Two
+         Blue
+         ----
+       tag:
+         PokerCard
+       ----
+     tag:
+       SingleCard
+   tag:
+     Play
+   contents:
+     contents:
+       ---- Size 1 ----
+       contents:
+         ---- Size 2 ----
+         Four
+         Red
+         ----
+       tag:
+         PokerCard
+       ----
+     tag:
+       SingleCard
+   tag:
+     Play
+   contents:
+     contents:
+       ---- Size 1 ----
+       contents:
+         ---- Size 2 ----
+         Four
+         Blue
+         ----
+       tag:
+         PokerCard
+       ----
+     tag:
+       SingleCard
+   tag:
+     Play
+   contents:
+     contents:
+       ---- Size 1 ----
+       contents:
+         ---- Size 2 ----
+         Five
+         Black
+         ----
+       tag:
+         PokerCard
+       ----
+     tag:
+       SingleCard
+   tag:
+     Play
+   contents:
+     contents:
+       ---- Size 1 ----
+       contents:
+         ---- Size 2 ----
+         Six
+         Green
+         ----
+       tag:
+         PokerCard
+       ----
+     tag:
+       SingleCard
+   tag:
+     Play
+   contents:
+     contents:
+       ---- Size 1 ----
+       contents:
+         ---- Size 2 ----
+         Seven
+         Blue
+         ----
+       tag:
+         PokerCard
+       ----
+     tag:
+       SingleCard
+   tag:
+     Play
+   contents:
+     contents:
+       ---- Size 1 ----
+       contents:
+         ---- Size 2 ----
+         Jack
+         Black
+         ----
+       tag:
+         PokerCard
+       ----
+     tag:
+       SingleCard
+   tag:
+     Play
+   contents:
+     contents:
+       ---- Size 1 ----
+       contents:
+         ---- Size 2 ----
+         Jack
+         Blue
+         ----
+       tag:
+         PokerCard
+       ----
+     tag:
+       SingleCard
+   tag:
+     Play
+   contents:
+     contents:
+       ---- Size 1 ----
+       contents:
+         ---- Size 2 ----
+         Jack
+         Green
+         ----
+       tag:
+         PokerCard
+       ----
+     tag:
+       SingleCard
+   tag:
+     Play
+   contents:
+     contents:
+       ---- Size 1 ----
+       contents:
+         ---- Size 2 ----
+         King
+         Green
+         ----
+       tag:
+         PokerCard
+       ----
+     tag:
+       SingleCard
+   tag:
+     Play
+   contents:
+     contents:
+       ---- Size 1 ----
+       contents:
+         ---- Size 2 ----
+         King
+         Black
+         ----
+       tag:
+         PokerCard
+       ----
+     tag:
+       SingleCard
+   tag:
+     Play
+   contents:
+     contents:
+       ---- Size 1 ----
+       contents:
+         ---- Size 2 ----
+         Ace
+         Blue
+         ----
+       tag:
+         PokerCard
+       ----
+     tag:
+       SingleCard
+   tag:
+     Play
+   contents:
+     contents:
+       ---- Size 2 ----
+       ---- Size 2 ----
+       contents:
+         ---- Size 2 ----
+         Two
+         Red
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Two
+         Blue
+         ----
+       tag:
+         PokerCard
+       ----
+       Two
+       ----
+     tag:
+       Pair
+   tag:
+     Play
+   contents:
+     contents:
+       ---- Size 2 ----
+       ---- Size 2 ----
+       contents:
+         ---- Size 2 ----
+         Four
+         Red
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Four
+         Blue
+         ----
+       tag:
+         PokerCard
+       ----
+       Four
+       ----
+     tag:
+       Pair
+   tag:
+     Play
+   contents:
+     contents:
+       ---- Size 2 ----
+       ---- Size 2 ----
+       contents:
+         ---- Size 2 ----
+         Jack
+         Black
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Jack
+         Blue
+         ----
+       tag:
+         PokerCard
+       ----
+       Jack
+       ----
+     tag:
+       Pair
+   tag:
+     Play
+   contents:
+     contents:
+       ---- Size 2 ----
+       ---- Size 2 ----
+       contents:
+         ---- Size 2 ----
+         Jack
+         Black
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Jack
+         Green
+         ----
+       tag:
+         PokerCard
+       ----
+       Jack
+       ----
+     tag:
+       Pair
+   tag:
+     Play
+   contents:
+     contents:
+       ---- Size 2 ----
+       ---- Size 2 ----
+       contents:
+         ---- Size 2 ----
+         Jack
+         Blue
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Jack
+         Green
+         ----
+       tag:
+         PokerCard
+       ----
+       Jack
+       ----
+     tag:
+       Pair
+   tag:
+     Play
+   contents:
+     contents:
+       ---- Size 2 ----
+       ---- Size 2 ----
+       contents:
+         ---- Size 2 ----
+         King
+         Green
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         King
+         Black
+         ----
+       tag:
+         PokerCard
+       ----
+       King
+       ----
+     tag:
+       Pair
+   tag:
+     Play
+   contents:
+     contents:
+       ---- Size 2 ----
+       ---- Size 3 ----
+       contents:
+         ---- Size 2 ----
+         Jack
+         Black
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Jack
+         Blue
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Jack
+         Green
+         ----
+       tag:
+         PokerCard
+       ----
+       Jack
+       ----
+     tag:
+       ThreeOfAKind
+   tag:
+     Play
+   contents:
+     contents:
+       ---- Size 2 ----
+       ---- Size 5 ----
+       tag:
+         Mahjong
+       contents:
+         ---- Size 2 ----
+         Two
+         Red
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Two
+         Blue
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Four
+         Red
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Five
+         Black
+         ----
+       tag:
+         PokerCard
+       ----
+       Five
+       ----
+     tag:
+       Straight
+   tag:
+     Play
+   contents:
+     contents:
+       ---- Size 2 ----
+       ---- Size 5 ----
+       tag:
+         Mahjong
+       contents:
+         ---- Size 2 ----
+         Two
+         Red
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Two
+         Blue
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Four
+         Blue
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Five
+         Black
+         ----
+       tag:
+         PokerCard
+       ----
+       Five
+       ----
+     tag:
+       Straight
+   tag:
+     Play
+   contents:
+     contents:
+       ---- Size 2 ----
+       ---- Size 5 ----
+       tag:
+         Mahjong
+       contents:
+         ---- Size 2 ----
+         Two
+         Red
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Four
+         Red
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Four
+         Blue
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Five
+         Black
+         ----
+       tag:
+         PokerCard
+       ----
+       Five
+       ----
+     tag:
+       Straight
+   tag:
+     Play
+   contents:
+     contents:
+       ---- Size 2 ----
+       ---- Size 5 ----
+       tag:
+         Mahjong
+       contents:
+         ---- Size 2 ----
+         Two
+         Blue
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Four
+         Red
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Four
+         Blue
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Five
+         Black
+         ----
+       tag:
+         PokerCard
+       ----
+       Five
+       ----
+     tag:
+       Straight
+   tag:
+     Play
+   contents:
+     contents:
+       ---- Size 2 ----
+       ---- Size 5 ----
+       contents:
+         ---- Size 2 ----
+         Two
+         Red
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Two
+         Blue
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Four
+         Red
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Four
+         Blue
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Six
+         Green
+         ----
+       tag:
+         PokerCard
+       ----
+       Six
+       ----
+     tag:
+       Straight
+   tag:
+     Play
+   contents:
+     contents:
+       ---- Size 2 ----
+       ---- Size 5 ----
+       contents:
+         ---- Size 2 ----
+         Two
+         Red
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Two
+         Blue
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Four
+         Red
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Five
+         Black
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Six
+         Green
+         ----
+       tag:
+         PokerCard
+       ----
+       Six
+       ----
+     tag:
+       Straight
+   tag:
+     Play
+   contents:
+     contents:
+       ---- Size 2 ----
+       ---- Size 5 ----
+       contents:
+         ---- Size 2 ----
+         Two
+         Red
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Two
+         Blue
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Four
+         Blue
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Five
+         Black
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Six
+         Green
+         ----
+       tag:
+         PokerCard
+       ----
+       Six
+       ----
+     tag:
+       Straight
+   tag:
+     Play
+   contents:
+     contents:
+       ---- Size 2 ----
+       ---- Size 5 ----
+       contents:
+         ---- Size 2 ----
+         Two
+         Red
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Two
+         Blue
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Jack
+         Black
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Jack
+         Blue
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Jack
+         Green
+         ----
+       tag:
+         PokerCard
+       ----
+       Jack
+       ----
+     tag:
+       FullHouse
+   tag:
+     Play
+   contents:
+     contents:
+       ---- Size 2 ----
+       ---- Size 5 ----
+       contents:
+         ---- Size 2 ----
+         Two
+         Red
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Four
+         Red
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Four
+         Blue
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Five
+         Black
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Six
+         Green
+         ----
+       tag:
+         PokerCard
+       ----
+       Six
+       ----
+     tag:
+       Straight
+   tag:
+     Play
+   contents:
+     contents:
+       ---- Size 2 ----
+       ---- Size 5 ----
+       contents:
+         ---- Size 2 ----
+         Two
+         Blue
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Four
+         Red
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Four
+         Blue
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Five
+         Black
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Six
+         Green
+         ----
+       tag:
+         PokerCard
+       ----
+       Six
+       ----
+     tag:
+       Straight
+   tag:
+     Play
+   contents:
+     contents:
+       ---- Size 2 ----
+       ---- Size 5 ----
+       contents:
+         ---- Size 2 ----
+         Four
+         Red
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Four
+         Blue
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Jack
+         Black
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Jack
+         Blue
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Jack
+         Green
+         ----
+       tag:
+         PokerCard
+       ----
+       Jack
+       ----
+     tag:
+       FullHouse
+   tag:
+     Play
+   contents:
+     contents:
+       ---- Size 2 ----
+       ---- Size 5 ----
+       contents:
+         ---- Size 2 ----
+         Jack
+         Black
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Jack
+         Blue
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Jack
+         Green
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         King
+         Green
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         King
+         Black
+         ----
+       tag:
+         PokerCard
+       ----
+       Jack
+       ----
+     tag:
+       FullHouse
+   tag:
+     Play
+   contents:
+     contents:
+       ---- Size 2 ----
+       ---- Size 6 ----
+       tag:
+         Mahjong
+       contents:
+         ---- Size 2 ----
+         Two
+         Red
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Two
+         Blue
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Four
+         Red
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Four
+         Blue
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Six
+         Green
+         ----
+       tag:
+         PokerCard
+       ----
+       Six
+       ----
+     tag:
+       Straight
+   tag:
+     Play
+   contents:
+     contents:
+       ---- Size 2 ----
+       ---- Size 6 ----
+       tag:
+         Mahjong
+       contents:
+         ---- Size 2 ----
+         Two
+         Red
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Two
+         Blue
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Four
+         Red
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Five
+         Black
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Six
+         Green
+         ----
+       tag:
+         PokerCard
+       ----
+       Six
+       ----
+     tag:
+       Straight
+   tag:
+     Play
+   contents:
+     contents:
+       ---- Size 2 ----
+       ---- Size 6 ----
+       tag:
+         Mahjong
+       contents:
+         ---- Size 2 ----
+         Two
+         Red
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Two
+         Blue
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Four
+         Blue
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Five
+         Black
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Six
+         Green
+         ----
+       tag:
+         PokerCard
+       ----
+       Six
+       ----
+     tag:
+       Straight
+   tag:
+     Play
+   contents:
+     contents:
+       ---- Size 2 ----
+       ---- Size 6 ----
+       tag:
+         Mahjong
+       contents:
+         ---- Size 2 ----
+         Two
+         Red
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Four
+         Red
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Four
+         Blue
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Five
+         Black
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Six
+         Green
+         ----
+       tag:
+         PokerCard
+       ----
+       Six
+       ----
+     tag:
+       Straight
+   tag:
+     Play
+   contents:
+     contents:
+       ---- Size 2 ----
+       ---- Size 6 ----
+       tag:
+         Mahjong
+       contents:
+         ---- Size 2 ----
+         Two
+         Blue
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Four
+         Red
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Four
+         Blue
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Five
+         Black
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Six
+         Green
+         ----
+       tag:
+         PokerCard
+       ----
+       Six
+       ----
+     tag:
+       Straight
+   tag:
+     Play
+   contents:
+     contents:
+       ---- Size 2 ----
+       ---- Size 6 ----
+       contents:
+         ---- Size 2 ----
+         Two
+         Red
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Two
+         Blue
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Four
+         Red
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Four
+         Blue
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Five
+         Black
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Seven
+         Blue
+         ----
+       tag:
+         PokerCard
+       ----
+       Seven
+       ----
+     tag:
+       Straight
+   tag:
+     Play
+   contents:
+     contents:
+       ---- Size 2 ----
+       ---- Size 6 ----
+       contents:
+         ---- Size 2 ----
+         Two
+         Red
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Two
+         Blue
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Four
+         Red
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Four
+         Blue
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Six
+         Green
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Seven
+         Blue
+         ----
+       tag:
+         PokerCard
+       ----
+       Seven
+       ----
+     tag:
+       Straight
+   tag:
+     Play
+   contents:
+     contents:
+       ---- Size 2 ----
+       ---- Size 6 ----
+       contents:
+         ---- Size 2 ----
+         Two
+         Red
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Two
+         Blue
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Four
+         Red
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Five
+         Black
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Six
+         Green
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Seven
+         Blue
+         ----
+       tag:
+         PokerCard
+       ----
+       Seven
+       ----
+     tag:
+       Straight
+   tag:
+     Play
+   contents:
+     contents:
+       ---- Size 2 ----
+       ---- Size 6 ----
+       contents:
+         ---- Size 2 ----
+         Two
+         Red
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Two
+         Blue
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Four
+         Blue
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Five
+         Black
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Six
+         Green
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Seven
+         Blue
+         ----
+       tag:
+         PokerCard
+       ----
+       Seven
+       ----
+     tag:
+       Straight
+   tag:
+     Play
+   contents:
+     contents:
+       ---- Size 2 ----
+       ---- Size 6 ----
+       contents:
+         ---- Size 2 ----
+         Two
+         Red
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Four
+         Red
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Four
+         Blue
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Five
+         Black
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Six
+         Green
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Seven
+         Blue
+         ----
+       tag:
+         PokerCard
+       ----
+       Seven
+       ----
+     tag:
+       Straight
+   tag:
+     Play
+   contents:
+     contents:
+       ---- Size 2 ----
+       ---- Size 6 ----
+       contents:
+         ---- Size 2 ----
+         Two
+         Blue
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Four
+         Red
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Four
+         Blue
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Five
+         Black
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Six
+         Green
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Seven
+         Blue
+         ----
+       tag:
+         PokerCard
+       ----
+       Seven
+       ----
+     tag:
+       Straight
+   tag:
+     Play
+   contents:
+     contents:
+       ---- Size 2 ----
+       ---- Size 7 ----
+       tag:
+         Mahjong
+       contents:
+         ---- Size 2 ----
+         Two
+         Red
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Two
+         Blue
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Four
+         Red
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Four
+         Blue
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Five
+         Black
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Seven
+         Blue
+         ----
+       tag:
+         PokerCard
+       ----
+       Seven
+       ----
+     tag:
+       Straight
+   tag:
+     Play
+   contents:
+     contents:
+       ---- Size 2 ----
+       ---- Size 7 ----
+       tag:
+         Mahjong
+       contents:
+         ---- Size 2 ----
+         Two
+         Red
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Two
+         Blue
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Four
+         Red
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Four
+         Blue
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Six
+         Green
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Seven
+         Blue
+         ----
+       tag:
+         PokerCard
+       ----
+       Seven
+       ----
+     tag:
+       Straight
+   tag:
+     Play
+   contents:
+     contents:
+       ---- Size 2 ----
+       ---- Size 7 ----
+       tag:
+         Mahjong
+       contents:
+         ---- Size 2 ----
+         Two
+         Red
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Two
+         Blue
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Four
+         Red
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Five
+         Black
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Six
+         Green
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Seven
+         Blue
+         ----
+       tag:
+         PokerCard
+       ----
+       Seven
+       ----
+     tag:
+       Straight
+   tag:
+     Play
+   contents:
+     contents:
+       ---- Size 2 ----
+       ---- Size 7 ----
+       tag:
+         Mahjong
+       contents:
+         ---- Size 2 ----
+         Two
+         Red
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Two
+         Blue
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Four
+         Blue
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Five
+         Black
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Six
+         Green
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Seven
+         Blue
+         ----
+       tag:
+         PokerCard
+       ----
+       Seven
+       ----
+     tag:
+       Straight
+   tag:
+     Play
+   contents:
+     contents:
+       ---- Size 2 ----
+       ---- Size 7 ----
+       tag:
+         Mahjong
+       contents:
+         ---- Size 2 ----
+         Two
+         Red
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Four
+         Red
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Four
+         Blue
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Five
+         Black
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Six
+         Green
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Seven
+         Blue
+         ----
+       tag:
+         PokerCard
+       ----
+       Seven
+       ----
+     tag:
+       Straight
+   tag:
+     Play
+   contents:
+     contents:
+       ---- Size 2 ----
+       ---- Size 7 ----
+       tag:
+         Mahjong
+       contents:
+         ---- Size 2 ----
+         Two
+         Blue
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Four
+         Red
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Four
+         Blue
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Five
+         Black
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Six
+         Green
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Seven
+         Blue
+         ----
+       tag:
+         PokerCard
+       ----
+       Seven
+       ----
+     tag:
+       Straight
+   tag:
+     Play
+   contents:
+     contents:
+       ---- Size 2 ----
+       ---- Size 8 ----
+       contents:
+         ---- Size 2 ----
+         Four
+         Red
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Four
+         Blue
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Five
+         Black
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Six
+         Green
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Seven
+         Blue
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Jack
+         Black
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Jack
+         Blue
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Jack
+         Green
+         ----
+       tag:
+         PokerCard
+       ----
+       Jack
+       ----
+     tag:
+       Straight
+   tag:
+     Play
+   contents:
+     contents:
+       ---- Size 2 ----
+       ---- Size 10 ----
+       contents:
+         ---- Size 2 ----
+         Two
+         Red
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Two
+         Blue
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Four
+         Red
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Four
+         Blue
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Five
+         Black
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Six
+         Green
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Seven
+         Blue
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Jack
+         Black
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Jack
+         Blue
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Jack
+         Green
+         ----
+       tag:
+         PokerCard
+       ----
+       Jack
+       ----
+     tag:
+       Straight
+   tag:
+     Play
+   contents:
+     contents:
+       ---- Size 2 ----
+       ---- Size 10 ----
+       contents:
+         ---- Size 2 ----
+         Four
+         Red
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Four
+         Blue
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Five
+         Black
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Six
+         Green
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Seven
+         Blue
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Jack
+         Black
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Jack
+         Blue
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Jack
+         Green
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         King
+         Green
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         King
+         Black
+         ----
+       tag:
+         PokerCard
+       ----
+       King
+       ----
+     tag:
+       Straight
+   tag:
+     Play
+   contents:
+     contents:
+       ---- Size 2 ----
+       ---- Size 11 ----
+       tag:
+         Mahjong
+       contents:
+         ---- Size 2 ----
+         Two
+         Red
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Two
+         Blue
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Four
+         Red
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Four
+         Blue
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Five
+         Black
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Six
+         Green
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Seven
+         Blue
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Jack
+         Black
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Jack
+         Blue
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Jack
+         Green
+         ----
+       tag:
+         PokerCard
+       ----
+       Jack
+       ----
+     tag:
+       Straight
+   tag:
+     Play
+   contents:
+     contents:
+       ---- Size 2 ----
+       ---- Size 11 ----
+       contents:
+         ---- Size 2 ----
+         Four
+         Red
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Four
+         Blue
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Five
+         Black
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Six
+         Green
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Seven
+         Blue
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Jack
+         Black
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Jack
+         Blue
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Jack
+         Green
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         King
+         Green
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         King
+         Black
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Ace
+         Blue
+         ----
+       tag:
+         PokerCard
+       ----
+       Ace
+       ----
+     tag:
+       Straight
+   tag:
+     Play
+   contents:
+     contents:
+       ---- Size 2 ----
+       ---- Size 12 ----
+       contents:
+         ---- Size 2 ----
+         Two
+         Red
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Two
+         Blue
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Four
+         Red
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Four
+         Blue
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Five
+         Black
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Six
+         Green
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Seven
+         Blue
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Jack
+         Black
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Jack
+         Blue
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Jack
+         Green
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         King
+         Green
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         King
+         Black
+         ----
+       tag:
+         PokerCard
+       ----
+       King
+       ----
+     tag:
+       Straight
+   tag:
+     Play
+   contents:
+     contents:
+       ---- Size 2 ----
+       ---- Size 13 ----
+       tag:
+         Mahjong
+       contents:
+         ---- Size 2 ----
+         Two
+         Red
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Two
+         Blue
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Four
+         Red
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Four
+         Blue
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Five
+         Black
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Six
+         Green
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Seven
+         Blue
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Jack
+         Black
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Jack
+         Blue
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Jack
+         Green
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         King
+         Green
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         King
+         Black
+         ----
+       tag:
+         PokerCard
+       ----
+       King
+       ----
+     tag:
+       Straight
+   tag:
+     Play
+   contents:
+     contents:
+       ---- Size 2 ----
+       ---- Size 13 ----
+       contents:
+         ---- Size 2 ----
+         Two
+         Red
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Two
+         Blue
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Four
+         Red
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Four
+         Blue
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Five
+         Black
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Six
+         Green
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Seven
+         Blue
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Jack
+         Black
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Jack
+         Blue
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Jack
+         Green
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         King
+         Green
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         King
+         Black
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Ace
+         Blue
+         ----
+       tag:
+         PokerCard
+       ----
+       Ace
+       ----
+     tag:
+       Straight
+   tag:
+     Play
+   contents:
+     contents:
+       ---- Size 2 ----
+       ---- Size 14 ----
+       tag:
+         Mahjong
+       contents:
+         ---- Size 2 ----
+         Two
+         Red
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Two
+         Blue
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Four
+         Red
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Four
+         Blue
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Five
+         Black
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Six
+         Green
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Seven
+         Blue
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Jack
+         Black
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Jack
+         Blue
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Jack
+         Green
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         King
+         Green
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         King
+         Black
+         ----
+       tag:
+         PokerCard
+       contents:
+         ---- Size 2 ----
+         Ace
+         Blue
+         ----
+       tag:
+         PokerCard
+       ----
+       Ace
+       ----
+     tag:
+       Straight
+   tag:
+     Play
+   ----
+ P3:
+   ---- Size 3 ----
+   tag:
+     Stop
+   tag:
+     CallTichu
+   tag:
+     Pass
+   ----
+ P4:
+   ---- Size 3 ----
+   tag:
+     Stop
+   tag:
+     CallTichu
+   tag:
+     Pass
+   ----
+-----
