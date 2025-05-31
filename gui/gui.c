@@ -333,7 +333,7 @@ void update_draw(void) {
   EndDrawing();
 }
 
-#if !WASM
+#if !WASM && !HASKELL
 int main(void) {
   init();
 
@@ -341,9 +341,9 @@ int main(void) {
   parse_game_and_actions(&g_game_state, test_json1);
   parse_game_and_actions(&g_game_state, test_json2);
 
-  /* while (!WindowShouldClose()) { */
-  /*   update_draw(); */
-  /* } */
+  while (!WindowShouldClose()) {
+    update_draw();
+  }
 
   deinit();
 }

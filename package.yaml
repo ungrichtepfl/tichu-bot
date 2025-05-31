@@ -64,6 +64,26 @@ executables:
   tichu-gui:
     main: Main.hs
     source-dirs: app/gui
+    c-sources:
+      - gui/gui.c
+    include-dirs:
+      - gui/raylib-5.0/linux_amd64/include
+    extra-libraries:
+      - :libraylib.a
+      - m
+    extra-lib-dirs:
+      - gui/raylib-5.0/linux_amd64/lib
+    cc-options:
+      - -O2
+      - -Wall 
+      - -Werror 
+      - -Wextra 
+      - -Wpedantic 
+      - -Wno-overlength-strings 
+      - -ggdb 
+      - -std=c23 
+      - -pedantic 
+      - -DHASKELL=1
     ghc-options:
       - -threaded
       - -rtsopts
@@ -79,6 +99,7 @@ executables:
       - -Wpartial-fields
       - -Wredundant-constraints
     dependencies:
+      - monad-loops >= 0.4.3 && < 1
       - tichu-bot
 
   tichu-wasm:

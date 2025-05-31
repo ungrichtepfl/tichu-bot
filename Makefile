@@ -1,5 +1,6 @@
 package:=tichu-bot
 cli_exe:=tichu-cli
+gui_exe:=tichu-gui
 
 wasm_exe:=tichu-wasm
 wasm_dir:=wasm
@@ -15,7 +16,15 @@ cli-build:
 
 .PHONY: cli-run
 cli-run:
-	stack run $(package):exe:$(cli_exe)
+	stack run $(cli_exe)
+
+.PHONY: gui-build
+gui-build:
+	stack build $(package):exe:$(gui_exe)
+
+.PHONY: gui-run
+gui-run:
+	stack run $(gui_exe)
 
 .PHONY: wasm-build
 wasm-build:
@@ -31,18 +40,16 @@ wasm-run: wasm-build
 
 CFLAGS:= -Wall -Werror -Wextra -Wpedantic -Wno-overlength-strings -ggdb -std=c23 -pedantic
 CSRC:=gui/gui.c
-COUT_OBJ:=cout/gui.o
 COUT_EXE:=cout/gui
 COUT:=cout
 
-.PHONY: c-gui-build-obj
-c-gui-build-obj:
-	cc $(CFLAGS) $(CSRC) -c -o $(COUT_OBJ) -I./gui/raylib-5.0/linux_amd64/include
-
 .PHONY: c-gui-build
-c-gui-build: c-gui-build-obj
-	cc $(CFLAGS) $(COUT_OBJ) -o $(COUT_EXE) -L./gui/raylib-5.0/linux_amd64/lib -l:libraylib.a -lm
+c-gui-build:
+	cc $(CFLAGS) $(CSRC) -o $(COUT_EXE) -I./gui/raylib-5.0/linux_amd64/include -L./gui/raylib-5.0/linux_amd64/lib -l:libraylib.a -lm
 
+.PHONY: c-gui-run
+c-gui-run: c-gui-build
+	./cout/gui
 
 .PHONY: compiledb
 compiledb:
