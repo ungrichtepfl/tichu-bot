@@ -21,6 +21,10 @@ dependencies:
   - random >= 1.2.1.1 && < 2
   - array >= 0.5.4.0 && < 1
   - containers >= 0.6.7 && < 1
+  - aeson >= 2.2 && <3
+  - bytestring >= 0.12 && < 1
+  - scientific >= 0.3 && < 1
+  - vector >= 0.13 && < 1
 ghc-options:
   - -O2
   - -Wall
@@ -57,6 +61,26 @@ executables:
     dependencies:
       - tichu-bot
 
+  tichu-gui:
+    main: Main.hs
+    source-dirs: app/gui
+    ghc-options:
+      - -threaded
+      - -rtsopts
+      - -with-rtsopts=-N
+      - -O2
+      - -Wall
+      - -Wcompat
+      - -Widentities
+      - -Wincomplete-record-updates
+      - -Wincomplete-uni-patterns
+      - -Wmissing-export-lists
+      - -Wmissing-home-modules
+      - -Wpartial-fields
+      - -Wredundant-constraints
+    dependencies:
+      - tichu-bot
+
   tichu-wasm:
     main: Main.hs
     source-dirs: ./wasm/app/
@@ -73,10 +97,6 @@ executables:
       - -Wredundant-constraints
       - -no-hs-main -optl-mexec-model=reactor -optl-Wl,--export=newGame,--export=updateGame
     dependencies:
-      - aeson >= 2.2 && <3
-      - bytestring >= 0.12 && < 1
-      - scientific >= 0.3 && < 1
-      - vector >= 0.13 && < 1
       # - ghc-experimental # HACK: Must be via Makefile to generated cabal file. Otherwise, everything else does not build somehow (no idea how to fix)
       - tichu-bot
 

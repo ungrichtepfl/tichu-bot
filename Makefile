@@ -19,7 +19,7 @@ cli-run:
 wasm-build:
 	stack build --only-configure # HACK: generates the cabal file
 	python3 ./patch_cabal.py $(wasm_exe) ./$(package).cabal # HACK: patches cabal file to work with wasm32-wasi-cabal
-	wasm32-wasi-cabal build $(wasm_exe)
+	C_INCLUDE_PATH="" wasm32-wasi-cabal build $(wasm_exe) # Somehow a set C_INCLUDE_PATH causes issues
 	cp "dist-newstyle/build/wasm32-wasi/ghc-$(ghc_wasm_version)/$(package)-$(pkg_version)/x/$(wasm_exe)/build/$(wasm_exe)/$(wasm_exe).wasm" $(wasm_dir)/
 	"$$(wasm32-wasi-ghc --print-libdir)"/post-link.mjs -i $(wasm_dir)/$(wasm_exe).wasm -o $(wasm_dir)/ghc_wasm_jsffi.js
 
