@@ -35,7 +35,7 @@ COUT:=cout
 
 .PHONY: c-gui-build-obj
 c-gui-build-obj:
-	cc $(CFLAGS) $(CSRC) -c -o $(COUT_OBJ) -I./gui/raylib-5.0/linux_amd64/include -I/usr/include
+	cc $(CFLAGS) $(CSRC) -c -o $(COUT_OBJ) -I./gui/raylib-5.0/linux_amd64/include
 
 .PHONY: c-gui-build
 c-gui-build: c-gui-build-obj
