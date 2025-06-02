@@ -12,6 +12,9 @@
 #define MAX_BYTES_NAME 101
 #define MAX_CHARS_NAME (MAX_CARDS_PER_PLAYER - 1)
 
+#define MAX_BYTES_CURRENT_ACTION 1024
+#define MAX_CHARS_CURRENT_ACTION (MAX_BYTES_CURRENT_ACTION - 1)
+
 typedef int Passes;
 
 typedef char PlayerName;
@@ -115,6 +118,7 @@ typedef struct {
   /// Dynamically allocated players actions
   PlayerAction *player_actions[NUM_PLAYERS];
   unsigned long long num_actions[NUM_PLAYERS];
+  char current_action[MAX_BYTES_NAME];
 } GameState;
 
 #endif // GAME_H

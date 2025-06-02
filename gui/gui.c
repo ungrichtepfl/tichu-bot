@@ -28,6 +28,14 @@
 #define ASSET_PATH "./gui/images/"
 #define CARD_ASSET_REL_PATH "cards/"
 
+#define ACTION_CPY(s)                                                          \
+  do {                                                                         \
+    assert(sizeof(g_game_state.current_action) >= strlen(s) &&                 \
+           "Action is too long");                                              \
+    strcpy(g_game_state.current_action, s);                                    \
+  } while (0)
+#define ACTION_RESET() ACTION_CPY("null")
+
 typedef struct {
   Texture2D red[CARDS_PER_COLOR];
   Texture2D blue[CARDS_PER_COLOR];
@@ -182,6 +190,7 @@ void unload_global_assets(void) {
   UnloadTexture(g_assets.phoenix);
   UnloadTexture(g_assets.background);
 }
+
 Texture2D get_background_asset(void) { return g_assets.background; }
 
 Texture2D get_card_asset(Card card) {
@@ -294,6 +303,7 @@ void setup_global_game_state(void) {
         ((float)i / col) * ((float)WIN_HEIHT / col);
     // Set the last 4 cards to be in the middle
   }
+  ACTION_RESET();
 }
 
 void draw_cards(void) {
@@ -322,7 +332,10 @@ void deinit(void) {
   CloseWindow();
 }
 
-void update_draw(void) {
+void update_draw(const char *game_json) {
+
+  parse_game_and_actions(&g_game_state, game_json);
+
   update_card_position();
 
   BeginDrawing();
@@ -333,16 +346,17 @@ void update_draw(void) {
   EndDrawing();
 }
 
+const char *get_current_action(void) { return g_game_state.current_action; }
+
 #if !WASM && !HASKELL
 int main(void) {
   init();
 
-  parse_game_and_actions(&g_game_state, test_json);
   parse_game_and_actions(&g_game_state, test_json1);
   parse_game_and_actions(&g_game_state, test_json2);
 
   while (!WindowShouldClose()) {
-    update_draw();
+    update_draw(test_json1);
   }
 
   deinit();

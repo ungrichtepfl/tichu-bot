@@ -253,19 +253,17 @@ updateGame game playersAction =
             Starting -> startGame game
             Dealing _ -> dealAllCards game
             Distributing ->
-                distribute
-                    game
-                    ( case playersAction of
-                        Just action -> action
-                        Nothing -> error "There must be an action"
-                    )
+                ( case playersAction of
+                    Just action ->
+                        distribute game action
+                    Nothing -> game -- Nothing todo
+                )
             Playing _ _ ->
-                applyPlayerAction
-                    game
-                    ( case playersAction of
-                        Just action -> action
-                        Nothing -> error "There must be an action"
-                    )
+                ( case playersAction of
+                    Just action ->
+                        applyPlayerAction game action
+                    Nothing -> game -- Nothing todo
+                )
             NextRound -> nextRound game
             GiveAwayLooserTricksAndHands -> giveAwayLooserTricksAndHands game
             Scoring -> score game
