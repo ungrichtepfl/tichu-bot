@@ -14,6 +14,8 @@
 
 #define MAX_BYTES_CURRENT_ACTION 1024
 #define MAX_CHARS_CURRENT_ACTION (MAX_BYTES_CURRENT_ACTION - 1)
+#define MAX_BYTES_CURRENT_CONFIG 1024
+#define MAX_CHARS_CURRENT_CONFIG (MAX_BYTES_CURRENT_CONFIG - 1)
 
 typedef int Passes;
 
@@ -114,11 +116,16 @@ typedef struct {
 } Game;
 
 typedef struct {
+  GameConfig gameConfig;
+  char game_config_json[MAX_CHARS_CURRENT_ACTION];
+} PreGameState;
+
+typedef struct {
   Game game;
   /// Dynamically allocated players actions
   PlayerAction *player_actions[NUM_PLAYERS];
   unsigned long long num_actions[NUM_PLAYERS];
-  char current_action[MAX_BYTES_NAME];
+  char current_action_json[MAX_CHARS_CURRENT_ACTION];
 } GameState;
 
 #endif // GAME_H

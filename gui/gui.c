@@ -30,11 +30,19 @@
 
 #define ACTION_CPY(s)                                                          \
   do {                                                                         \
-    assert(sizeof(g_game_state.current_action) >= strlen(s) &&                 \
+    assert(sizeof(g_game_state.current_action_json) > strlen(s) &&             \
            "Action is too long");                                              \
-    strcpy(g_game_state.current_action, s);                                    \
+    strcpy(g_game_state.current_action_json, s);                               \
   } while (0)
 #define ACTION_RESET() ACTION_CPY("null")
+
+#define CONFIG_CPY(s)                                                          \
+  do {                                                                         \
+    assert(sizeof(g_pre_game_state.game_config_json) > strlen(s) &&            \
+           "Config is too long");                                              \
+    strcpy(g_pre_game_state.game_config_json, s);                              \
+  } while (0)
+#define CONFIG_RESET() CONFIG_CPY("null")
 
 typedef struct {
   Texture2D red[CARDS_PER_COLOR];
@@ -62,6 +70,7 @@ typedef struct {
 
 RenderState g_render_state = {0};
 
+PreGameState g_pre_game_state = {0};
 GameState g_game_state = {0};
 static_assert(LENGTH(g_game_state.player_actions) ==
                   LENGTH(g_game_state.num_actions),
@@ -332,7 +341,9 @@ void deinit(void) {
   CloseWindow();
 }
 
-void update_draw(const char *game_json) {
+const char *update_draw(const char *game_json) {
+
+  ACTION_RESET();
 
   parse_game_and_actions(&g_game_state, game_json);
 
@@ -344,9 +355,17 @@ void update_draw(const char *game_json) {
   draw_cards();
 
   EndDrawing();
+
+  return g_game_state.current_action_json;
 }
 
-const char *get_current_action(void) { return g_game_state.current_action; }
+const char *update_draw_config(void) {
+  CONFIG_RESET();
+  update_draw(test_json1); // TODO: Implement Config Selection
+  return g_pre_game_state.game_config_json;
+}
+
+bool window_should_close(void) { return WindowShouldClose(); }
 
 #if !WASM && !HASKELL
 int main(void) {
@@ -355,7 +374,7 @@ int main(void) {
   parse_game_and_actions(&g_game_state, test_json1);
   parse_game_and_actions(&g_game_state, test_json2);
 
-  while (!WindowShouldClose()) {
+  while (!window_should_close()) {
     update_draw(test_json1);
   }
 
