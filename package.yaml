@@ -36,6 +36,8 @@ ghc-options:
   - -Wmissing-home-modules
   - -Wpartial-fields
   - -Wredundant-constraints
+  - -Wno-x-partial # Allow functions such as "head"
+  - -Wno-orphans # We need to define ToJson for StdGen
 
 library:
   source-dirs: src
@@ -58,6 +60,7 @@ executables:
       - -Wmissing-home-modules
       - -Wpartial-fields
       - -Wredundant-constraints
+      - -Wno-x-partial # Allow functions such as "head"
     dependencies:
       - tichu-bot
 
@@ -75,14 +78,14 @@ executables:
       - gui/raylib-5.0/linux_amd64/lib
     cc-options:
       - -O2
-      - -Wall 
-      - -Werror 
-      - -Wextra 
-      - -Wpedantic 
-      - -Wno-overlength-strings 
-      - -ggdb 
-      - -std=c23 
-      - -pedantic 
+      - -Wall
+      - -Werror
+      - -Wextra
+      - -Wpedantic
+      - -Wno-overlength-strings
+      - -ggdb
+      - -std=c23
+      - -pedantic
       - -DHASKELL=1
     ghc-options:
       - -threaded
@@ -118,7 +121,7 @@ executables:
       - -Wredundant-constraints
       - -no-hs-main -optl-mexec-model=reactor -optl-Wl,--export=newGame,--export=updateGame
     dependencies:
-      # - ghc-experimental # HACK: Must be via Makefile to generated cabal file. Otherwise, everything else does not build somehow (no idea how to fix)
+      - ghc-experimental
       - tichu-bot
 
 tests:

@@ -4,39 +4,42 @@ gui_exe:=tichu-gui
 
 wasm_exe:=tichu-wasm
 wasm_dir:=wasm
-ghc_wasm_version:=9.12.2.20250327
+ghc_version_num:=9.12.2
+ghc_version:=ghc-$(ghc_version_num)
+ghc_wasm_version_num:=$(ghc_version_num).20250327
 pkg_version:=0.1.1.0
 
 ghc_wasm_env:="$$HOME/.ghc-wasm/env"
 
-
 .PHONY: cli-build
-cli-build:
-	stack build $(package):exe:$(cli_exe)
+cli-build: cabal-config
+	cabal build -w$(ghc_version) $(package):exe:$(cli_exe)
 
 .PHONY: cli-run
-cli-run:
-	stack run $(cli_exe)
+cli-run: cabal-config
+	cabal run -w$(ghc_version) $(cli_exe)
 
 .PHONY: gui-build
-gui-build:
-	stack build $(package):exe:$(gui_exe)
+gui-build: cabal-config
+	cabal build -w$(ghc_version) $(package):exe:$(gui_exe)
 
 .PHONY: gui-run
-gui-run:
-	stack run $(gui_exe)
+gui-run: cabal-config
+	cabal run -w$(ghc_version) $(gui_exe)
 
 .PHONY: wasm-build
-wasm-build:
-	stack build --only-configure # HACK: generates the cabal file
-	python3 ./patch_cabal.py $(wasm_exe) ./$(package).cabal # HACK: patches cabal file to work with wasm32-wasi-cabal
-	. $(ghc_wasm_env) && wasm32-wasi-cabal build $(wasm_exe) # Somehow a set C_INCLUDE_PATH causes issues
-	cp "dist-newstyle/build/wasm32-wasi/ghc-$(ghc_wasm_version)/$(package)-$(pkg_version)/x/$(wasm_exe)/build/$(wasm_exe)/$(wasm_exe).wasm" $(wasm_dir)/
+wasm-build: cabal-config
+	. $(ghc_wasm_env) && wasm32-wasi-cabal build $(wasm_exe) 
+	cp "dist-newstyle/build/wasm32-wasi/ghc-$(ghc_wasm_version_num)/$(package)-$(pkg_version)/x/$(wasm_exe)/build/$(wasm_exe)/$(wasm_exe).wasm" $(wasm_dir)/
 	. $(ghc_wasm_env) && "$$(wasm32-wasi-ghc --print-libdir)"/post-link.mjs -i $(wasm_dir)/$(wasm_exe).wasm -o $(wasm_dir)/ghc_wasm_jsffi.js
 
 .PHONE: wasm-run
 wasm-run: wasm-build
 	python3 -m http.server --directory $(wasm_dir)
+
+.PHONY: cabal-config
+cabal-config:
+	hpack
 
 CFLAGS:= -Wall -Werror -Wextra -Wpedantic -Wno-overlength-strings -ggdb -std=c23 -pedantic
 CSRC:=gui/gui.c
@@ -63,3 +66,13 @@ EMCC_FLAGS := $(EMCC_FLAGS) -sEXPORTED_FUNCTIONS=_run_gui,_send_mouse_button_dow
 .PHONY: wasm-gui-build
 wasm-c-gui-build:
 	exit 1 # TODO:
+
+.PHONY: clean
+clean:
+	rm -rf ./dist-newstyle
+	cabal clean
+
+.PHONY: freeze
+freeze:
+	cabal freeze
+

@@ -1,15 +1,9 @@
 {-# LANGUAGE LambdaCase #-}
 
--- Useful debug infos:
--- Enabling assertions: https://stackoverflow.com/questions/45777703/turning-on-assertions-while-compiling-with-haskells-stack-build-system
---  i.e. stack clean && stack build --fast && stack run
--- Profil build: https://stackoverflow.com/questions/32123475/profiling-builds-with-stack
---  i.e. stack run --profile -- +RTS -xc
-
 module Game.Tichu (module Game.Tichu) where
 
 import Control.Exception (assert)
-import Data.List (elemIndex, foldl', sort, (\\))
+import Data.List (elemIndex, sort, (\\))
 import Data.Map (Map)
 import Data.Maybe (fromJust, isJust, isNothing)
 import System.Random (mkStdGen)
