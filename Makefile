@@ -29,7 +29,7 @@ gui-run: cabal-config
 
 .PHONY: wasm-build
 wasm-build: cabal-config
-	. $(ghc_wasm_env) && wasm32-wasi-cabal build $(wasm_exe) 
+	. $(ghc_wasm_env) && wasm32-wasi-cabal build $(wasm_exe)
 	cp "dist-newstyle/build/wasm32-wasi/ghc-$(ghc_wasm_version_num)/$(package)-$(pkg_version)/x/$(wasm_exe)/build/$(wasm_exe)/$(wasm_exe).wasm" $(wasm_dir)/
 	. $(ghc_wasm_env) && "$$(wasm32-wasi-ghc --print-libdir)"/post-link.mjs -i $(wasm_dir)/$(wasm_exe).wasm -o $(wasm_dir)/ghc_wasm_jsffi.js
 
@@ -72,7 +72,7 @@ clean:
 	rm -rf ./dist-newstyle
 	cabal clean
 
-.PHONY: freeze
-freeze:
-	cabal freeze
-
+.PHONY: update-index
+update-index:
+	cabal update
+	. $(ghc_wasm_env) && wasm32-wasi-cabal update
