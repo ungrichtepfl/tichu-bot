@@ -292,6 +292,8 @@ void update_card_position(void) {
   }
 }
 
+void setup_global_pre_game_state(void) { CONFIG_RESET(); }
+
 void setup_global_game_state(void) {
   g_render_state.selected_piece_idx = -1; // Nothing selected
 
@@ -326,12 +328,11 @@ void draw_cards(void) {
 }
 
 void init(void) {
+  setup_global_pre_game_state();
   setup_global_game_state();
   InitWindow(WIN_WIDTH, WIN_HEIHT, "Tichu");
   load_global_assets();
-#if !WASM
   SetTargetFPS(FPS);
-#endif
 }
 
 void deinit(void) {
@@ -340,10 +341,96 @@ void deinit(void) {
   unload_global_assets();
   CloseWindow();
 }
+const char *update_draw_config(void) {
+  static bool mouse_on_text = false;
+  static const int font_size = 40;
+  static const float char_size = 10.f; // NOTE: Tune
+  static Rectangle text_box = {WIN_WIDTH / 2.0f -
+                                   char_size * MAX_CHARS_NAME / 2,
+                               180, MAX_CHARS_NAME * char_size, 50};
+  static char name[MAX_BYTES_NAME] = "\0";
+  static int letterCount = 0;
+  static size_t framesCounter = 0; // For blinking animation
 
-const char *update_draw(const char *game_json) {
+  // Update
+  //----------------------------------------------------------------------------------
+  if (CheckCollisionPointRec(GetMousePosition(), text_box))
+    mouse_on_text = true;
+  else
+    mouse_on_text = false;
 
-  ACTION_RESET();
+  if (mouse_on_text) {
+    // Set the window's cursor to the I-Beam
+    SetMouseCursor(MOUSE_CURSOR_IBEAM);
+
+    // Get char pressed (unicode character) on the queue
+    int key = GetCharPressed();
+
+    // Check if more characters have been pressed on the same frame
+    while (key > 0) {
+      // NOTE: Only allow keys in range [32..125]
+      if ((key >= 32) && (key <= 125) && (letterCount < MAX_CHARS_NAME)) {
+        name[letterCount] = (char)key;
+        name[letterCount + 1] =
+            '\0'; // Add null terminator at the end of the string.
+        letterCount++;
+      }
+
+      key = GetCharPressed(); // Check next character in the queue
+    }
+
+    if (IsKeyPressed(KEY_BACKSPACE)) {
+      letterCount--;
+      if (letterCount < 0)
+        letterCount = 0;
+      name[letterCount] = '\0';
+    }
+  } else
+    SetMouseCursor(MOUSE_CURSOR_DEFAULT);
+
+  if (mouse_on_text)
+    framesCounter++;
+  else
+    framesCounter = 0;
+  //----------------------------------------------------------------------------------
+
+  // Draw
+  //----------------------------------------------------------------------------------
+  BeginDrawing();
+
+  ClearBackground(RAYWHITE);
+
+  DrawText("PLACE MOUSE OVER INPUT BOX!", 240, 140, 20, GRAY);
+
+  DrawRectangleRec(text_box, LIGHTGRAY);
+  if (mouse_on_text)
+    DrawRectangleLines((int)text_box.x, (int)text_box.y, (int)text_box.width,
+                       (int)text_box.height, RED);
+  else
+    DrawRectangleLines((int)text_box.x, (int)text_box.y, (int)text_box.width,
+                       (int)text_box.height, DARKGRAY);
+
+  DrawText(name, (int)text_box.x + 5, (int)text_box.y + 8, 40, MAROON);
+
+  DrawText(TextFormat("INPUT CHARS: %i/%i", letterCount, MAX_CHARS_NAME), 315,
+           250, 20, DARKGRAY);
+
+  if (mouse_on_text) {
+    if (letterCount < MAX_CHARS_NAME) {
+      // Draw blinking underscore char
+      if (((framesCounter / 20) % 2) == 0)
+        DrawText("_", (int)text_box.x + 8 + MeasureText(name, font_size),
+                 (int)text_box.y + 12, font_size, MAROON);
+    } else
+      DrawText("Press BACKSPACE to delete chars...", 230, 300, 20, GRAY);
+  }
+
+  EndDrawing();
+  //----------------------------------------------------------------------------------
+  return g_pre_game_state.game_config_json;
+}
+
+const char *update_draw_game(const char *game_json) {
 
   parse_game_and_actions(&g_game_state, game_json);
 
@@ -359,25 +446,5 @@ const char *update_draw(const char *game_json) {
   return g_game_state.current_action_json;
 }
 
-const char *update_draw_config(void) {
-  CONFIG_RESET();
-  update_draw(test_json1); // TODO: Implement Config Selection
-  return g_pre_game_state.game_config_json;
-}
-
 bool window_should_close(void) { return WindowShouldClose(); }
 
-#if !WASM && !HASKELL
-int main(void) {
-  init();
-
-  parse_game_and_actions(&g_game_state, test_json1);
-  parse_game_and_actions(&g_game_state, test_json2);
-
-  while (!window_should_close()) {
-    update_draw(test_json1);
-  }
-
-  deinit();
-}
-#endif

@@ -11,24 +11,34 @@ pkg_version:=0.1.1.0
 
 ghc_wasm_env:="$$HOME/.ghc-wasm/env"
 
+CFLAGS:= -Wall -Werror -Wextra -Wpedantic -Wno-overlength-strings -ggdb -std=c23 -pedantic
+CSRCDIR:=gui
+CMAIN:=$(CSRCDIR)/main.c
+CSRC:=$(CSRCDIR)/gui.c
+CINCLUDE:=-I./$(CSRCDIR)/raylib-5.0/linux_amd64/include
+CLFLAGS:=-L./$(CSRCDIR)/raylib-5.0/linux_amd64/lib -l:libraylib.a -lm
+COUT:=cbuild
+CPP:=$(COUT)/gui_pp.c
+CEXE:=$(COUT)/main
+
 .PHONY: cli-build
-cli-build: cabal-config
+cli-build: $(package).cabal
 	cabal build -w$(ghc_version) $(package):exe:$(cli_exe)
 
 .PHONY: cli-run
-cli-run: cabal-config
+cli-run: $(package).cabal
 	cabal run -w$(ghc_version) $(cli_exe)
 
 .PHONY: gui-build
-gui-build: cabal-config
+gui-build: c-pp $(package).cabal
 	cabal build -w$(ghc_version) $(package):exe:$(gui_exe)
 
 .PHONY: gui-run
-gui-run: cabal-config
+gui-run: c-pp $(package).cabal
 	cabal run -w$(ghc_version) $(gui_exe)
 
 .PHONY: wasm-build
-wasm-build: cabal-config
+wasm-build: $(package).cabal
 	. $(ghc_wasm_env) && wasm32-wasi-cabal build $(wasm_exe)
 	cp "dist-newstyle/build/wasm32-wasi/ghc-$(ghc_wasm_version_num)/$(package)-$(pkg_version)/x/$(wasm_exe)/build/$(wasm_exe)/$(wasm_exe).wasm" $(wasm_dir)/
 	. $(ghc_wasm_env) && "$$(wasm32-wasi-ghc --print-libdir)"/post-link.mjs -i $(wasm_dir)/$(wasm_exe).wasm -o $(wasm_dir)/ghc_wasm_jsffi.js
@@ -37,26 +47,27 @@ wasm-build: cabal-config
 wasm-run: wasm-build
 	python3 -m http.server --directory $(wasm_dir)
 
-.PHONY: cabal-config
-cabal-config:
+$(package).cabal: package.yaml
 	hpack
 
-CFLAGS:= -Wall -Werror -Wextra -Wpedantic -Wno-overlength-strings -ggdb -std=c23 -pedantic
-CSRC:=gui/gui.c
-COUT_EXE:=cout/gui
-COUT:=cout
+$(COUT):
+	mkdir -p $@
 
-.PHONY: c-gui-build
-c-gui-build:
-	cc $(CFLAGS) $(CSRC) -o $(COUT_EXE) -I./gui/raylib-5.0/linux_amd64/include -L./gui/raylib-5.0/linux_amd64/lib -l:libraylib.a -lm
+.PHONY: c-pp
+c-pp: | $(COUT) # NOTE: This is needed as cabal does not recompile the source file if some header changed
+	cc -P -E $(CFLAGS) $(CSRC) -o $(CPP) $(CINCLUDE)
 
-.PHONY: c-gui-run
-c-gui-run: c-gui-build
-	./cout/gui
+.PHONY: c-build
+c-build: | $(COUT)
+	cc $(CFLAGS) $(CMAIN) -o $(CEXE) $(CINCLUDE) $(CLFLAGS)
+
+.PHONY: c-run
+c-run: c-build
+	./$(CEXE)
 
 .PHONY: compiledb
 compiledb:
-	compiledb make c-gui-build
+	compiledb make c-build
 
 EMCC_FLAGS := -sUSE_GLFW=3 -sUSE_LIBPNG -sASYNCIFY -sMODULARIZE=1 -sEXPORT_ES6=1 -sWASM=1 -sINITIAL_HEAP=256mb
 EMCC_FLAGS := $(EMCC_FLAGS) --embed-file ./Lato-Regular.ttf --embed-file ./trained_network.txt

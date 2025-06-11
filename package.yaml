@@ -68,7 +68,7 @@ executables:
     main: Main.hs
     source-dirs: app/gui
     c-sources:
-      - gui/gui.c
+      - cbuild/gui_pp.c
     include-dirs:
       - gui/raylib-5.0/linux_amd64/include
     extra-libraries:
@@ -86,7 +86,6 @@ executables:
       - -ggdb
       - -std=c23
       - -pedantic
-      - -DHASKELL=1
     ghc-options:
       - -threaded
       - -rtsopts

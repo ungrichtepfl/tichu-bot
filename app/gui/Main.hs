@@ -13,7 +13,7 @@ import qualified Foreign.C.String as CS
 import Game.Structures
 import Game.Tichu
 
-foreign import ccall "update_draw" c_updateDraw :: CString -> IO CString
+foreign import ccall "update_draw_game" c_updateDrawGame :: CString -> IO CString
 foreign import ccall "update_draw_config" c_updateDrawConfig :: IO CString
 foreign import ccall "init" c_init :: IO ()
 foreign import ccall "deinit" c_deinit :: IO ()
@@ -66,7 +66,7 @@ main =
         gameLoop gameOutput =
             let game = fst gameOutput
              in do
-                    cAction <- withCAString gameOutput c_updateDraw
+                    cAction <- withCAString gameOutput c_updateDrawGame
                     action <- getCurrentAction cAction
                     let gameOutput' = updateGame game action
                     let game' = fst gameOutput'

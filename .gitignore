@@ -2,6 +2,6 @@
 *~
 dist-newstyle/
 tichu-bot.cabal
-cout/
+cbuild/
 .cache/
 compile_commands.json
