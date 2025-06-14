@@ -391,48 +391,42 @@ const char *update_draw_config(void) {
     }
   }
   SetMouseCursor(MOUSE_CURSOR_DEFAULT);
+  g_pre_game_state.mouse_on_text = false;
   for (unsigned long i = 0; i < LENGTH(g_pre_game_state.text_box); ++i) {
     if (CheckCollisionPointRec(GetMousePosition(),
                                g_pre_game_state.text_box[i])) {
       SetMouseCursor(MOUSE_CURSOR_IBEAM);
+      g_pre_game_state.mouse_on_text = true;
       break;
     }
   }
+
+  Rectangle *selected_tb =
+      &g_pre_game_state.text_box[g_pre_game_state.selected_text_box];
+  char (*selected_tb_input)[MAX_CHARS_NAME] =
+      &g_pre_game_state.text_box_input[g_pre_game_state.selected_text_box];
+  int *selected_char_counter =
+      &g_pre_game_state.input_char_counter[g_pre_game_state.selected_text_box];
 
   int key = GetCharPressed();
 
   while (key > 0) {
     // NOTE: Only allow keys in range [32..125]
     if ((key >= 32) && (key <= 125) &&
-        (g_pre_game_state
-             .input_char_counter[g_pre_game_state.selected_text_box] <
-         MAX_CHARS_NAME)) {
-      g_pre_game_state
-          .text_box_input[g_pre_game_state.selected_text_box]
-                         [g_pre_game_state.input_char_counter
-                              [g_pre_game_state.selected_text_box]] = (char)key;
-
-      g_pre_game_state.text_box_input[g_pre_game_state.selected_text_box]
-                                     [g_pre_game_state.input_char_counter
-                                          [g_pre_game_state.selected_text_box] +
-                                      1] = '\0';
-      ++g_pre_game_state.input_char_counter[g_pre_game_state.selected_text_box];
+        (*selected_char_counter < MAX_CHARS_NAME)) {
+      (*selected_tb_input)[*selected_char_counter] = (char)key;
+      (*selected_tb_input)[*selected_char_counter + 1] = '\0';
+      (*selected_char_counter)++;
     }
-
     key = GetCharPressed(); // Check next character in the queue
   }
 
   if (IsKeyPressed(KEY_BACKSPACE)) {
-    --g_pre_game_state.input_char_counter[g_pre_game_state.selected_text_box];
-    if (g_pre_game_state
-            .input_char_counter[g_pre_game_state.selected_text_box] < 0)
-      g_pre_game_state.input_char_counter[g_pre_game_state.selected_text_box] =
-          0;
+    (*selected_char_counter)--;
+    if (*selected_char_counter < 0)
+      *selected_char_counter = 0;
 
-    g_pre_game_state.text_box_input[g_pre_game_state.selected_text_box]
-                                   [g_pre_game_state.input_char_counter
-                                        [g_pre_game_state.selected_text_box]] =
-        '\0';
+    *selected_tb_input[*selected_char_counter] = '\0';
   }
 
   ++g_pre_game_state.frame_counter;
@@ -459,19 +453,14 @@ const char *update_draw_config(void) {
   }
 
   if (g_pre_game_state.mouse_on_text) {
-    if (g_pre_game_state
-            .input_char_counter[g_pre_game_state.selected_text_box] <
-        MAX_CHARS_NAME) {
+    if (*selected_char_counter < MAX_CHARS_NAME) {
       // Draw blinking underscore char
-      Rectangle text_box =
-          g_pre_game_state.text_box[g_pre_game_state.selected_text_box];
-      char *input =
-          g_pre_game_state.text_box_input[g_pre_game_state.selected_text_box];
 
       if (((g_pre_game_state.frame_counter / 20) % 2) == 0)
         DrawText("_",
-                 (int)text_box.x + 8 + MeasureText(input, FONT_SIZE_MEDIUM),
-                 (int)text_box.y + 12, FONT_SIZE_MEDIUM, MAROON);
+                 (int)selected_tb->x + 8 +
+                     MeasureText(*selected_tb_input, FONT_SIZE_MEDIUM),
+                 (int)selected_tb->y + 12, FONT_SIZE_MEDIUM, MAROON);
     }
   }
 
