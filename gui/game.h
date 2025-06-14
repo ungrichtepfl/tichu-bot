@@ -1,7 +1,8 @@
 #ifndef GAME_H
 #define GAME_H
 
-#include <stdbool.h>
+#include <raylib.h>
+#include <stddef.h>
 
 #define CARDS_PER_COLOR 13
 #define NUM_COLORS 4
@@ -9,7 +10,7 @@
 #define NUM_TEAMS 2
 #define TOTAL_CARDS (CARDS_PER_COLOR * NUM_COLORS + 4)
 #define MAX_CARDS_PER_PLAYER (TOTAL_CARDS / 4)
-#define MAX_CHARS_NAME 30
+#define MAX_CHARS_NAME 15
 #define MAX_BYTES_NAME (MAX_CHARS_NAME + 1)
 
 #define MAX_BYTES_CURRENT_ACTION 1024
@@ -58,14 +59,14 @@ typedef enum {
 
 typedef struct {
   TichuCombinationType type;
-  Card cards[14];
+  Card cards[MAX_CARDS_PER_PLAYER];
   int value;
 } TichuCombination;
 
 typedef struct {
-  PlayerName sittingOrder[NUM_PLAYERS][MAX_BYTES_NAME];
-  TeamName teamNames[NUM_TEAMS][MAX_BYTES_NAME];
-  Score scoreLimit;
+  PlayerName sitting_order[NUM_PLAYERS][MAX_BYTES_NAME];
+  TeamName team_names[NUM_TEAMS][MAX_BYTES_NAME];
+  Score score_limit;
 } GameConfig;
 
 typedef enum {
@@ -82,8 +83,8 @@ typedef enum {
 typedef struct {
   GamePhaseType type;
   Card cards[TOTAL_CARDS];
-  PlayerName playerName[MAX_BYTES_NAME];
-  Passes numPasses;
+  PlayerName player_name[MAX_BYTES_NAME];
+  Passes num_passes;
 } GamePhase;
 
 typedef enum { Tichu, GrandTichu, NoTichu } TichuType;
@@ -102,21 +103,39 @@ typedef struct {
 } PlayerAction;
 
 typedef struct {
-  GameConfig gameConfig;
+  GameConfig game_config;
   Card hands[NUM_PLAYERS][MAX_CARDS_PER_PLAYER];
   Card tricks[NUM_PLAYERS][TOTAL_CARDS];
   TichuCombination board[TOTAL_CARDS];
-  GamePhase gamePhase;
+  GamePhase game_phase;
   TichuType tichus[NUM_PLAYERS];
   Score scores[NUM_TEAMS];
-  PlayerName currentDealer[MAX_BYTES_NAME];
-  PlayerName finishOrder[NUM_PLAYERS][MAX_BYTES_NAME];
-  TeamName winnerTeams[NUM_TEAMS][MAX_BYTES_NAME];
-  bool shouldGameStop;
+  PlayerName current_dealer[MAX_BYTES_NAME];
+  PlayerName finish_order[NUM_PLAYERS][MAX_BYTES_NAME];
+  TeamName winner_teams[NUM_TEAMS][MAX_BYTES_NAME];
+  bool should_game_stop;
 } Game;
 
+typedef enum {
+  PGS_PLAYER_NAMES,
+  PGS_TEAM_NAMES,
+  PGS_MAX_SCORE,
+  PGS_FINISHED,
+} PreGameStatePhase;
+
 typedef struct {
-  GameConfig gameConfig;
+  GameConfig game_config;
+  PreGameStatePhase phase;
+  size_t number_of_text_boxes;
+  size_t selected_text_box;
+  float text_box_shift;
+  Rectangle text_box[4];
+  char title[MAX_CHARS_NAME];
+  char text_box_input[4][MAX_CHARS_NAME];
+  char text_box_label[4][MAX_CHARS_NAME];
+  int input_char_counter[4];
+  long long frame_counter;
+  bool mouse_on_text;
   char game_config_json[MAX_CHARS_CURRENT_ACTION];
 } PreGameState;
 

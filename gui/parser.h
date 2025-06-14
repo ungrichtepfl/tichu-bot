@@ -434,13 +434,13 @@ ptrdiff_t parse_finish_order(Game *game, jsmntok_t *game_token,
   jsmntok_t *current_token = game_token;
   assert(current_token->type == JSMN_ARRAY && "Finish order must be an array.");
   int array_size = current_token->size;
-  assert((unsigned long)array_size <= LENGTH(game->finishOrder) &&
+  assert((unsigned long)array_size <= LENGTH(game->finish_order) &&
          "Finish order too long.");
   ++current_token;
   for (int a = 0; a < array_size; ++a) {
     assert(current_token->type == JSMN_STRING &&
            "Finish order must be a string (player name).");
-    SAFECPY(game->finishOrder[a], game_json + current_token->start,
+    SAFECPY(game->finish_order[a], game_json + current_token->start,
             current_token->end - current_token->start);
     ++current_token;
   }
@@ -468,22 +468,22 @@ ptrdiff_t parse_game_phase_tag(Game *game, jsmntok_t *game_token,
   assert(current_token->type == JSMN_STRING &&
          "Game phase tag must be a string.");
   if (json_str_equal(game_json, current_token, "Starting")) {
-    game->gamePhase.type = Starting;
+    game->game_phase.type = Starting;
   } else if (json_str_equal(game_json, current_token, "Dealing")) {
-    game->gamePhase.type = Dealing;
+    game->game_phase.type = Dealing;
   } else if (json_str_equal(game_json, current_token, "Distributing")) {
-    game->gamePhase.type = Distributing;
+    game->game_phase.type = Distributing;
   } else if (json_str_equal(game_json, current_token, "Playing")) {
-    game->gamePhase.type = Playing;
+    game->game_phase.type = Playing;
   } else if (json_str_equal(game_json, current_token,
                             "GiveAwayLooserTricksAndHands")) {
-    game->gamePhase.type = GiveAwayLooserTricksAndHands;
+    game->game_phase.type = GiveAwayLooserTricksAndHands;
   } else if (json_str_equal(game_json, current_token, "Scoring")) {
-    game->gamePhase.type = Scoring;
+    game->game_phase.type = Scoring;
   } else if (json_str_equal(game_json, current_token, "NextRound")) {
-    game->gamePhase.type = NextRound;
+    game->game_phase.type = NextRound;
   } else if (json_str_equal(game_json, current_token, "Finished")) {
-    game->gamePhase.type = Finished;
+    game->game_phase.type = Finished;
   } else {
     fprintf(stderr, "Unknown game phase: %.*s\n",
             current_token->end - current_token->start,
@@ -504,17 +504,17 @@ ptrdiff_t parse_game_phase_content(Game *game, jsmntok_t *game_token,
   if (array_size == 2 && current_token->type == JSMN_STRING &&
       (current_token + 1)->type == JSMN_PRIMITIVE) {
     // The Playing Phase
-    SAFECPY(game->gamePhase.playerName, game_json + current_token->start,
+    SAFECPY(game->game_phase.player_name, game_json + current_token->start,
             current_token->end - current_token->start);
     ++current_token;
-    game->gamePhase.numPasses = str_to_int(game_json + current_token->start);
+    game->game_phase.num_passes = str_to_int(game_json + current_token->start);
     ++current_token;
   } else if (current_token->type == JSMN_OBJECT) {
     // The Dealing Phase
-    assert(array_size == LENGTH(game->gamePhase.cards) &&
+    assert(array_size == LENGTH(game->game_phase.cards) &&
            "To many or too little cards");
     for (int a = 0; a < array_size; ++a) {
-      current_token += parse_playing_card(&game->gamePhase.cards[a],
+      current_token += parse_playing_card(&game->game_phase.cards[a],
                                           current_token, game_json);
     }
   } else {
@@ -586,7 +586,7 @@ ptrdiff_t parse_game_config(Game *game, jsmntok_t *game_token,
       assert(current_token->type == JSMN_PRIMITIVE &&
              "Score Limit must be a primitive.");
 
-      game->gameConfig.scoreLimit =
+      game->game_config.score_limit =
           str_to_int(game_json + current_token->start);
       ++current_token;
     } else if (json_str_equal(game_json, key, "sittingOrder")) {
@@ -595,12 +595,12 @@ ptrdiff_t parse_game_config(Game *game, jsmntok_t *game_token,
              "Sitting order must be an array.");
       int array_size = current_token->size;
       ++current_token;
-      assert(LENGTH(game->gameConfig.sittingOrder) == array_size &&
+      assert(LENGTH(game->game_config.sitting_order) == array_size &&
              "Too many or too little elements for the sitting order.");
       for (int a = 0; a < array_size; ++a) {
         assert(current_token->type == JSMN_STRING &&
                "Element of sitting order must be a string.");
-        SAFECPY(game->gameConfig.sittingOrder[a],
+        SAFECPY(game->game_config.sitting_order[a],
                 game_json + current_token->start,
                 current_token->end - current_token->start);
         ++current_token;
@@ -612,12 +612,13 @@ ptrdiff_t parse_game_config(Game *game, jsmntok_t *game_token,
              "Team names must be an array.");
       int array_size = current_token->size;
       ++current_token;
-      assert(LENGTH(game->gameConfig.teamNames) == array_size &&
+      assert(LENGTH(game->game_config.team_names) == array_size &&
              "Too many or too little elements for the team names.");
       for (int a = 0; a < array_size; ++a) {
         assert(current_token->type == JSMN_STRING &&
                "Element of team names must be a string.");
-        SAFECPY(game->gameConfig.teamNames[a], game_json + current_token->start,
+        SAFECPY(game->game_config.team_names[a],
+                game_json + current_token->start,
                 current_token->end - current_token->start);
         ++current_token;
       }
@@ -918,7 +919,7 @@ ptrdiff_t parse_game_actions(GameState *game_state, jsmntok_t *game_token,
       jsmntok_t *key = current_token;
       assert(key->type == JSMN_STRING && "The key must be a string.");
       int idx = get_sitting_order_index(
-          game_state->game.gameConfig.sittingOrder, game_json + key->start,
+          game_state->game.game_config.sitting_order, game_json + key->start,
           key->end - key->start);
       parsed_keys_mask |= 1 << idx;
       parsed_keys_mask_cmp |= 1 << o;
@@ -978,7 +979,7 @@ ptrdiff_t parse_game(Game *game, jsmntok_t *game_token, const char *game_json) {
       parsed_keys_mask |= 1 << 1;
       assert(current_token->type == JSMN_STRING &&
              "Current dealer must be a string.");
-      SAFECPY(game->currentDealer, game_json + current_token->start,
+      SAFECPY(game->current_dealer, game_json + current_token->start,
               current_token->end - current_token->start);
       ++current_token;
     } else if (json_str_equal(game_json, key, "finishOrder")) {
@@ -987,8 +988,8 @@ ptrdiff_t parse_game(Game *game, jsmntok_t *game_token, const char *game_json) {
     } else if (json_str_equal(game_json, key, "gameConfig")) {
       parsed_keys_mask |= 1 << 3;
       current_token += parse_game_config(game, current_token, game_json);
-      sitting_order = &game->gameConfig.sittingOrder;
-      team_names = &game->gameConfig.teamNames;
+      sitting_order = &game->game_config.sitting_order;
+      team_names = &game->game_config.team_names;
     } else if (json_str_equal(game_json, key, "gamePhase")) {
       parsed_keys_mask |= 1 << 4;
       current_token += parse_game_phase(game, current_token, game_json);
@@ -1014,7 +1015,7 @@ ptrdiff_t parse_game(Game *game, jsmntok_t *game_token, const char *game_json) {
       current_token += parse_scores(game, current_token, game_json, team_names);
     } else if (json_str_equal(game_json, key, "shouldGameStop")) {
       parsed_keys_mask |= 1 << 8;
-      game->shouldGameStop = json_bool(game_json, current_token);
+      game->should_game_stop = json_bool(game_json, current_token);
       ++current_token;
     } else if (json_str_equal(game_json, key, "tichus")) {
       parsed_keys_mask |= 1 << 9;
@@ -1030,13 +1031,13 @@ ptrdiff_t parse_game(Game *game, jsmntok_t *game_token, const char *game_json) {
       assert(current_token->type == JSMN_ARRAY &&
              "The winner teams must be an array");
       int array_size = current_token->size;
-      assert((unsigned long)array_size <= LENGTH(game->winnerTeams) &&
+      assert((unsigned long)array_size <= LENGTH(game->winner_teams) &&
              "There must be less or equal winner teams than amount of teams");
       ++current_token;
       for (int a = 0; a < array_size; ++a) {
         assert(current_token->type == JSMN_STRING &&
                "The winner team must be a string.");
-        SAFECPY(game->winnerTeams[a], game_json + current_token->start,
+        SAFECPY(game->winner_teams[a], game_json + current_token->start,
                 current_token->end - current_token->start);
         ++current_token;
       }

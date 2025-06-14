@@ -28,6 +28,15 @@
 #define ASSET_PATH "./gui/images/"
 #define CARD_ASSET_REL_PATH "cards/"
 
+#define FONT_SIZE_BIG 50.f
+#define CHAR_SIZE_BIG 50.f
+#define FONT_SIZE_MEDIUM 40.f
+#define CHAR_SIZE_MEDIUM 40.f
+#define FONT_SIZE_SMALL 30.f
+#define CHAR_SIZE_SMALL 30.f
+
+#define BUFFCPY(b, s) strncpy(b, s, sizeof(b) - 1);
+
 #define ACTION_CPY(s)                                                          \
   do {                                                                         \
     assert(sizeof(g_game_state.current_action_json) > strlen(s) &&             \
@@ -292,9 +301,31 @@ void update_card_position(void) {
   }
 }
 
-void setup_global_pre_game_state(void) { CONFIG_RESET(); }
+void reset_global_pre_game_state(void) {
+  memset(&g_pre_game_state, 0, sizeof(g_pre_game_state));
+  g_pre_game_state.number_of_text_boxes = 4;
+  float height = CHAR_SIZE_MEDIUM;
+  float width = CHAR_SIZE_MEDIUM * MAX_CHARS_NAME;
+  float x = (float)WIN_WIDTH / 2 - width / 2;
+  float dy = (float)WIN_HEIHT / 30;
+  float y = (float)WIN_HEIHT / 2 - 1.5 * dy - 2 * height;
+  BUFFCPY(g_pre_game_state.title, "Welcome");
+  BUFFCPY(g_pre_game_state.text_box_label[0], "Player 1:");
+  BUFFCPY(g_pre_game_state.text_box_label[1], "Player 2:");
+  BUFFCPY(g_pre_game_state.text_box_label[2], "Player 3:");
+  BUFFCPY(g_pre_game_state.text_box_label[3], "Player 4:");
+  g_pre_game_state.text_box[0] = (Rectangle){x, y, width, height};
+  g_pre_game_state.text_box[1] = (Rectangle){x, y + height + dy, width, height};
+  g_pre_game_state.text_box[2] =
+      (Rectangle){x, y + 2 * (height + dy), width, height};
+  g_pre_game_state.text_box[3] =
+      (Rectangle){x, y + 3 * (height + dy), width, height};
+  CONFIG_RESET();
+}
 
-void setup_global_game_state(void) {
+void reset_global_game_state(void) {
+  memset(&g_render_state, 0, sizeof(g_render_state));
+  memset(&g_game_state, 0, sizeof(g_game_state));
   g_render_state.selected_piece_idx = -1; // Nothing selected
 
   for (size_t i = 0; i < LENGTH(g_render_state.render_prio); ++i) {
@@ -327,9 +358,13 @@ void draw_cards(void) {
   }
 }
 
+void reset_game(void) {
+  reset_global_pre_game_state();
+  reset_global_game_state();
+}
+
 void init(void) {
-  setup_global_pre_game_state();
-  setup_global_game_state();
+  reset_game();
   InitWindow(WIN_WIDTH, WIN_HEIHT, "Tichu");
   load_global_assets();
   SetTargetFPS(FPS);
@@ -341,57 +376,66 @@ void deinit(void) {
   unload_global_assets();
   CloseWindow();
 }
-const char *update_draw_config(void) {
-  static bool mouse_on_text = false;
-  static const int font_size = 40;
-  static const float char_size = 10.f; // NOTE: Tune
-  static Rectangle text_box = {WIN_WIDTH / 2.0f -
-                                   char_size * MAX_CHARS_NAME / 2,
-                               180, MAX_CHARS_NAME * char_size, 50};
-  static char name[MAX_BYTES_NAME] = "\0";
-  static int letterCount = 0;
-  static size_t framesCounter = 0; // For blinking animation
 
+const char *update_draw_config(void) {
   // Update
   //----------------------------------------------------------------------------------
-  if (CheckCollisionPointRec(GetMousePosition(), text_box))
-    mouse_on_text = true;
-  else
-    mouse_on_text = false;
 
-  if (mouse_on_text) {
-    // Set the window's cursor to the I-Beam
-    SetMouseCursor(MOUSE_CURSOR_IBEAM);
-
-    // Get char pressed (unicode character) on the queue
-    int key = GetCharPressed();
-
-    // Check if more characters have been pressed on the same frame
-    while (key > 0) {
-      // NOTE: Only allow keys in range [32..125]
-      if ((key >= 32) && (key <= 125) && (letterCount < MAX_CHARS_NAME)) {
-        name[letterCount] = (char)key;
-        name[letterCount + 1] =
-            '\0'; // Add null terminator at the end of the string.
-        letterCount++;
+  if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+    for (unsigned long i = 0; i < LENGTH(g_pre_game_state.text_box); ++i) {
+      if (CheckCollisionPointRec(GetMousePosition(),
+                                 g_pre_game_state.text_box[i])) {
+        g_pre_game_state.selected_text_box = i;
+        break;
       }
+    }
+  }
+  SetMouseCursor(MOUSE_CURSOR_DEFAULT);
+  for (unsigned long i = 0; i < LENGTH(g_pre_game_state.text_box); ++i) {
+    if (CheckCollisionPointRec(GetMousePosition(),
+                               g_pre_game_state.text_box[i])) {
+      SetMouseCursor(MOUSE_CURSOR_IBEAM);
+      break;
+    }
+  }
 
-      key = GetCharPressed(); // Check next character in the queue
+  int key = GetCharPressed();
+
+  while (key > 0) {
+    // NOTE: Only allow keys in range [32..125]
+    if ((key >= 32) && (key <= 125) &&
+        (g_pre_game_state
+             .input_char_counter[g_pre_game_state.selected_text_box] <
+         MAX_CHARS_NAME)) {
+      g_pre_game_state
+          .text_box_input[g_pre_game_state.selected_text_box]
+                         [g_pre_game_state.input_char_counter
+                              [g_pre_game_state.selected_text_box]] = (char)key;
+
+      g_pre_game_state.text_box_input[g_pre_game_state.selected_text_box]
+                                     [g_pre_game_state.input_char_counter
+                                          [g_pre_game_state.selected_text_box] +
+                                      1] = '\0';
+      ++g_pre_game_state.input_char_counter[g_pre_game_state.selected_text_box];
     }
 
-    if (IsKeyPressed(KEY_BACKSPACE)) {
-      letterCount--;
-      if (letterCount < 0)
-        letterCount = 0;
-      name[letterCount] = '\0';
-    }
-  } else
-    SetMouseCursor(MOUSE_CURSOR_DEFAULT);
+    key = GetCharPressed(); // Check next character in the queue
+  }
 
-  if (mouse_on_text)
-    framesCounter++;
-  else
-    framesCounter = 0;
+  if (IsKeyPressed(KEY_BACKSPACE)) {
+    --g_pre_game_state.input_char_counter[g_pre_game_state.selected_text_box];
+    if (g_pre_game_state
+            .input_char_counter[g_pre_game_state.selected_text_box] < 0)
+      g_pre_game_state.input_char_counter[g_pre_game_state.selected_text_box] =
+          0;
+
+    g_pre_game_state.text_box_input[g_pre_game_state.selected_text_box]
+                                   [g_pre_game_state.input_char_counter
+                                        [g_pre_game_state.selected_text_box]] =
+        '\0';
+  }
+
+  ++g_pre_game_state.frame_counter;
   //----------------------------------------------------------------------------------
 
   // Draw
@@ -400,29 +444,35 @@ const char *update_draw_config(void) {
 
   ClearBackground(RAYWHITE);
 
-  DrawText("PLACE MOUSE OVER INPUT BOX!", 240, 140, 20, GRAY);
+  for (unsigned long i = 0; i < LENGTH(g_pre_game_state.text_box); ++i) {
+    Rectangle text_box = g_pre_game_state.text_box[i];
+    DrawRectangleRec(text_box, LIGHTGRAY);
+    if (g_pre_game_state.mouse_on_text)
+      DrawRectangleLines((int)text_box.x, (int)text_box.y, (int)text_box.width,
+                         (int)text_box.height, RED);
+    else
+      DrawRectangleLines((int)text_box.x, (int)text_box.y, (int)text_box.width,
+                         (int)text_box.height, DARKGRAY);
 
-  DrawRectangleRec(text_box, LIGHTGRAY);
-  if (mouse_on_text)
-    DrawRectangleLines((int)text_box.x, (int)text_box.y, (int)text_box.width,
-                       (int)text_box.height, RED);
-  else
-    DrawRectangleLines((int)text_box.x, (int)text_box.y, (int)text_box.width,
-                       (int)text_box.height, DARKGRAY);
+    DrawText(g_pre_game_state.text_box_input[i], g_pre_game_state.text_box[i].x,
+             g_pre_game_state.text_box[i].y, FONT_SIZE_MEDIUM, BLACK);
+  }
 
-  DrawText(name, (int)text_box.x + 5, (int)text_box.y + 8, 40, MAROON);
-
-  DrawText(TextFormat("INPUT CHARS: %i/%i", letterCount, MAX_CHARS_NAME), 315,
-           250, 20, DARKGRAY);
-
-  if (mouse_on_text) {
-    if (letterCount < MAX_CHARS_NAME) {
+  if (g_pre_game_state.mouse_on_text) {
+    if (g_pre_game_state
+            .input_char_counter[g_pre_game_state.selected_text_box] <
+        MAX_CHARS_NAME) {
       // Draw blinking underscore char
-      if (((framesCounter / 20) % 2) == 0)
-        DrawText("_", (int)text_box.x + 8 + MeasureText(name, font_size),
-                 (int)text_box.y + 12, font_size, MAROON);
-    } else
-      DrawText("Press BACKSPACE to delete chars...", 230, 300, 20, GRAY);
+      Rectangle text_box =
+          g_pre_game_state.text_box[g_pre_game_state.selected_text_box];
+      char *input =
+          g_pre_game_state.text_box_input[g_pre_game_state.selected_text_box];
+
+      if (((g_pre_game_state.frame_counter / 20) % 2) == 0)
+        DrawText("_",
+                 (int)text_box.x + 8 + MeasureText(input, FONT_SIZE_MEDIUM),
+                 (int)text_box.y + 12, FONT_SIZE_MEDIUM, MAROON);
+    }
   }
 
   EndDrawing();
@@ -447,4 +497,3 @@ const char *update_draw_game(const char *game_json) {
 }
 
 bool window_should_close(void) { return WindowShouldClose(); }
-
