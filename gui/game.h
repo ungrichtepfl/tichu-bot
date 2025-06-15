@@ -135,7 +135,6 @@ typedef struct {
   char text_box_label[4][MAX_CHARS_NAME];
   int input_char_counter[4];
   long long frame_counter;
-  bool mouse_on_text;
   char game_config_json[MAX_CHARS_CURRENT_ACTION];
 } PreGameState;
 

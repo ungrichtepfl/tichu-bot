@@ -381,26 +381,30 @@ const char *update_draw_config(void) {
   // Update
   //----------------------------------------------------------------------------------
 
+  // Check if a new textbox is selected
+  bool newly_selected = false; // Used for immediate feedback
   if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
     for (unsigned long i = 0; i < LENGTH(g_pre_game_state.text_box); ++i) {
       if (CheckCollisionPointRec(GetMousePosition(),
                                  g_pre_game_state.text_box[i])) {
         g_pre_game_state.selected_text_box = i;
+        newly_selected = true;
         break;
       }
     }
   }
+
+  // Check if the cursor is over a textbox
   SetMouseCursor(MOUSE_CURSOR_DEFAULT);
-  g_pre_game_state.mouse_on_text = false;
   for (unsigned long i = 0; i < LENGTH(g_pre_game_state.text_box); ++i) {
     if (CheckCollisionPointRec(GetMousePosition(),
                                g_pre_game_state.text_box[i])) {
       SetMouseCursor(MOUSE_CURSOR_IBEAM);
-      g_pre_game_state.mouse_on_text = true;
       break;
     }
   }
 
+  // Get Box and Input of selected textbox
   Rectangle *selected_tb =
       &g_pre_game_state.text_box[g_pre_game_state.selected_text_box];
   char (*selected_tb_input)[MAX_CHARS_NAME] =
@@ -409,11 +413,10 @@ const char *update_draw_config(void) {
       &g_pre_game_state.input_char_counter[g_pre_game_state.selected_text_box];
 
   int key = GetCharPressed();
-
   while (key > 0) {
     // NOTE: Only allow keys in range [32..125]
-    if ((key >= 32) && (key <= 125) &&
-        (*selected_char_counter < MAX_CHARS_NAME)) {
+    if ((*selected_char_counter < MAX_CHARS_NAME) && (key >= 32) &&
+        (key <= 125)) {
       (*selected_tb_input)[*selected_char_counter] = (char)key;
       (*selected_tb_input)[*selected_char_counter + 1] = '\0';
       (*selected_char_counter)++;
@@ -422,11 +425,12 @@ const char *update_draw_config(void) {
   }
 
   if (IsKeyPressed(KEY_BACKSPACE)) {
+
     (*selected_char_counter)--;
     if (*selected_char_counter < 0)
       *selected_char_counter = 0;
 
-    *selected_tb_input[*selected_char_counter] = '\0';
+    (*selected_tb_input)[*selected_char_counter] = '\0';
   }
 
   ++g_pre_game_state.frame_counter;
@@ -436,32 +440,26 @@ const char *update_draw_config(void) {
   //----------------------------------------------------------------------------------
   BeginDrawing();
 
-  ClearBackground(RAYWHITE);
+  DrawTexture(get_background_asset(), 0, 0, WHITE);
 
+  // Draw Textboxes, Labels and Contents
   for (unsigned long i = 0; i < LENGTH(g_pre_game_state.text_box); ++i) {
     Rectangle text_box = g_pre_game_state.text_box[i];
     DrawRectangleRec(text_box, LIGHTGRAY);
-    if (g_pre_game_state.mouse_on_text)
-      DrawRectangleLines((int)text_box.x, (int)text_box.y, (int)text_box.width,
-                         (int)text_box.height, RED);
-    else
-      DrawRectangleLines((int)text_box.x, (int)text_box.y, (int)text_box.width,
-                         (int)text_box.height, DARKGRAY);
-
+    Color color = g_pre_game_state.selected_text_box == i ? DARKGRAY : BLACK;
+    DrawRectangleLines((int)text_box.x, (int)text_box.y, (int)text_box.width,
+                       (int)text_box.height, color);
     DrawText(g_pre_game_state.text_box_input[i], g_pre_game_state.text_box[i].x,
              g_pre_game_state.text_box[i].y, FONT_SIZE_MEDIUM, BLACK);
   }
 
-  if (g_pre_game_state.mouse_on_text) {
-    if (*selected_char_counter < MAX_CHARS_NAME) {
-      // Draw blinking underscore char
-
-      if (((g_pre_game_state.frame_counter / 20) % 2) == 0)
-        DrawText("_",
-                 (int)selected_tb->x + 8 +
-                     MeasureText(*selected_tb_input, FONT_SIZE_MEDIUM),
-                 (int)selected_tb->y + 12, FONT_SIZE_MEDIUM, MAROON);
-    }
+  // Draw blinking underscore char
+  if (*selected_char_counter < MAX_CHARS_NAME &&
+      (newly_selected || (g_pre_game_state.frame_counter / 20) % 2 == 0)) {
+    DrawText("_",
+             (int)selected_tb->x + 8 +
+                 MeasureText(*selected_tb_input, FONT_SIZE_MEDIUM),
+             (int)selected_tb->y + 12, FONT_SIZE_MEDIUM, MAROON);
   }
 
   EndDrawing();
