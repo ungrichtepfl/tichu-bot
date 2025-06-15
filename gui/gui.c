@@ -323,8 +323,6 @@ void update_card_position(void) {
 #define ERROR_CHAR_SIZE CHAR_SIZE_SMALL
 #define ERROR_FONT_SIZE FONT_SIZE_SMALL
 #define ERROR_PADDING ((float)ERROR_CHAR_SIZE / 3.5)
-#define ERROR_MAX_CHARS 50
-#define ERROR_MAX_BYTES (ERROR_MAX_CHARS + 1)
 
 float get_title_y(int number_of_text_boxes, float textbox_height,
                   float textbox_dy) {
@@ -353,7 +351,7 @@ void set_pre_game_state_start(void) {
 }
 
 void set_pre_game_state_team_names(void) {
-  int number_of_text_boxes = 2;
+  int number_of_text_boxes = NUM_TEAMS;
   float height = (float)BOX_CHAR_SIZE + 2.f * BOX_PADDING;
   float dy = (float)WIN_HEIHT / 12;
   float title_y = get_title_y(number_of_text_boxes, height, dy);
@@ -397,10 +395,9 @@ void set_pre_game_state_score_limit(void) {
   g_pre_game_state.title_y = title_y;
   BUFFCPY(g_pre_game_state.text_box_label[0], "Max Score:");
   g_pre_game_state.text_box[0] = (Rectangle){x, y, width, height};
-  for (int i = 0; i < number_of_text_boxes; ++i) {
-    g_pre_game_state.text_box_input[i][0] = '\0';
-    g_pre_game_state.input_char_counter[i] = 0;
-  }
+  BUFFCPY(g_pre_game_state.text_box_input[0], "1000");
+  g_pre_game_state.input_char_counter[0] =
+      strlen(g_pre_game_state.text_box_input[0]);
 
   int button_x = (float)WIN_WIDTH / 2 - (float)BUTTON_WIDTH / 2;
   int button_y = g_pre_game_state.text_box[0].y +
@@ -411,7 +408,7 @@ void set_pre_game_state_score_limit(void) {
 }
 
 void set_pre_game_state_player_names(void) {
-  int number_of_text_boxes = 4;
+  int number_of_text_boxes = NUM_PLAYERS;
   float height = (float)BOX_CHAR_SIZE + 2.f * BOX_PADDING;
   float dy = (float)WIN_HEIHT / 12;
   float title_y = get_title_y(number_of_text_boxes, height, dy);
@@ -455,12 +452,32 @@ void set_new_pre_game_state_phase() {
     set_pre_game_state_player_names();
   } break;
   case PGS_TEAM_NAMES: {
+    for (int i = 0; i < NUM_PLAYERS; ++i) {
+      if (strlen(g_pre_game_state.text_box_input[i]) == 0) {
+        BUFFCPY(g_pre_game_state.error, "No empty players allowed.");
+        --g_pre_game_state.phase;
+        return;
+      }
+    }
     set_pre_game_state_team_names();
   } break;
   case PGS_MAX_SCORE: {
+    for (int i = 0; i < NUM_TEAMS; ++i) {
+      if (strlen(g_pre_game_state.text_box_input[i]) == 0) {
+        BUFFCPY(g_pre_game_state.error, "No empty teams allowed.");
+        --g_pre_game_state.phase;
+        return;
+      }
+    }
     set_pre_game_state_score_limit();
   } break;
   case PGS_FINISHED: {
+    if (strlen(g_pre_game_state.text_box_input[0]) == 0) {
+      BUFFCPY(g_pre_game_state.error, "No empty score allowed.");
+      --g_pre_game_state.phase;
+      return;
+    }
+
     // TODO: SERIALIZE JSON
   } break;
   default:
@@ -549,7 +566,7 @@ const char *update_draw_config(void) {
       if (CheckCollisionPointRec(GetMousePosition(),
                                  g_pre_game_state.text_box[i])) {
         g_pre_game_state.selected_text_box = i;
-        g_pre_game_state.frame_counter = 0; // Trigger draw of blinking curser
+        g_pre_game_state.frame_counter = 0; // Trigger draw of blinking cursor
         break;
       }
     }
