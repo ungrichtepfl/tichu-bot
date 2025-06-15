@@ -29,11 +29,11 @@
 #define CARD_ASSET_REL_PATH "cards/"
 
 #define FONT_SIZE_BIG 50.f
-#define CHAR_SIZE_BIG 50.f
+#define CHAR_SIZE_BIG 42.f
 #define FONT_SIZE_MEDIUM 40.f
-#define CHAR_SIZE_MEDIUM 40.f
+#define CHAR_SIZE_MEDIUM 33.f
 #define FONT_SIZE_SMALL 30.f
-#define CHAR_SIZE_SMALL 30.f
+#define CHAR_SIZE_SMALL 25.f
 
 #define BUFFCPY(b, s) strncpy(b, s, sizeof(b) - 1);
 
@@ -301,15 +301,128 @@ void update_card_position(void) {
   }
 }
 
-void reset_global_pre_game_state(void) {
-  memset(&g_pre_game_state, 0, sizeof(g_pre_game_state));
-  g_pre_game_state.number_of_text_boxes = 4;
-  float height = CHAR_SIZE_MEDIUM;
-  float width = CHAR_SIZE_MEDIUM * MAX_CHARS_NAME;
+#define BOX_CHAR_SIZE CHAR_SIZE_BIG
+#define BOX_FONT_SIZE FONT_SIZE_BIG
+#define BOX_PADDING ((float)BOX_CHAR_SIZE / 3.5)
+
+#define LABEL_CHAR_SIZE CHAR_SIZE_MEDIUM
+#define LABEL_FONT_SIZE FONT_SIZE_MEDIUM
+#define LABEL_PADDING_BOX ((float)LABEL_CHAR_SIZE / 2.5)
+
+#define TITLE_CHAR_SIZE CHAR_SIZE_BIG
+#define TITLE_FONT_SIZE FONT_SIZE_BIG
+#define TITLE_PADDING_BOX (3.f * BOX_CHAR_SIZE)
+
+#define BUTTON_CHAR_SIZE CHAR_SIZE_MEDIUM
+#define BUTTON_FONT_SIZE FONT_SIZE_MEDIUM
+#define BUTTON_PADDING ((float)BUTTON_CHAR_SIZE / 3.5)
+#define BUTTON_PADDING_BOX (1.f * BOX_CHAR_SIZE)
+#define BUTTON_WIDTH ((float)WIN_WIDTH / 5.f)
+#define BUTTON_HEIGHT ((float)BUTTON_CHAR_SIZE + 2.f * BUTTON_PADDING)
+
+#define ERROR_CHAR_SIZE CHAR_SIZE_SMALL
+#define ERROR_FONT_SIZE FONT_SIZE_SMALL
+#define ERROR_PADDING ((float)ERROR_CHAR_SIZE / 3.5)
+#define ERROR_MAX_CHARS 50
+#define ERROR_MAX_BYTES (ERROR_MAX_CHARS + 1)
+
+float get_title_y(int number_of_text_boxes, float textbox_height,
+                  float textbox_dy) {
+
+  return (float)WIN_HEIHT / 2.f - (TITLE_PADDING_BOX + TITLE_CHAR_SIZE +
+                                   number_of_text_boxes * textbox_height +
+                                   (number_of_text_boxes - 1) * textbox_dy +
+                                   BUTTON_PADDING + BUTTON_HEIGHT) /
+                                      2.f;
+}
+
+void set_pre_game_state_start(void) {
+  int number_of_text_boxes = 0;
+  float title_y = get_title_y(number_of_text_boxes, 0, 0);
+  int button_x = (float)WIN_WIDTH / 2 - (float)BUTTON_WIDTH / 2;
+  int button_y = title_y + TITLE_CHAR_SIZE + BUTTON_PADDING_BOX;
+
+  g_pre_game_state.number_of_text_boxes = number_of_text_boxes;
+
+  BUFFCPY(g_pre_game_state.title, "Welcom to Tichu");
+  g_pre_game_state.title_y = title_y;
+
+  g_pre_game_state.button =
+      (Rectangle){button_x, button_y, BUTTON_WIDTH, BUTTON_HEIGHT};
+  BUFFCPY(g_pre_game_state.button_text, "Play");
+}
+
+void set_pre_game_state_team_names(void) {
+  int number_of_text_boxes = 2;
+  float height = (float)BOX_CHAR_SIZE + 2.f * BOX_PADDING;
+  float dy = (float)WIN_HEIHT / 12;
+  float title_y = get_title_y(number_of_text_boxes, height, dy);
+  float width = BOX_CHAR_SIZE * MAX_CHARS_NAME;
   float x = (float)WIN_WIDTH / 2 - width / 2;
-  float dy = (float)WIN_HEIHT / 30;
-  float y = (float)WIN_HEIHT / 2 - 1.5 * dy - 2 * height;
-  BUFFCPY(g_pre_game_state.title, "Welcome");
+  float y = title_y + TITLE_PADDING_BOX;
+
+  g_pre_game_state.number_of_text_boxes = number_of_text_boxes;
+  g_pre_game_state.selected_text_box = 0;
+  BUFFCPY(g_pre_game_state.title, "Choose Team Names");
+  g_pre_game_state.title_y = title_y;
+  BUFFCPY(g_pre_game_state.text_box_label[0], "Team 1:");
+  BUFFCPY(g_pre_game_state.text_box_label[1], "Team 2:");
+  g_pre_game_state.text_box[0] = (Rectangle){x, y, width, height};
+  g_pre_game_state.text_box[1] = (Rectangle){x, y + height + dy, width, height};
+  for (int i = 0; i < number_of_text_boxes; ++i) {
+    g_pre_game_state.text_box_input[i][0] = '\0';
+    g_pre_game_state.input_char_counter[i] = 0;
+  }
+
+  int button_x = (float)WIN_WIDTH / 2 - (float)BUTTON_WIDTH / 2;
+  int button_y = g_pre_game_state.text_box[1].y +
+                 g_pre_game_state.text_box[1].height + BUTTON_PADDING_BOX;
+  g_pre_game_state.button =
+      (Rectangle){button_x, button_y, BUTTON_WIDTH, BUTTON_HEIGHT};
+  BUFFCPY(g_pre_game_state.button_text, "Next");
+}
+
+void set_pre_game_state_score_limit(void) {
+  int number_of_text_boxes = 1;
+  float height = (float)BOX_CHAR_SIZE + 2.f * BOX_PADDING;
+  float dy = (float)WIN_HEIHT / 12;
+  float title_y = get_title_y(number_of_text_boxes, height, dy);
+  float width = BOX_CHAR_SIZE * MAX_CHARS_NAME;
+  float x = (float)WIN_WIDTH / 2 - width / 2;
+  float y = title_y + TITLE_PADDING_BOX;
+
+  g_pre_game_state.number_of_text_boxes = number_of_text_boxes;
+  g_pre_game_state.selected_text_box = 0;
+  BUFFCPY(g_pre_game_state.title, "Choose Score Limit");
+  g_pre_game_state.title_y = title_y;
+  BUFFCPY(g_pre_game_state.text_box_label[0], "Max Score:");
+  g_pre_game_state.text_box[0] = (Rectangle){x, y, width, height};
+  for (int i = 0; i < number_of_text_boxes; ++i) {
+    g_pre_game_state.text_box_input[i][0] = '\0';
+    g_pre_game_state.input_char_counter[i] = 0;
+  }
+
+  int button_x = (float)WIN_WIDTH / 2 - (float)BUTTON_WIDTH / 2;
+  int button_y = g_pre_game_state.text_box[0].y +
+                 g_pre_game_state.text_box[0].height + BUTTON_PADDING_BOX;
+  g_pre_game_state.button =
+      (Rectangle){button_x, button_y, BUTTON_WIDTH, BUTTON_HEIGHT};
+  BUFFCPY(g_pre_game_state.button_text, "Next");
+}
+
+void set_pre_game_state_player_names(void) {
+  int number_of_text_boxes = 4;
+  float height = (float)BOX_CHAR_SIZE + 2.f * BOX_PADDING;
+  float dy = (float)WIN_HEIHT / 12;
+  float title_y = get_title_y(number_of_text_boxes, height, dy);
+  float width = BOX_CHAR_SIZE * MAX_CHARS_NAME;
+  float x = (float)WIN_WIDTH / 2 - width / 2;
+  float y = title_y + TITLE_PADDING_BOX;
+
+  g_pre_game_state.number_of_text_boxes = number_of_text_boxes;
+  g_pre_game_state.selected_text_box = 0;
+  BUFFCPY(g_pre_game_state.title, "Choose Player Names");
+  g_pre_game_state.title_y = title_y;
   BUFFCPY(g_pre_game_state.text_box_label[0], "Player 1:");
   BUFFCPY(g_pre_game_state.text_box_label[1], "Player 2:");
   BUFFCPY(g_pre_game_state.text_box_label[2], "Player 3:");
@@ -320,6 +433,46 @@ void reset_global_pre_game_state(void) {
       (Rectangle){x, y + 2 * (height + dy), width, height};
   g_pre_game_state.text_box[3] =
       (Rectangle){x, y + 3 * (height + dy), width, height};
+  for (int i = 0; i < number_of_text_boxes; ++i) {
+    g_pre_game_state.text_box_input[i][0] = '\0';
+    g_pre_game_state.input_char_counter[i] = 0;
+  }
+
+  int button_x = (float)WIN_WIDTH / 2 - (float)BUTTON_WIDTH / 2;
+  int button_y = g_pre_game_state.text_box[3].y +
+                 g_pre_game_state.text_box[3].height + BUTTON_PADDING_BOX;
+  g_pre_game_state.button =
+      (Rectangle){button_x, button_y, BUTTON_WIDTH, BUTTON_HEIGHT};
+  BUFFCPY(g_pre_game_state.button_text, "Next");
+}
+
+void set_new_pre_game_state_phase() {
+  switch (g_pre_game_state.phase) {
+  case PGS_START: {
+    set_pre_game_state_start();
+  } break;
+  case PGS_PLAYER_NAMES: {
+    set_pre_game_state_player_names();
+  } break;
+  case PGS_TEAM_NAMES: {
+    set_pre_game_state_team_names();
+  } break;
+  case PGS_MAX_SCORE: {
+    set_pre_game_state_score_limit();
+  } break;
+  case PGS_FINISHED: {
+    // TODO: SERIALIZE JSON
+  } break;
+  default:
+    assert(0 && "Unreachable.");
+  }
+  g_pre_game_state.error[0] = '\0'; // No error happened
+}
+
+void reset_global_pre_game_state(void) {
+
+  memset(&g_pre_game_state, 0, sizeof(g_pre_game_state));
+  set_new_pre_game_state_phase();
   CONFIG_RESET();
 }
 
@@ -380,15 +533,23 @@ void deinit(void) {
 const char *update_draw_config(void) {
   // Update
   //----------------------------------------------------------------------------------
+  if (g_pre_game_state.phase == PGS_FINISHED) {
+    assert(0 && "Should not happen!");
+  }
+
+  if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) &&
+      CheckCollisionPointRec(GetMousePosition(), g_pre_game_state.button)) {
+    ++g_pre_game_state.phase;
+    set_new_pre_game_state_phase();
+  }
 
   // Check if a new textbox is selected
-  bool newly_selected = false; // Used for immediate feedback
   if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-    for (unsigned long i = 0; i < LENGTH(g_pre_game_state.text_box); ++i) {
+    for (unsigned long i = 0; i < g_pre_game_state.number_of_text_boxes; ++i) {
       if (CheckCollisionPointRec(GetMousePosition(),
                                  g_pre_game_state.text_box[i])) {
         g_pre_game_state.selected_text_box = i;
-        newly_selected = true;
+        g_pre_game_state.frame_counter = 0; // Trigger draw of blinking curser
         break;
       }
     }
@@ -396,7 +557,7 @@ const char *update_draw_config(void) {
 
   // Check if the cursor is over a textbox
   SetMouseCursor(MOUSE_CURSOR_DEFAULT);
-  for (unsigned long i = 0; i < LENGTH(g_pre_game_state.text_box); ++i) {
+  for (unsigned long i = 0; i < g_pre_game_state.number_of_text_boxes; ++i) {
     if (CheckCollisionPointRec(GetMousePosition(),
                                g_pre_game_state.text_box[i])) {
       SetMouseCursor(MOUSE_CURSOR_IBEAM);
@@ -404,7 +565,7 @@ const char *update_draw_config(void) {
     }
   }
 
-  // Get Box and Input of selected textbox
+  // Currently selected textbox and input
   Rectangle *selected_tb =
       &g_pre_game_state.text_box[g_pre_game_state.selected_text_box];
   char (*selected_tb_input)[MAX_CHARS_NAME] =
@@ -424,8 +585,7 @@ const char *update_draw_config(void) {
     key = GetCharPressed(); // Check next character in the queue
   }
 
-  if (IsKeyPressed(KEY_BACKSPACE)) {
-
+  if (IsKeyPressedRepeat(KEY_BACKSPACE) || IsKeyPressed(KEY_BACKSPACE)) {
     (*selected_char_counter)--;
     if (*selected_char_counter < 0)
       *selected_char_counter = 0;
@@ -438,29 +598,73 @@ const char *update_draw_config(void) {
 
   // Draw
   //----------------------------------------------------------------------------------
+
   BeginDrawing();
 
   DrawTexture(get_background_asset(), 0, 0, WHITE);
 
+  // Title
+  DrawText(g_pre_game_state.title,
+           (float)WIN_WIDTH / 2.f -
+               MeasureText(g_pre_game_state.title, TITLE_FONT_SIZE) / 2.f,
+           g_pre_game_state.title_y, TITLE_FONT_SIZE, BLACK);
+
   // Draw Textboxes, Labels and Contents
-  for (unsigned long i = 0; i < LENGTH(g_pre_game_state.text_box); ++i) {
+  for (unsigned long i = 0; i < g_pre_game_state.number_of_text_boxes; ++i) {
+    // Boxes
     Rectangle text_box = g_pre_game_state.text_box[i];
     DrawRectangleRec(text_box, LIGHTGRAY);
-    Color color = g_pre_game_state.selected_text_box == i ? DARKGRAY : BLACK;
-    DrawRectangleLines((int)text_box.x, (int)text_box.y, (int)text_box.width,
-                       (int)text_box.height, color);
-    DrawText(g_pre_game_state.text_box_input[i], g_pre_game_state.text_box[i].x,
-             g_pre_game_state.text_box[i].y, FONT_SIZE_MEDIUM, BLACK);
+    Color color = g_pre_game_state.selected_text_box == i ? RED : BLACK;
+    DrawRectangleLines(text_box.x, text_box.y, text_box.width, text_box.height,
+                       color);
+    // Text
+    DrawText(g_pre_game_state.text_box_input[i],
+             g_pre_game_state.text_box[i].x + BOX_PADDING,
+             g_pre_game_state.text_box[i].y + BOX_PADDING, BOX_FONT_SIZE,
+             BLACK);
+
+    // Label
+    DrawText(g_pre_game_state.text_box_label[i],
+             g_pre_game_state.text_box[i].x + LABEL_PADDING_BOX,
+             g_pre_game_state.text_box[i].y - LABEL_PADDING_BOX -
+                 LABEL_CHAR_SIZE,
+             LABEL_FONT_SIZE, BLACK);
   }
 
   // Draw blinking underscore char
-  if (*selected_char_counter < MAX_CHARS_NAME &&
-      (newly_selected || (g_pre_game_state.frame_counter / 20) % 2 == 0)) {
+  if (g_pre_game_state.number_of_text_boxes > 0 &&
+      *selected_char_counter < MAX_CHARS_NAME &&
+      (g_pre_game_state.frame_counter / 20) % 2 == 0) {
+
     DrawText("_",
-             (int)selected_tb->x + 8 +
-                 MeasureText(*selected_tb_input, FONT_SIZE_MEDIUM),
-             (int)selected_tb->y + 12, FONT_SIZE_MEDIUM, MAROON);
+             selected_tb->x + BOX_PADDING +
+                 3.f // To give some space to next char
+                 + MeasureText(*selected_tb_input, BOX_FONT_SIZE),
+             selected_tb->y + BOX_PADDING, BOX_FONT_SIZE, MAROON);
   }
+
+  // Button
+  DrawRectangleRec(g_pre_game_state.button, BLUE);
+  DrawRectangleLines(g_pre_game_state.button.x, g_pre_game_state.button.y,
+                     g_pre_game_state.button.width,
+                     g_pre_game_state.button.height, DARKBLUE);
+  DrawText(
+      g_pre_game_state.button_text,
+      (float)(2 * g_pre_game_state.button.x + g_pre_game_state.button.width) /
+              2.f -
+          (float)MeasureText(g_pre_game_state.button_text, BUTTON_FONT_SIZE) /
+              2.f,
+      g_pre_game_state.button.y + BUTTON_PADDING, BUTTON_FONT_SIZE, BLACK);
+
+  // ERROR
+  DrawText(
+      g_pre_game_state.error,
+      WIN_WIDTH / 2.f -
+          MeasureText(g_pre_game_state.error, ERROR_FONT_SIZE) / 2.f,
+      (g_pre_game_state.button.y + g_pre_game_state.button.height + WIN_HEIHT) /
+              2.f -
+          ERROR_CHAR_SIZE / 2.f,
+      ERROR_FONT_SIZE, RED);
 
   EndDrawing();
   //----------------------------------------------------------------------------------

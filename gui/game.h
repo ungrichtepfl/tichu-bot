@@ -117,6 +117,7 @@ typedef struct {
 } Game;
 
 typedef enum {
+  PGS_START,
   PGS_PLAYER_NAMES,
   PGS_TEAM_NAMES,
   PGS_MAX_SCORE,
@@ -130,11 +131,15 @@ typedef struct {
   size_t selected_text_box;
   float text_box_shift;
   Rectangle text_box[4];
-  char title[MAX_CHARS_NAME];
+  char title[50];
+  float title_y;
   char text_box_input[4][MAX_CHARS_NAME];
-  char text_box_label[4][MAX_CHARS_NAME];
+  char text_box_label[4][15];
   int input_char_counter[4];
   long long frame_counter;
+  Rectangle button;
+  char button_text[15];
+  char error[50];
   char game_config_json[MAX_CHARS_CURRENT_ACTION];
 } PreGameState;
 
