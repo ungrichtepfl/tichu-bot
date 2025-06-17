@@ -581,6 +581,13 @@ void deinit(void) {
   CloseWindow();
 }
 
+bool is_digit(int key) { return key >= 48 && key <= 57; }
+
+bool is_valid_char(int key) {
+  return is_digit(key) || (key >= 65 && key <= 90) ||
+         (key >= 97 && key <= 122) || key == 32;
+}
+
 const char *update_draw_config(void) {
   // Update
   //----------------------------------------------------------------------------------
@@ -632,10 +639,11 @@ const char *update_draw_config(void) {
       &g_pre_game_state.input_char_counter[g_pre_game_state.selected_text_box];
 
   int key = GetCharPressed();
+  bool (*valid_key)(int) =
+      g_pre_game_state.phase == PGS_MAX_SCORE ? &is_digit : &is_valid_char;
   while (key > 0) {
-    // NOTE: Only allow keys in range [32..125]
-    if ((*selected_char_counter < MAX_CHARS_NAME) && (key >= 32) &&
-        (key <= 125)) {
+    if (*selected_char_counter < MAX_CHARS_NAME && valid_key(key)) {
+
       (*selected_tb_input)[*selected_char_counter] = (char)key;
       (*selected_tb_input)[*selected_char_counter + 1] = '\0';
       (*selected_char_counter)++;
