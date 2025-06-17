@@ -133,14 +133,14 @@ typedef struct {
   Rectangle text_box[4];
   char title[50];
   float title_y;
-  char text_box_input[4][MAX_CHARS_INPUT];
-  char text_box_label[4][15];
+  char text_box_input[4][MAX_BYTES_INPUT];
+  char text_box_label[4][50];
   int input_char_counter[4];
   long long frame_counter;
   Rectangle button;
   char button_text[15];
   char error[50];
-  char game_config_json[MAX_CHARS_CONFIG_JSON];
+  char game_config_json[MAX_BYTES_CONFIG_JSON];
 } PreGameState;
 
 typedef struct {
@@ -148,7 +148,7 @@ typedef struct {
   /// Dynamically allocated players actions
   PlayerAction *player_actions[NUM_PLAYERS];
   unsigned long long num_actions[NUM_PLAYERS];
-  char current_action_json[MAX_CHARS_CURRENT_ACTION_JSON];
+  char current_action_json[MAX_BYTES_CURRENT_ACTION_JSON];
 } GameState;
 
 #endif // GAME_H

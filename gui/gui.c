@@ -301,11 +301,11 @@ void update_card_position(void) {
 
 #define BOX_CHAR_SIZE CHAR_SIZE_BIG
 #define BOX_FONT_SIZE FONT_SIZE_BIG
-#define BOX_PADDING ((float)BOX_CHAR_SIZE / 3.5)
+#define BOX_PADDING ((float)BOX_CHAR_SIZE / 3.5f)
 
-#define LABEL_CHAR_SIZE CHAR_SIZE_MEDIUM
-#define LABEL_FONT_SIZE FONT_SIZE_MEDIUM
-#define LABEL_PADDING_BOX ((float)LABEL_CHAR_SIZE / 2.5)
+#define LABEL_CHAR_SIZE_DEFAULT CHAR_SIZE_MEDIUM
+#define LABEL_FONT_SIZE_DEFAULT FONT_SIZE_MEDIUM
+#define LABEL_PADDING_BOX ((float)LABEL_CHAR_SIZE_DEFAULT / 2.5f)
 
 #define TITLE_CHAR_SIZE CHAR_SIZE_BIG
 #define TITLE_FONT_SIZE FONT_SIZE_BIG
@@ -313,10 +313,10 @@ void update_card_position(void) {
 
 #define BUTTON_CHAR_SIZE CHAR_SIZE_MEDIUM
 #define BUTTON_FONT_SIZE FONT_SIZE_MEDIUM
-#define BUTTON_PADDING ((float)BUTTON_CHAR_SIZE / 3.5)
+#define BUTTON_PADDING ((float)BUTTON_CHAR_SIZE / 3.5f)
 #define BUTTON_PADDING_BOX (1.f * BOX_CHAR_SIZE)
-#define BUTTON_WIDTH ((float)WIN_WIDTH / 5.f)
-#define BUTTON_HEIGHT ((float)BUTTON_CHAR_SIZE + 2.f * BUTTON_PADDING)
+#define BUTTON_WIDTH ((float)WIN_WIDTH / 4.5f)
+#define BUTTON_HEIGHT ((float)BUTTON_CHAR_SIZE + 3.f * BUTTON_PADDING)
 
 #define ERROR_CHAR_SIZE CHAR_SIZE_SMALL
 #define ERROR_FONT_SIZE FONT_SIZE_SMALL
@@ -340,7 +340,7 @@ void set_pre_game_state_start(void) {
 
   g_pre_game_state.number_of_text_boxes = number_of_text_boxes;
 
-  STRBUFFCPY(g_pre_game_state.title, "Welcom to Tichu");
+  STRBUFFCPY(g_pre_game_state.title, "Welcome to Ultimate Tichu");
   g_pre_game_state.title_y = title_y;
 
   g_pre_game_state.button =
@@ -361,8 +361,17 @@ void set_pre_game_state_team_names(void) {
   g_pre_game_state.selected_text_box = 0;
   STRBUFFCPY(g_pre_game_state.title, "Choose Team Names");
   g_pre_game_state.title_y = title_y;
-  STRBUFFCPY(g_pre_game_state.text_box_label[0], "Team 1:");
-  STRBUFFCPY(g_pre_game_state.text_box_label[1], "Team 2:");
+  STRBUFFCPY(g_pre_game_state.text_box_label[0],
+             g_pre_game_state.game_config.sitting_order[0]);
+  STRBUFFCAT(g_pre_game_state.text_box_label[0], " & ");
+  STRBUFFCAT(g_pre_game_state.text_box_label[0],
+             g_pre_game_state.game_config.sitting_order[2]);
+
+  STRBUFFCPY(g_pre_game_state.text_box_label[1],
+             g_pre_game_state.game_config.sitting_order[1]);
+  STRBUFFCAT(g_pre_game_state.text_box_label[1], " & ");
+  STRBUFFCAT(g_pre_game_state.text_box_label[1],
+             g_pre_game_state.game_config.sitting_order[3]);
   g_pre_game_state.text_box[0] = (Rectangle){x, y, width, height};
   g_pre_game_state.text_box[1] = (Rectangle){x, y + height + dy, width, height};
   for (int i = 0; i < number_of_text_boxes; ++i) {
@@ -416,7 +425,7 @@ void set_pre_game_state_player_names(void) {
 
   g_pre_game_state.number_of_text_boxes = number_of_text_boxes;
   g_pre_game_state.selected_text_box = 0;
-  STRBUFFCPY(g_pre_game_state.title, "Choose Player Names");
+  STRBUFFCPY(g_pre_game_state.title, "Choose Sitting Order");
   g_pre_game_state.title_y = title_y;
   STRBUFFCPY(g_pre_game_state.text_box_label[0], "Player 1:");
   STRBUFFCPY(g_pre_game_state.text_box_label[1], "Player 2:");
@@ -691,7 +700,7 @@ const char *update_draw_config(void) {
   // Currently selected textbox and input
   Rectangle *selected_tb =
       &g_pre_game_state.text_box[g_pre_game_state.selected_text_box];
-  char (*selected_tb_input)[MAX_CHARS_INPUT] =
+  char (*selected_tb_input)[MAX_BYTES_INPUT] =
       &g_pre_game_state.text_box_input[g_pre_game_state.selected_text_box];
   int *selected_char_counter =
       &g_pre_game_state.input_char_counter[g_pre_game_state.selected_text_box];
@@ -733,6 +742,7 @@ const char *update_draw_config(void) {
            g_pre_game_state.title_y, TITLE_FONT_SIZE, BLACK);
 
   // Draw Textboxes, Labels and Contents
+
   for (unsigned long i = 0; i < g_pre_game_state.number_of_text_boxes; ++i) {
     // Boxes
     Rectangle text_box = g_pre_game_state.text_box[i];
@@ -747,11 +757,26 @@ const char *update_draw_config(void) {
              BLACK);
 
     // Label
+    int font_size_label = LABEL_FONT_SIZE_DEFAULT;
+    int char_size_label = LABEL_CHAR_SIZE_DEFAULT;
+    if (g_pre_game_state.phase == PGS_TEAM_NAMES &&
+        strlen(g_pre_game_state.text_box_label[i]) > 25) {
+      font_size_label = FONT_SIZE_SMALL;
+      char_size_label = CHAR_SIZE_SMALL;
+    }
+    int text_size =
+        MeasureText(g_pre_game_state.text_box_label[i], font_size_label);
     DrawText(g_pre_game_state.text_box_label[i],
-             g_pre_game_state.text_box[i].x + LABEL_PADDING_BOX,
+             (float)WIN_WIDTH / 2.f - text_size / 2.f,
              g_pre_game_state.text_box[i].y - LABEL_PADDING_BOX -
-                 LABEL_CHAR_SIZE,
-             LABEL_FONT_SIZE, BLACK);
+                 char_size_label,
+             font_size_label, BLACK);
+
+    /* DrawText(g_pre_game_state.text_box_label[i], */
+    /*          g_pre_game_state.text_box[i].x + LABEL_PADDING_BOX, */
+    /*          g_pre_game_state.text_box[i].y - LABEL_PADDING_BOX - char_size,
+     */
+    /*          font_size, BLACK); */
   }
 
   // Draw blinking underscore char

@@ -1082,7 +1082,7 @@ void parse_game_and_actions(GameState *game_state, const char *game_json) {
 }
 
 void serialize_game_config(GameConfig *game_config,
-                           char (*game_config_json)[MAX_CHARS_CONFIG_JSON]) {
+                           char (*game_config_json)[MAX_BYTES_CONFIG_JSON]) {
 
   //   {"sittingOrder":["(0)","(1)","(2)","(3)"],"teamNames":["(0)","(1)"],"scoreLimit":"(0)"}
 
