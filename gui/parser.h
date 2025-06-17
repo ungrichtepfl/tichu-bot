@@ -640,7 +640,7 @@ ptrdiff_t parse_game_config(Game *game, jsmntok_t *game_token,
 }
 
 int get_sitting_order_index(
-    PlayerName sitting_order[NUM_PLAYERS][MAX_BYTES_NAME],
+    PlayerName sitting_order[NUM_PLAYERS][MAX_BYTES_INPUT],
     const PlayerName *player_name, int str_len) {
   for (int i = 0; i < NUM_PLAYERS; ++i)
     if (strncmp(sitting_order[i], player_name, str_len) == 0)
@@ -649,7 +649,7 @@ int get_sitting_order_index(
   assert(0 && "Player not found.");
 }
 
-int get_team_name_index(TeamName team_names[NUM_TEAMS][MAX_BYTES_NAME],
+int get_team_name_index(TeamName team_names[NUM_TEAMS][MAX_BYTES_INPUT],
                         const TeamName *team_name, int str_len) {
   for (int i = 0; i < NUM_TEAMS; ++i)
     if (strncmp(team_names[i], team_name, str_len) == 0)
@@ -660,7 +660,7 @@ int get_team_name_index(TeamName team_names[NUM_TEAMS][MAX_BYTES_NAME],
 
 ptrdiff_t
 parse_hands(Game *game, jsmntok_t *game_token, const char *game_json,
-            PlayerName (*sitting_order)[NUM_PLAYERS][MAX_BYTES_NAME]) {
+            PlayerName (*sitting_order)[NUM_PLAYERS][MAX_BYTES_INPUT]) {
   jsmntok_t *current_token = game_token;
   assert(sitting_order != NULL && "Game config must be parsed at this point.");
   assert(current_token->type == JSMN_OBJECT && "The hands must be an object");
@@ -696,7 +696,7 @@ parse_hands(Game *game, jsmntok_t *game_token, const char *game_json,
 }
 
 ptrdiff_t parse_scores(Game *game, jsmntok_t *game_token, const char *game_json,
-                       PlayerName (*team_names)[NUM_TEAMS][MAX_BYTES_NAME]) {
+                       PlayerName (*team_names)[NUM_TEAMS][MAX_BYTES_INPUT]) {
   jsmntok_t *current_token = game_token;
   assert(team_names != NULL && "Game config must be parsed at this point.");
   assert(current_token->type == JSMN_OBJECT && "The scores must be an object");
@@ -726,7 +726,7 @@ ptrdiff_t parse_scores(Game *game, jsmntok_t *game_token, const char *game_json,
 
 ptrdiff_t
 parse_tichus(Game *game, jsmntok_t *game_token, const char *game_json,
-             PlayerName (*sitting_order)[NUM_PLAYERS][MAX_BYTES_NAME]) {
+             PlayerName (*sitting_order)[NUM_PLAYERS][MAX_BYTES_INPUT]) {
   jsmntok_t *current_token = game_token;
   assert(sitting_order != NULL && "Game config must be parsed at this point.");
   assert(current_token->type == JSMN_OBJECT && "The tichus must be an object");
@@ -782,7 +782,7 @@ parse_tichus(Game *game, jsmntok_t *game_token, const char *game_json,
 
 ptrdiff_t
 parse_tricks(Game *game, jsmntok_t *game_token, const char *game_json,
-             PlayerName (*sitting_order)[NUM_PLAYERS][MAX_BYTES_NAME]) {
+             PlayerName (*sitting_order)[NUM_PLAYERS][MAX_BYTES_INPUT]) {
   jsmntok_t *current_token = game_token;
   assert(sitting_order != NULL && "Game config must be parsed at this point.");
   assert(current_token->type == JSMN_OBJECT && "The tricks must be an object");
@@ -970,8 +970,8 @@ ptrdiff_t parse_game(Game *game, jsmntok_t *game_token, const char *game_json) {
   unsigned long parsed_keys_mask = 0;
   unsigned long parsed_keys_mask_cmp = 0;
   jsmntok_t *key = NULL;
-  PlayerName(*sitting_order)[NUM_PLAYERS][MAX_BYTES_NAME] = NULL;
-  TeamName(*team_names)[NUM_TEAMS][MAX_BYTES_NAME] = NULL;
+  PlayerName(*sitting_order)[NUM_PLAYERS][MAX_BYTES_INPUT] = NULL;
+  TeamName(*team_names)[NUM_TEAMS][MAX_BYTES_INPUT] = NULL;
   for (int o = 0; o < object_size; ++o) {
     key = current_token;
     ++current_token;

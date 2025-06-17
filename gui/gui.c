@@ -353,7 +353,7 @@ void set_pre_game_state_team_names(void) {
   float height = (float)BOX_CHAR_SIZE + 2.f * BOX_PADDING;
   float dy = (float)WIN_HEIHT / 12;
   float title_y = get_title_y(number_of_text_boxes, height, dy);
-  float width = BOX_CHAR_SIZE * MAX_CHARS_NAME;
+  float width = BOX_CHAR_SIZE * MAX_CHARS_INPUT;
   float x = (float)WIN_WIDTH / 2 - width / 2;
   float y = title_y + TITLE_PADDING_BOX;
 
@@ -383,7 +383,7 @@ void set_pre_game_state_score_limit(void) {
   float height = (float)BOX_CHAR_SIZE + 2.f * BOX_PADDING;
   float dy = (float)WIN_HEIHT / 12;
   float title_y = get_title_y(number_of_text_boxes, height, dy);
-  float width = BOX_CHAR_SIZE * MAX_CHARS_NAME;
+  float width = BOX_CHAR_SIZE * MAX_CHARS_INPUT;
   float x = (float)WIN_WIDTH / 2 - width / 2;
   float y = title_y + TITLE_PADDING_BOX;
 
@@ -410,7 +410,7 @@ void set_pre_game_state_player_names(void) {
   float height = (float)BOX_CHAR_SIZE + 2.f * BOX_PADDING;
   float dy = (float)WIN_HEIHT / 12;
   float title_y = get_title_y(number_of_text_boxes, height, dy);
-  float width = BOX_CHAR_SIZE * MAX_CHARS_NAME;
+  float width = BOX_CHAR_SIZE * MAX_CHARS_INPUT;
   float x = (float)WIN_WIDTH / 2 - width / 2;
   float y = title_y + TITLE_PADDING_BOX;
 
@@ -440,6 +440,46 @@ void set_pre_game_state_player_names(void) {
       (Rectangle){button_x, button_y, BUTTON_WIDTH, BUTTON_HEIGHT};
   STRBUFFCPY(g_pre_game_state.button_text, "Next");
 }
+bool has_duplicates(char strings[][MAX_BYTES_INPUT], long long n) {
+  for (long long i = 0; i < n - 1; ++i) {
+    for (long long j = i + 1; j < n; ++j) {
+      if (strcmp(strings[i], strings[j]) == 0)
+        return true;
+    }
+  }
+  return false;
+}
+
+void strip(char *dest, char *string, unsigned long max) {
+  unsigned long n = strlen(string);
+  if (n == 0 || max == 0)
+    return;
+
+  unsigned long start = 0;
+  for (unsigned long i = start; i < n; ++i) {
+    if (string[i] == ' ')
+      ++start;
+    else
+      break;
+  }
+
+  long long end = (long long)n - 1ll;
+  for (long long i = end; i >= 0; --i) {
+    if (string[i] == ' ')
+      --end;
+    else
+      break;
+  }
+
+  if ((long long)start > end) {
+    dest[0] = '\0';
+  } else {
+    long long new_n = end - (long long)start + 1ll;
+    new_n = MIN(new_n, (long long)max - 1ll);
+    memmove(dest, string + start, new_n);
+    dest[new_n] = '\0';
+  }
+}
 
 void set_new_pre_game_state_phase() {
   char *error = NULL;
@@ -452,29 +492,41 @@ void set_new_pre_game_state_phase() {
   } break;
   case PGS_TEAM_NAMES: {
     for (int i = 0; i < NUM_PLAYERS; ++i) {
-      if (strlen(g_pre_game_state.text_box_input[i]) == 0) {
-        error = "No empty teamname allowed.";
+      strip(g_pre_game_state.game_config.sitting_order[i],
+            g_pre_game_state.text_box_input[i],
+            sizeof(g_pre_game_state.game_config.sitting_order[i]));
+      if (strlen(g_pre_game_state.game_config.sitting_order[i]) == 0) {
+        error = "No empty player name allowed";
         goto error;
       }
-      STRBUFFCPY(g_pre_game_state.game_config.sitting_order[i],
-                 g_pre_game_state.text_box_input[i]);
+    }
+    if (has_duplicates(g_pre_game_state.game_config.sitting_order,
+                       LENGTH(g_pre_game_state.game_config.sitting_order))) {
+      error = "Choose unique player names";
+      goto error;
     }
     set_pre_game_state_team_names();
   } break;
   case PGS_MAX_SCORE: {
     for (int i = 0; i < NUM_TEAMS; ++i) {
-      if (strlen(g_pre_game_state.text_box_input[i]) == 0) {
-        error = "No empty teams allowed.";
+      strip(g_pre_game_state.game_config.team_names[i],
+            g_pre_game_state.text_box_input[i],
+            sizeof(g_pre_game_state.game_config.team_names[i]));
+      if (strlen(g_pre_game_state.game_config.team_names[i]) == 0) {
+        error = "No empty team names allowed";
         goto error;
       }
-      STRBUFFCPY(g_pre_game_state.game_config.team_names[i],
-                 g_pre_game_state.text_box_input[i]);
+    }
+    if (has_duplicates(g_pre_game_state.game_config.team_names,
+                       LENGTH(g_pre_game_state.game_config.team_names))) {
+      error = "Choose unique team names";
+      goto error;
     }
     set_pre_game_state_score_limit();
   } break;
   case PGS_FINISHED: {
     if (strlen(g_pre_game_state.text_box_input[0]) == 0) {
-      error = "No empty score allowed.";
+      error = "No empty score allowed";
       goto error;
     }
 
@@ -633,7 +685,7 @@ const char *update_draw_config(void) {
   // Currently selected textbox and input
   Rectangle *selected_tb =
       &g_pre_game_state.text_box[g_pre_game_state.selected_text_box];
-  char (*selected_tb_input)[MAX_CHARS_NAME] =
+  char (*selected_tb_input)[MAX_CHARS_INPUT] =
       &g_pre_game_state.text_box_input[g_pre_game_state.selected_text_box];
   int *selected_char_counter =
       &g_pre_game_state.input_char_counter[g_pre_game_state.selected_text_box];
@@ -642,8 +694,7 @@ const char *update_draw_config(void) {
   bool (*valid_key)(int) =
       g_pre_game_state.phase == PGS_MAX_SCORE ? &is_digit : &is_valid_char;
   while (key > 0) {
-    if (*selected_char_counter < MAX_CHARS_NAME && valid_key(key)) {
-
+    if (*selected_char_counter < MAX_CHARS_INPUT && valid_key(key)) {
       (*selected_tb_input)[*selected_char_counter] = (char)key;
       (*selected_tb_input)[*selected_char_counter + 1] = '\0';
       (*selected_char_counter)++;
@@ -699,7 +750,7 @@ const char *update_draw_config(void) {
 
   // Draw blinking underscore char
   if (g_pre_game_state.number_of_text_boxes > 0 &&
-      *selected_char_counter < MAX_CHARS_NAME &&
+      *selected_char_counter < MAX_CHARS_INPUT &&
       (g_pre_game_state.frame_counter / 20) % 2 == 0) {
 
     DrawText("_",

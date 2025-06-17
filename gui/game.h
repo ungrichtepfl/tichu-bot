@@ -10,8 +10,8 @@
 #define NUM_TEAMS 2
 #define TOTAL_CARDS (CARDS_PER_COLOR * NUM_COLORS + 4)
 #define MAX_CARDS_PER_PLAYER (TOTAL_CARDS / 4)
-#define MAX_CHARS_NAME 15
-#define MAX_BYTES_NAME (MAX_CHARS_NAME + 1)
+#define MAX_CHARS_INPUT 15
+#define MAX_BYTES_INPUT (MAX_CHARS_INPUT + 1)
 
 #define MAX_BYTES_CURRENT_ACTION_JSON 1024
 #define MAX_CHARS_CURRENT_ACTION_JSON (MAX_BYTES_CURRENT_ACTION_JSON - 1)
@@ -64,8 +64,8 @@ typedef struct {
 } TichuCombination;
 
 typedef struct {
-  PlayerName sitting_order[NUM_PLAYERS][MAX_BYTES_NAME];
-  TeamName team_names[NUM_TEAMS][MAX_BYTES_NAME];
+  PlayerName sitting_order[NUM_PLAYERS][MAX_BYTES_INPUT];
+  TeamName team_names[NUM_TEAMS][MAX_BYTES_INPUT];
   Score score_limit;
 } GameConfig;
 
@@ -83,7 +83,7 @@ typedef enum {
 typedef struct {
   GamePhaseType type;
   Card cards[TOTAL_CARDS];
-  PlayerName player_name[MAX_BYTES_NAME];
+  PlayerName player_name[MAX_BYTES_INPUT];
   Passes num_passes;
 } GamePhase;
 
@@ -110,9 +110,9 @@ typedef struct {
   GamePhase game_phase;
   TichuType tichus[NUM_PLAYERS];
   Score scores[NUM_TEAMS];
-  PlayerName current_dealer[MAX_BYTES_NAME];
-  PlayerName finish_order[NUM_PLAYERS][MAX_BYTES_NAME];
-  TeamName winner_teams[NUM_TEAMS][MAX_BYTES_NAME];
+  PlayerName current_dealer[MAX_BYTES_INPUT];
+  PlayerName finish_order[NUM_PLAYERS][MAX_BYTES_INPUT];
+  TeamName winner_teams[NUM_TEAMS][MAX_BYTES_INPUT];
   bool should_game_stop;
 } Game;
 
@@ -133,7 +133,7 @@ typedef struct {
   Rectangle text_box[4];
   char title[50];
   float title_y;
-  char text_box_input[4][MAX_CHARS_NAME];
+  char text_box_input[4][MAX_CHARS_INPUT];
   char text_box_label[4][15];
   int input_char_counter[4];
   long long frame_counter;
