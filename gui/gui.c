@@ -673,14 +673,20 @@ const char *update_draw_config(void) {
   }
 
   // Check if the cursor is over a textbox
-  SetMouseCursor(MOUSE_CURSOR_DEFAULT);
+  static bool was_ibeam_cursor = false;
+  bool is_ibeam_cursor = false;
   for (unsigned long i = 0; i < g_pre_game_state.number_of_text_boxes; ++i) {
     if (CheckCollisionPointRec(GetMousePosition(),
                                g_pre_game_state.text_box[i])) {
       SetMouseCursor(MOUSE_CURSOR_IBEAM);
+      is_ibeam_cursor = true;
       break;
     }
   }
+  if (!is_ibeam_cursor && was_ibeam_cursor) {
+    SetMouseCursor(MOUSE_CURSOR_DEFAULT);
+  }
+  was_ibeam_cursor = is_ibeam_cursor;
 
   // Currently selected textbox and input
   Rectangle *selected_tb =
