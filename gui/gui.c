@@ -588,8 +588,9 @@ const char *update_draw_config(void) {
     assert(0 && "Should not happen!");
   }
 
-  if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) &&
-      CheckCollisionPointRec(GetMousePosition(), g_pre_game_state.button)) {
+  if ((IsMouseButtonPressed(MOUSE_BUTTON_LEFT) &&
+       CheckCollisionPointRec(GetMousePosition(), g_pre_game_state.button)) ||
+      IsKeyPressed(KEY_ENTER)) {
     ++g_pre_game_state.phase;
     set_new_pre_game_state_phase();
   }
@@ -604,6 +605,12 @@ const char *update_draw_config(void) {
         break;
       }
     }
+  }
+  if (IsKeyPressed(KEY_TAB)) {
+    g_pre_game_state.selected_text_box =
+        (g_pre_game_state.selected_text_box + 1) %
+        g_pre_game_state.number_of_text_boxes;
+    g_pre_game_state.frame_counter = 0; // Trigger draw of blinking cursor
   }
 
   // Check if the cursor is over a textbox
