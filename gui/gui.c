@@ -36,7 +36,7 @@
 #define FONT_SIZE_SMALL 30.f
 #define CHAR_SIZE_SMALL 25.f
 
-#define BUFFCPY(b, s) strncpy(b, s, sizeof(b) - 1);
+#define STRBUFFCPY(b, s) strncpy(b, s, sizeof(b) - 1);
 
 #define ACTION_CPY(s)                                                          \
   do {                                                                         \
@@ -343,12 +343,12 @@ void set_pre_game_state_start(void) {
 
   g_pre_game_state.number_of_text_boxes = number_of_text_boxes;
 
-  BUFFCPY(g_pre_game_state.title, "Welcom to Tichu");
+  STRBUFFCPY(g_pre_game_state.title, "Welcom to Tichu");
   g_pre_game_state.title_y = title_y;
 
   g_pre_game_state.button =
       (Rectangle){button_x, button_y, BUTTON_WIDTH, BUTTON_HEIGHT};
-  BUFFCPY(g_pre_game_state.button_text, "Play");
+  STRBUFFCPY(g_pre_game_state.button_text, "Play");
 }
 
 void set_pre_game_state_team_names(void) {
@@ -362,10 +362,10 @@ void set_pre_game_state_team_names(void) {
 
   g_pre_game_state.number_of_text_boxes = number_of_text_boxes;
   g_pre_game_state.selected_text_box = 0;
-  BUFFCPY(g_pre_game_state.title, "Choose Team Names");
+  STRBUFFCPY(g_pre_game_state.title, "Choose Team Names");
   g_pre_game_state.title_y = title_y;
-  BUFFCPY(g_pre_game_state.text_box_label[0], "Team 1:");
-  BUFFCPY(g_pre_game_state.text_box_label[1], "Team 2:");
+  STRBUFFCPY(g_pre_game_state.text_box_label[0], "Team 1:");
+  STRBUFFCPY(g_pre_game_state.text_box_label[1], "Team 2:");
   g_pre_game_state.text_box[0] = (Rectangle){x, y, width, height};
   g_pre_game_state.text_box[1] = (Rectangle){x, y + height + dy, width, height};
   for (int i = 0; i < number_of_text_boxes; ++i) {
@@ -378,7 +378,7 @@ void set_pre_game_state_team_names(void) {
                  g_pre_game_state.text_box[1].height + BUTTON_PADDING_BOX;
   g_pre_game_state.button =
       (Rectangle){button_x, button_y, BUTTON_WIDTH, BUTTON_HEIGHT};
-  BUFFCPY(g_pre_game_state.button_text, "Next");
+  STRBUFFCPY(g_pre_game_state.button_text, "Next");
 }
 
 void set_pre_game_state_score_limit(void) {
@@ -392,11 +392,11 @@ void set_pre_game_state_score_limit(void) {
 
   g_pre_game_state.number_of_text_boxes = number_of_text_boxes;
   g_pre_game_state.selected_text_box = 0;
-  BUFFCPY(g_pre_game_state.title, "Choose Score Limit");
+  STRBUFFCPY(g_pre_game_state.title, "Choose Score Limit");
   g_pre_game_state.title_y = title_y;
-  BUFFCPY(g_pre_game_state.text_box_label[0], "Max Score:");
+  STRBUFFCPY(g_pre_game_state.text_box_label[0], "Max Score:");
   g_pre_game_state.text_box[0] = (Rectangle){x, y, width, height};
-  BUFFCPY(g_pre_game_state.text_box_input[0], "1000");
+  STRBUFFCPY(g_pre_game_state.text_box_input[0], "1000");
   g_pre_game_state.input_char_counter[0] =
       strlen(g_pre_game_state.text_box_input[0]);
 
@@ -405,7 +405,7 @@ void set_pre_game_state_score_limit(void) {
                  g_pre_game_state.text_box[0].height + BUTTON_PADDING_BOX;
   g_pre_game_state.button =
       (Rectangle){button_x, button_y, BUTTON_WIDTH, BUTTON_HEIGHT};
-  BUFFCPY(g_pre_game_state.button_text, "Next");
+  STRBUFFCPY(g_pre_game_state.button_text, "Next");
 }
 
 void set_pre_game_state_player_names(void) {
@@ -419,12 +419,12 @@ void set_pre_game_state_player_names(void) {
 
   g_pre_game_state.number_of_text_boxes = number_of_text_boxes;
   g_pre_game_state.selected_text_box = 0;
-  BUFFCPY(g_pre_game_state.title, "Choose Player Names");
+  STRBUFFCPY(g_pre_game_state.title, "Choose Player Names");
   g_pre_game_state.title_y = title_y;
-  BUFFCPY(g_pre_game_state.text_box_label[0], "Player 1:");
-  BUFFCPY(g_pre_game_state.text_box_label[1], "Player 2:");
-  BUFFCPY(g_pre_game_state.text_box_label[2], "Player 3:");
-  BUFFCPY(g_pre_game_state.text_box_label[3], "Player 4:");
+  STRBUFFCPY(g_pre_game_state.text_box_label[0], "Player 1:");
+  STRBUFFCPY(g_pre_game_state.text_box_label[1], "Player 2:");
+  STRBUFFCPY(g_pre_game_state.text_box_label[2], "Player 3:");
+  STRBUFFCPY(g_pre_game_state.text_box_label[3], "Player 4:");
   g_pre_game_state.text_box[0] = (Rectangle){x, y, width, height};
   g_pre_game_state.text_box[1] = (Rectangle){x, y + height + dy, width, height};
   g_pre_game_state.text_box[2] =
@@ -441,7 +441,7 @@ void set_pre_game_state_player_names(void) {
                  g_pre_game_state.text_box[3].height + BUTTON_PADDING_BOX;
   g_pre_game_state.button =
       (Rectangle){button_x, button_y, BUTTON_WIDTH, BUTTON_HEIGHT};
-  BUFFCPY(g_pre_game_state.button_text, "Next");
+  STRBUFFCPY(g_pre_game_state.button_text, "Next");
 }
 
 void set_new_pre_game_state_phase() {
@@ -459,7 +459,7 @@ void set_new_pre_game_state_phase() {
         error = "No empty teamname allowed.";
         goto error;
       }
-      BUFFCPY(g_pre_game_state.game_config.sitting_order[i],
+      STRBUFFCPY(g_pre_game_state.game_config.sitting_order[i],
               g_pre_game_state.text_box_input[i]);
     }
     set_pre_game_state_team_names();
@@ -470,7 +470,7 @@ void set_new_pre_game_state_phase() {
         error = "No empty teams allowed.";
         goto error;
       }
-      BUFFCPY(g_pre_game_state.game_config.team_names[i],
+      STRBUFFCPY(g_pre_game_state.game_config.team_names[i],
               g_pre_game_state.text_box_input[i]);
     }
     set_pre_game_state_score_limit();
@@ -517,7 +517,7 @@ void set_new_pre_game_state_phase() {
   g_pre_game_state.error[0] = '\0'; // No error happened
   return;
 error:
-  BUFFCPY(g_pre_game_state.error, error);
+  STRBUFFCPY(g_pre_game_state.error, error);
   --g_pre_game_state.phase;
   return;
 }
