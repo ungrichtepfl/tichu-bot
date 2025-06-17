@@ -1,6 +1,7 @@
 #include "game.h"
 #include "parser.h"
 #include "test_json.h"
+#include <limits.h>
 #include <raylib.h>
 
 #if defined(__EMSCRIPTEN__) || defined(__wasm__) || defined(__wasm32__) ||     \
@@ -444,6 +445,7 @@ void set_pre_game_state_player_names(void) {
 }
 
 void set_new_pre_game_state_phase() {
+  char *error = NULL;
   switch (g_pre_game_state.phase) {
   case PGS_START: {
     set_pre_game_state_start();
@@ -454,29 +456,58 @@ void set_new_pre_game_state_phase() {
   case PGS_TEAM_NAMES: {
     for (int i = 0; i < NUM_PLAYERS; ++i) {
       if (strlen(g_pre_game_state.text_box_input[i]) == 0) {
-        BUFFCPY(g_pre_game_state.error, "No empty players allowed.");
-        --g_pre_game_state.phase;
-        return;
+        error = "No empty teamname allowed.";
+        goto error;
       }
+      BUFFCPY(g_pre_game_state.game_config.sitting_order[i],
+              g_pre_game_state.text_box_input[i]);
     }
     set_pre_game_state_team_names();
   } break;
   case PGS_MAX_SCORE: {
     for (int i = 0; i < NUM_TEAMS; ++i) {
       if (strlen(g_pre_game_state.text_box_input[i]) == 0) {
-        BUFFCPY(g_pre_game_state.error, "No empty teams allowed.");
-        --g_pre_game_state.phase;
-        return;
+        error = "No empty teams allowed.";
+        goto error;
       }
+      BUFFCPY(g_pre_game_state.game_config.team_names[i],
+              g_pre_game_state.text_box_input[i]);
     }
     set_pre_game_state_score_limit();
   } break;
   case PGS_FINISHED: {
     if (strlen(g_pre_game_state.text_box_input[0]) == 0) {
-      BUFFCPY(g_pre_game_state.error, "No empty score allowed.");
-      --g_pre_game_state.phase;
-      return;
+      error = "No empty score allowed.";
+      goto error;
     }
+
+    errno = 0;
+    char *endptr;
+    char *str = g_pre_game_state.text_box_input[0];
+    long res = strtol(str, &endptr, 10);
+
+    if (errno != 0) {
+      error = strerror(errno);
+      goto error;
+    }
+    if (endptr == str) {
+      error = "No digits were found";
+      goto error;
+    }
+    if (*endptr != '\0' && *endptr != ' ') {
+      error = "The input must be a whole number";
+      goto error;
+    }
+    if (res > INT_MAX) {
+      error = "Score limit is too high";
+      goto error;
+    }
+    if (res <= 0) {
+      error = "Score limit must be greater than 0";
+      goto error;
+    }
+
+    g_pre_game_state.game_config.score_limit = (int)res;
 
     // TODO: SERIALIZE JSON
   } break;
@@ -484,6 +515,11 @@ void set_new_pre_game_state_phase() {
     assert(0 && "Unreachable.");
   }
   g_pre_game_state.error[0] = '\0'; // No error happened
+  return;
+error:
+  BUFFCPY(g_pre_game_state.error, error);
+  --g_pre_game_state.phase;
+  return;
 }
 
 void reset_global_pre_game_state(void) {
