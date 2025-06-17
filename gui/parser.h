@@ -13,7 +13,11 @@
 #define NUM_JSON_TOKENS (1 << 12)
 jsmn_parser json_parser;
 jsmntok_t json_tokens[NUM_JSON_TOKENS];
-#define SAFECPY(g, t, n) strncpy(g, t, MIN(sizeof(g) - 1, (unsigned long)n))
+#define SAFECPY(g, t, n)                                                       \
+  strncpy(g, t, MIN((long long)sizeof(g) - 1ll, (long long)n))
+#define STRBUFFCPY(b, s) strncpy(b, s, (long long)sizeof(b) - 1ll);
+#define STRBUFFCAT(b, s)                                                       \
+  strncat(b, s, MAX(0ll, (long long)sizeof(b) - 1ll - (long long)strlen(s)));
 
 #define MAX(a, b) (a > b ? a : b)
 #define MIN(a, b) (a < b ? a : b)
@@ -1075,6 +1079,59 @@ void parse_game_and_actions(GameState *game_state, const char *game_json) {
   current_token += parse_game_actions(game_state, current_token, game_json);
   assert(current_token - &json_tokens[0] == (ptrdiff_t)num_tokens &&
          "Not all tokens have been parsed.");
+}
+
+void serialize_game_config(GameConfig *game_config,
+                           char (*game_config_json)[MAX_CHARS_CONFIG_JSON]) {
+
+  //   {"sittingOrder":["(0)","(1)","(2)","(3)"],"teamNames":["(0)","(1)"],"scoreLimit":"(0)"}
+
+  // Start object
+  STRBUFFCPY(*game_config_json, "{");
+
+  // Sitting Order
+  STRBUFFCAT(*game_config_json, "\"sittingOrder\":[");
+  for (unsigned long i = 0; i < LENGTH(game_config->sitting_order) - 1; ++i) {
+    STRBUFFCAT(*game_config_json, "\"");
+    STRBUFFCAT(*game_config_json, game_config->sitting_order[i]);
+    STRBUFFCAT(*game_config_json, "\"");
+    STRBUFFCAT(*game_config_json, ",");
+  }
+  STRBUFFCAT(*game_config_json, "\"");
+  STRBUFFCAT(
+      *game_config_json,
+      game_config->sitting_order[LENGTH(game_config->sitting_order) - 1]);
+  STRBUFFCAT(*game_config_json, "\"");
+  STRBUFFCAT(*game_config_json, "]");
+
+  // Next key value
+  STRBUFFCAT(*game_config_json, ",");
+
+  // Team Names
+  STRBUFFCAT(*game_config_json, "\"teamNames\":[");
+  for (unsigned long i = 0; i < LENGTH(game_config->team_names) - 1; ++i) {
+    STRBUFFCAT(*game_config_json, "\"");
+    STRBUFFCAT(*game_config_json, game_config->team_names[i]);
+    STRBUFFCAT(*game_config_json, "\"");
+    STRBUFFCAT(*game_config_json, ",");
+  }
+  STRBUFFCAT(*game_config_json, "\"");
+  STRBUFFCAT(*game_config_json,
+             game_config->team_names[LENGTH(game_config->team_names) - 1]);
+  STRBUFFCAT(*game_config_json, "\"");
+  STRBUFFCAT(*game_config_json, "]");
+
+  // Next key value
+  STRBUFFCAT(*game_config_json, ",");
+
+  // Score Limit
+  STRBUFFCAT(*game_config_json, "\"scoreLimit\":");
+  char score_limit_str[20];
+  sprintf(score_limit_str, "%d", game_config->score_limit);
+  STRBUFFCAT(*game_config_json, score_limit_str);
+
+  // End Object
+  STRBUFFCAT(*game_config_json, "}");
 }
 
 #endif // PARSER_H

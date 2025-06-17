@@ -1,6 +1,5 @@
 #include "game.h"
 #include "parser.h"
-#include "test_json.h"
 #include <limits.h>
 #include <raylib.h>
 
@@ -35,8 +34,6 @@
 #define CHAR_SIZE_MEDIUM 33.f
 #define FONT_SIZE_SMALL 30.f
 #define CHAR_SIZE_SMALL 25.f
-
-#define STRBUFFCPY(b, s) strncpy(b, s, sizeof(b) - 1);
 
 #define ACTION_CPY(s)                                                          \
   do {                                                                         \
@@ -460,7 +457,7 @@ void set_new_pre_game_state_phase() {
         goto error;
       }
       STRBUFFCPY(g_pre_game_state.game_config.sitting_order[i],
-              g_pre_game_state.text_box_input[i]);
+                 g_pre_game_state.text_box_input[i]);
     }
     set_pre_game_state_team_names();
   } break;
@@ -471,7 +468,7 @@ void set_new_pre_game_state_phase() {
         goto error;
       }
       STRBUFFCPY(g_pre_game_state.game_config.team_names[i],
-              g_pre_game_state.text_box_input[i]);
+                 g_pre_game_state.text_box_input[i]);
     }
     set_pre_game_state_score_limit();
   } break;
@@ -509,7 +506,9 @@ void set_new_pre_game_state_phase() {
 
     g_pre_game_state.game_config.score_limit = (int)res;
 
-    // TODO: SERIALIZE JSON
+    serialize_game_config(&g_pre_game_state.game_config,
+                          &g_pre_game_state.game_config_json);
+
   } break;
   default:
     assert(0 && "Unreachable.");
@@ -519,7 +518,6 @@ void set_new_pre_game_state_phase() {
 error:
   STRBUFFCPY(g_pre_game_state.error, error);
   --g_pre_game_state.phase;
-  return;
 }
 
 void reset_global_pre_game_state(void) {
