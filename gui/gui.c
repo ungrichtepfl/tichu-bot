@@ -937,6 +937,55 @@ const char *update_draw_config(void) {
   return g_pre_game_state.game_config_json;
 }
 
+#define PLAYER_LABEL_FONT_SIZE FONT_SIZE_MEDIUM
+#define PLAYER_LABEL_CHAR_SIZE CHAR_SIZE_MEDIUM
+#define PLAYER_LABEL_PADDING ((float)WIN_HEIHT / 50.f)
+
+void draw_labels_and_buttons(void) {
+  int font_size = FONT_SIZE_SMALL;
+  for (unsigned int i = 0;
+       i < LENGTH(g_game_state.game.game_config.sitting_order); ++i) {
+    char *name = g_game_state.game.game_config.sitting_order[i];
+
+    float x, y;
+    switch (i) {
+    case 0: {
+      x = (float)WIN_HEIHT / 2.f - MeasureText(name, font_size) / 2.f;
+      y = CARD_PADDING + g_assets.back.height * CARD_SCALE_NPC +
+          PLAYER_LABEL_PADDING;
+    } break;
+    case 1: {
+      unsigned long num_cards = get_num_cards(g_game_state.game.hands[i]);
+
+      float cards_height =
+          (float)g_assets.back_rotated.height * CARD_SCALE_NPC +
+          CARD_SPACING_NPC * (num_cards - 1);
+      x = (float)WIN_WIDTH - CARD_PADDING - MeasureText(name, font_size);
+      y = (float)WIN_HEIHT / 2.f - PLAYER_LABEL_CHAR_SIZE - cards_height / 2.f -
+          PLAYER_LABEL_PADDING;
+    } break;
+    case 2: {
+      x = (float)WIN_HEIHT / 2.f - MeasureText(name, font_size) / 2.f;
+      y = (float)WIN_WIDTH - (float)g_assets.mahjong.height * CARD_SCALE -
+          CARD_PADDING - PLAYER_LABEL_CHAR_SIZE - PLAYER_LABEL_PADDING;
+    } break;
+    case 3: {
+      unsigned long num_cards = get_num_cards(g_game_state.game.hands[i]);
+
+      float cards_height =
+          (float)g_assets.back_rotated.height * CARD_SCALE_NPC +
+          CARD_SPACING_NPC * (num_cards - 1);
+      x = CARD_PADDING;
+      y = (float)WIN_HEIHT / 2.f - PLAYER_LABEL_CHAR_SIZE - cards_height / 2.f -
+          PLAYER_LABEL_PADDING;
+    } break;
+    default:
+      assert(0 && "Too many players");
+    }
+    DrawText(name, x, y, font_size, BLACK);
+  }
+}
+
 const char *update_draw_game(const char *game_json) {
 
   parse_game_and_actions(&g_game_state, game_json);
@@ -948,6 +997,7 @@ const char *update_draw_game(const char *game_json) {
   ClearBackground(WHITE);
   DrawTexture(get_background_asset(), 0, 0, WHITE);
   draw_cards();
+  draw_labels_and_buttons();
 
   EndDrawing();
 
