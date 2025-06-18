@@ -297,8 +297,11 @@ Rectangle get_card_rectangle(Card card) {
 
 #define END_OF_CARDS(card) (memcmp(&card, &EMPTY_CARD, CARD_SIZE) == 0)
 
-#define CARD_PADDING ((float)WIN_HEIHT / 10.f)
+#define CARD_PADDING ((float)WIN_HEIHT / 20.f)
 #define CARD_SPACING ((float)WIN_WIDTH / 30.f)
+#define CARD_SPACING_NPC ((float)WIN_WIDTH / 40.f)
+#define CARD_SCALE 1.f
+#define CARD_SCALE_NPC 0.75f
 
 unsigned long get_num_cards(Card hand[MAX_CARDS_PER_PLAYER]) {
   for (unsigned long i = 0; i < MAX_CARDS_PER_PLAYER; ++i) {
@@ -318,8 +321,8 @@ void update_hands(void) {
     unsigned long num_cards = get_num_cards(g_game_state.game.hands[i]);
     for (unsigned long j = 0; j < num_cards; ++j) {
       Card card = g_game_state.game.hands[i][j];
-
       size_t index = get_card_index(card);
+
       g_render_state.visible[index] = true;
 
       if ((long long)index == (long long)g_render_state.selected_piece_idx) {
@@ -329,45 +332,61 @@ void update_hands(void) {
 
       set_highest_prio(index);
 
-      float scale = g_render_state.card_pose[index].scale;
-      float cards_width_back =
-          (float)g_assets.back.width * scale + CARD_SPACING * (num_cards - 1);
-      Texture2D card_asset = get_card_asset(card);
-      float cards_width =
-          (float)card_asset.width * scale + CARD_SPACING * (num_cards - 1);
       switch (i) {
       case 0: {
         // Top player
+        float scale = CARD_SCALE_NPC;
+        float spacing = CARD_SPACING_NPC;
+        g_render_state.card_pose[index].scale = scale;
+        float cards_width =
+            (float)g_assets.back.width * scale + spacing * (num_cards - 1);
         g_render_state.show_front[index] = false;
-        g_render_state.card_pose[index].pos.x = (float)WIN_WIDTH / 2.f -
-                                                cards_width_back / 2.f +
-                                                CARD_SPACING * (float)j;
+        g_render_state.card_pose[index].pos.x =
+            (float)WIN_WIDTH / 2.f - cards_width / 2.f + spacing * (float)j;
         g_render_state.card_pose[index].pos.y = CARD_PADDING;
       } break;
       case 1: {
         // Right player
+        float scale = CARD_SCALE_NPC;
+        float spacing = CARD_SPACING_NPC;
+        g_render_state.card_pose[index].scale = scale;
+        float cards_width = (float)g_assets.back_rotated.height * scale +
+                            spacing * (num_cards - 1);
         g_render_state.show_front[index] = false;
         g_render_state.rotated_back[index] = true;
         g_render_state.card_pose[index].pos.x =
-            (float)WIN_WIDTH - (float)g_assets.back.height * scale -
+            (float)WIN_WIDTH - (float)g_assets.back_rotated.width * scale -
             CARD_PADDING;
-        g_render_state.card_pose[index].pos.y = (float)WIN_HEIHT / 2.f -
-                                                cards_width_back / 2.f +
-                                                CARD_SPACING * (float)j;
+        g_render_state.card_pose[index].pos.y =
+            (float)WIN_HEIHT / 2.f - cards_width / 2.f + spacing * (float)j;
       } break;
       case 2: {
         // Bottom player
+        float scale = CARD_SCALE;
+        float spacing = CARD_SPACING;
+        g_render_state.card_pose[index].scale = scale;
+        Texture2D card_asset = get_card_asset(card);
+        float cards_width =
+            (float)card_asset.width * scale + spacing * (num_cards - 1);
         g_render_state.movable[index] = true;
         g_render_state.show_front[index] = true;
-        g_render_state.card_pose[index].pos.x = (float)WIN_WIDTH / 2.f -
-                                                cards_width / 2.f +
-                                                CARD_SPACING * (float)j;
+        g_render_state.card_pose[index].pos.x =
+            (float)WIN_WIDTH / 2.f - cards_width / 2.f + spacing * (float)j;
         g_render_state.card_pose[index].pos.y =
-            (float)WIN_HEIHT - (float)g_assets.back.height * scale -
-            CARD_PADDING;
+            (float)WIN_HEIHT - (float)card_asset.height * scale - CARD_PADDING;
       } break;
       case 3: {
         // Left player
+        float scale = CARD_SCALE_NPC;
+        float spacing = CARD_SPACING_NPC;
+        g_render_state.card_pose[index].scale = scale;
+        float cards_width = (float)g_assets.back_rotated.height * scale +
+                            spacing * (num_cards - 1);
+        g_render_state.show_front[index] = false;
+        g_render_state.rotated_back[index] = true;
+        g_render_state.card_pose[index].pos.x = CARD_PADDING;
+        g_render_state.card_pose[index].pos.y =
+            (float)WIN_HEIHT / 2.f - cards_width / 2.f + spacing * (float)j;
       } break;
       default:
         assert(0 && "Too many players.");
@@ -704,7 +723,7 @@ void reset_global_game_state(void) {
   }
 
   for (size_t i = 0; i < LENGTH(g_render_state.card_pose); ++i) {
-    g_render_state.card_pose[i].scale = 1.f;
+    g_render_state.card_pose[i].scale = CARD_SCALE;
   }
   ACTION_RESET();
 }
