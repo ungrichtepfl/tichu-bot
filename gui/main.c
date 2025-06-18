@@ -10,10 +10,10 @@ int main(void) {
   char game_config[MAX_BYTES_CONFIG_JSON] = {0};
   STRBUFFCPY(game_config, "null");
   while (!window_should_close()) {
-    if (strcmp(game_config, "null") == 0)
-      STRBUFFCPY(game_config, update_draw_config())
-    else
-      update_draw_game(test_json1);
+    /* if (strcmp(game_config, "null") == 0) */
+    /*   STRBUFFCPY(game_config, update_draw_config()); */
+    /* else */
+      update_draw_game(test_json2);
   }
 
   deinit();

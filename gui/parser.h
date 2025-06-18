@@ -15,9 +15,9 @@ jsmn_parser json_parser;
 jsmntok_t json_tokens[NUM_JSON_TOKENS];
 #define SAFECPY(g, t, n)                                                       \
   strncpy(g, t, MIN((long long)sizeof(g) - 1ll, (long long)n))
-#define STRBUFFCPY(b, s) strncpy(b, s, (long long)sizeof(b) - 1ll);
+#define STRBUFFCPY(b, s) strncpy(b, s, (long long)sizeof(b) - 1ll)
 #define STRBUFFCAT(b, s)                                                       \
-  strncat(b, s, MAX(0ll, (long long)sizeof(b) - 1ll - (long long)strlen(s)));
+  strncat(b, s, MAX(0ll, (long long)sizeof(b) - 1ll - (long long)strlen(s)))
 
 #define MAX(a, b) (a > b ? a : b)
 #define MIN(a, b) (a < b ? a : b)

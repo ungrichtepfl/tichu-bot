@@ -47,6 +47,9 @@ typedef struct {
   int number;
 } Card;
 
+const Card EMPTY_CARD = {0};
+const unsigned long CARD_SIZE = sizeof(EMPTY_CARD);
+
 typedef enum {
   SingleCard,
   Pair,

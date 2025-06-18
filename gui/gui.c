@@ -2,6 +2,7 @@
 #include "parser.h"
 #include <limits.h>
 #include <raylib.h>
+#include <stddef.h>
 
 #if defined(__EMSCRIPTEN__) || defined(__wasm__) || defined(__wasm32__) ||     \
     defined(__wasm64__)
@@ -23,6 +24,8 @@
 #define ASSET_DOG "hund.png"
 #define ASSET_MAHJONG "mahjong.png"
 #define ASSET_PHOENIX "phoenix.png"
+#define ASSET_BACK "back.png"
+#define ASSET_BACK_ROTATED "back_rotated.png"
 #define ASSET_BACKGROUND "background.png"
 
 #define ASSET_PATH "./gui/images/"
@@ -60,6 +63,8 @@ typedef struct {
   Texture2D mahjong;
   Texture2D phoenix;
   Texture2D dog;
+  Texture2D back;
+  Texture2D back_rotated;
   Texture2D background;
 } Assets;
 
@@ -72,6 +77,10 @@ typedef struct {
 typedef struct {
   CardPose card_pose[TOTAL_CARDS];
   size_t render_prio[TOTAL_CARDS];
+  bool visible[TOTAL_CARDS];
+  bool movable[TOTAL_CARDS];
+  bool show_front[TOTAL_CARDS];
+  bool rotated_back[TOTAL_CARDS];
   int selected_piece_idx;
 } RenderState;
 
@@ -186,6 +195,18 @@ void load_global_assets(void) {
   asset = LoadTexture(asset_path);
   g_assets.mahjong = asset;
 
+  // BACK
+  sprintf(asset_path, "%s", ASSET_PATH CARD_ASSET_REL_PATH);
+  strncat(asset_path, ASSET_BACK, sizeof(asset_path) - 1);
+  asset = LoadTexture(asset_path);
+  g_assets.back = asset;
+
+  // BACK ROTATED
+  sprintf(asset_path, "%s", ASSET_PATH CARD_ASSET_REL_PATH);
+  strncat(asset_path, ASSET_BACK_ROTATED, sizeof(asset_path) - 1);
+  asset = LoadTexture(asset_path);
+  g_assets.back_rotated = asset;
+
   // BACKGROUND
   sprintf(asset_path, "%s", ASSET_PATH);
   strncat(asset_path, ASSET_BACKGROUND, sizeof(asset_path) - 1);
@@ -204,6 +225,8 @@ void unload_global_assets(void) {
   UnloadTexture(g_assets.dog);
   UnloadTexture(g_assets.mahjong);
   UnloadTexture(g_assets.phoenix);
+  UnloadTexture(g_assets.back);
+  UnloadTexture(g_assets.back_rotated);
   UnloadTexture(g_assets.background);
 }
 
@@ -272,6 +295,87 @@ Rectangle get_card_rectangle(Card card) {
   };
 }
 
+#define END_OF_CARDS(card) (memcmp(&card, &EMPTY_CARD, CARD_SIZE) == 0)
+
+#define CARD_PADDING ((float)WIN_HEIHT / 10.f)
+#define CARD_SPACING ((float)WIN_WIDTH / 30.f)
+
+unsigned long get_num_cards(Card hand[MAX_CARDS_PER_PLAYER]) {
+  for (unsigned long i = 0; i < MAX_CARDS_PER_PLAYER; ++i) {
+    if (END_OF_CARDS(hand[i]))
+      return i;
+  }
+  return MAX_CARDS_PER_PLAYER;
+}
+
+void update_hands(void) {
+  memset(g_render_state.visible, 0, sizeof(g_render_state.visible));
+  memset(g_render_state.movable, 0, sizeof(g_render_state.movable));
+  memset(g_render_state.rotated_back, 0, sizeof(g_render_state.rotated_back));
+  memset(g_render_state.show_front, 1, sizeof(g_render_state.show_front));
+
+  for (unsigned long i = 0; i < LENGTH(g_game_state.game.hands); ++i) {
+    unsigned long num_cards = get_num_cards(g_game_state.game.hands[i]);
+    for (unsigned long j = 0; j < num_cards; ++j) {
+      Card card = g_game_state.game.hands[i][j];
+
+      size_t index = get_card_index(card);
+      g_render_state.visible[index] = true;
+
+      if ((long long)index == (long long)g_render_state.selected_piece_idx) {
+        // Do not update pose if it is selected
+        continue;
+      }
+
+      set_highest_prio(index);
+
+      float scale = g_render_state.card_pose[index].scale;
+      float cards_width_back =
+          (float)g_assets.back.width * scale + CARD_SPACING * (num_cards - 1);
+      Texture2D card_asset = get_card_asset(card);
+      float cards_width =
+          (float)card_asset.width * scale + CARD_SPACING * (num_cards - 1);
+      switch (i) {
+      case 0: {
+        // Top player
+        g_render_state.show_front[index] = false;
+        g_render_state.card_pose[index].pos.x = (float)WIN_WIDTH / 2.f -
+                                                cards_width_back / 2.f +
+                                                CARD_SPACING * (float)j;
+        g_render_state.card_pose[index].pos.y = CARD_PADDING;
+      } break;
+      case 1: {
+        // Right player
+        g_render_state.show_front[index] = false;
+        g_render_state.rotated_back[index] = true;
+        g_render_state.card_pose[index].pos.x =
+            (float)WIN_WIDTH - (float)g_assets.back.height * scale -
+            CARD_PADDING;
+        g_render_state.card_pose[index].pos.y = (float)WIN_HEIHT / 2.f -
+                                                cards_width_back / 2.f +
+                                                CARD_SPACING * (float)j;
+      } break;
+      case 2: {
+        // Bottom player
+        g_render_state.movable[index] = true;
+        g_render_state.show_front[index] = true;
+        g_render_state.card_pose[index].pos.x = (float)WIN_WIDTH / 2.f -
+                                                cards_width / 2.f +
+                                                CARD_SPACING * (float)j;
+        g_render_state.card_pose[index].pos.y =
+            (float)WIN_HEIHT - (float)g_assets.back.height * scale -
+            CARD_PADDING;
+      } break;
+      case 3: {
+        // Left player
+      } break;
+      default:
+        assert(0 && "Too many players.");
+      }
+    }
+  }
+}
+
 void update_card_position(void) {
   static Vector2 previous_mouse_touch = {0};
   if (is_mouse_down()) {
@@ -281,12 +385,14 @@ void update_card_position(void) {
           mouse_touch.x - previous_mouse_touch.x;
       g_render_state.card_pose[g_render_state.selected_piece_idx].pos.y +=
           mouse_touch.y - previous_mouse_touch.y;
+      set_highest_prio(g_render_state.selected_piece_idx);
     } else {
       for (size_t i = 0; i < LENGTH(g_render_state.render_prio); ++i) {
         size_t idx = g_render_state.render_prio[i];
         Card card = get_card_from_index(idx);
         Rectangle card_rec = get_card_rectangle(card);
-        if (CheckCollisionPointRec(mouse_touch, card_rec)) {
+        if (g_render_state.movable[idx] &&
+            CheckCollisionPointRec(mouse_touch, card_rec)) {
           g_render_state.selected_piece_idx = idx;
           set_highest_prio(idx);
           break;
@@ -598,17 +704,7 @@ void reset_global_game_state(void) {
   }
 
   for (size_t i = 0; i < LENGTH(g_render_state.card_pose); ++i) {
-    int col = NUM_COLORS + 1;
-    // No scale
     g_render_state.card_pose[i].scale = 1.f;
-    // No rotation
-    g_render_state.card_pose[i].rot = 0.f;
-
-    // Evenly space the cards
-    g_render_state.card_pose[i].pos.x = (i % col) * ((float)WIN_WIDTH / col);
-    g_render_state.card_pose[i].pos.y =
-        ((float)i / col) * ((float)WIN_HEIHT / col);
-    // Set the last 4 cards to be in the middle
   }
   ACTION_RESET();
 }
@@ -616,9 +712,16 @@ void reset_global_game_state(void) {
 void draw_cards(void) {
   for (int i = (int)LENGTH(g_render_state.render_prio) - 1; i >= 0; --i) {
     size_t idx = g_render_state.render_prio[i];
+    if (!g_render_state.visible[idx])
+      continue;
+
     Card card = get_card_from_index(idx);
+    Texture2D card_texture =
+        g_render_state.show_front[idx]
+            ? get_card_asset(card)
+            : (g_render_state.rotated_back[idx] ? g_assets.back_rotated
+                                                : g_assets.back);
     CardPose pose = g_render_state.card_pose[idx];
-    Texture2D card_texture = get_card_asset(card);
     DrawTextureEx(card_texture, pose.pos, pose.rot, pose.scale, WHITE);
   }
 }
@@ -760,6 +863,8 @@ const char *update_draw_config(void) {
     int font_size_label = LABEL_FONT_SIZE_DEFAULT;
     int char_size_label = LABEL_CHAR_SIZE_DEFAULT;
     if (g_pre_game_state.phase == PGS_TEAM_NAMES &&
+        // We use the players names in the team name labels so if they are too
+        // long we use smaller fonts
         strlen(g_pre_game_state.text_box_label[i]) > 25) {
       font_size_label = FONT_SIZE_SMALL;
       char_size_label = CHAR_SIZE_SMALL;
@@ -771,12 +876,6 @@ const char *update_draw_config(void) {
              g_pre_game_state.text_box[i].y - LABEL_PADDING_BOX -
                  char_size_label,
              font_size_label, BLACK);
-
-    /* DrawText(g_pre_game_state.text_box_label[i], */
-    /*          g_pre_game_state.text_box[i].x + LABEL_PADDING_BOX, */
-    /*          g_pre_game_state.text_box[i].y - LABEL_PADDING_BOX - char_size,
-     */
-    /*          font_size, BLACK); */
   }
 
   // Draw blinking underscore char
@@ -823,6 +922,7 @@ const char *update_draw_game(const char *game_json) {
 
   parse_game_and_actions(&g_game_state, game_json);
 
+  update_hands();
   update_card_position();
 
   BeginDrawing();
