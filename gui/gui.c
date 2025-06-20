@@ -232,7 +232,10 @@ void unload_global_assets(void) {
 
 Texture2D get_background_asset(void) { return g_assets.background; }
 
-Texture2D get_card_asset(Card card) {
+Texture2D get_card_asset(Card card, bool show_front, bool rotated_back) {
+  if (!show_front)
+    return rotated_back ? g_assets.back_rotated : g_assets.back;
+
   int card_num = card.number - 2; // Starts at 2
   switch (card.color) {
   case RED_CARD: {
@@ -284,8 +287,8 @@ Vector2 get_mouse_position(void) {
 #endif
 }
 
-Rectangle get_card_rectangle(Card card) {
-  Texture2D card_texture = get_card_asset(card);
+Rectangle get_card_rectangle(Card card, bool show_front, bool back_rotated) {
+  Texture2D card_texture = get_card_asset(card, show_front, back_rotated);
   CardPose pose = get_card_pose(card);
   return (Rectangle){
       .x = pose.pos.x,
@@ -301,7 +304,7 @@ Rectangle get_card_rectangle(Card card) {
 #define CARD_SPACING ((float)WIN_WIDTH / 30.f)
 #define CARD_SPACING_NPC ((float)WIN_WIDTH / 40.f)
 #define CARD_SCALE 1.f
-#define CARD_SCALE_NPC 0.75f
+#define CARD_SCALE_NPC 0.85f
 
 unsigned long get_num_cards(Card hand[MAX_CARDS_PER_PLAYER]) {
   for (unsigned long i = 0; i < MAX_CARDS_PER_PLAYER; ++i) {
@@ -365,7 +368,7 @@ void update_hands(void) {
         float scale = CARD_SCALE;
         float spacing = CARD_SPACING;
         g_render_state.card_pose[index].scale = scale;
-        Texture2D card_asset = get_card_asset(card);
+        Texture2D card_asset = get_card_asset(card, false, false);
         float cards_width =
             (float)card_asset.width * scale + spacing * (num_cards - 1);
         g_render_state.movable[index] = true;
@@ -409,7 +412,9 @@ void update_card_position(void) {
       for (size_t i = 0; i < LENGTH(g_render_state.render_prio); ++i) {
         size_t idx = g_render_state.render_prio[i];
         Card card = get_card_from_index(idx);
-        Rectangle card_rec = get_card_rectangle(card);
+        Rectangle card_rec =
+            get_card_rectangle(card, g_render_state.show_front[idx],
+                               g_render_state.rotated_back[idx]);
         if (g_render_state.movable[idx] &&
             CheckCollisionPointRec(mouse_touch, card_rec)) {
           g_render_state.selected_piece_idx = idx;
@@ -735,13 +740,14 @@ void draw_cards(void) {
       continue;
 
     Card card = get_card_from_index(idx);
-    Texture2D card_texture =
-        g_render_state.show_front[idx]
-            ? get_card_asset(card)
-            : (g_render_state.rotated_back[idx] ? g_assets.back_rotated
-                                                : g_assets.back);
+    Texture2D card_texture = get_card_asset(
+        card, g_render_state.show_front[idx], g_render_state.rotated_back[idx]);
     CardPose pose = g_render_state.card_pose[idx];
+    Rectangle card_rec = get_card_rectangle(
+        card, g_render_state.show_front[idx], g_render_state.rotated_back[idx]);
     DrawTextureEx(card_texture, pose.pos, pose.rot, pose.scale, WHITE);
+    float thickness = card_rec.width / 80.f;
+    DrawRectangleLinesEx(card_rec, thickness, DARKGRAY);
   }
 }
 
@@ -996,8 +1002,8 @@ const char *update_draw_game(const char *game_json) {
   BeginDrawing();
   ClearBackground(WHITE);
   DrawTexture(get_background_asset(), 0, 0, WHITE);
-  draw_cards();
   draw_labels_and_buttons();
+  draw_cards();
 
   EndDrawing();
 
