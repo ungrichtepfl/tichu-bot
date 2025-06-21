@@ -300,7 +300,7 @@ Rectangle get_card_rectangle(Card card, bool show_front, bool back_rotated) {
 
 #define END_OF_CARDS(card) (memcmp(&card, &EMPTY_CARD, CARD_SIZE) == 0)
 
-#define CARD_PADDING ((float)WIN_HEIHT / 20.f)
+#define CARD_PADDING ((float)WIN_HEIHT / 30.f)
 #define CARD_SPACING ((float)WIN_WIDTH / 30.f)
 #define CARD_SPACING_NPC ((float)WIN_WIDTH / 40.f)
 #define CARD_SCALE 1.f
@@ -447,6 +447,9 @@ void update_card_position(void) {
 #define BUTTON_PADDING_BOX (1.f * BOX_CHAR_SIZE)
 #define BUTTON_WIDTH ((float)WIN_WIDTH / 4.5f)
 #define BUTTON_HEIGHT ((float)BUTTON_CHAR_SIZE + 3.f * BUTTON_PADDING)
+#define BUTTON_ROUNDNESS 0.25f
+#define BUTTON_SEGEMENTS 0
+#define BUTTON_LINE_THICKNESS 0.5f
 
 #define ERROR_CHAR_SIZE CHAR_SIZE_SMALL
 #define ERROR_FONT_SIZE FONT_SIZE_SMALL
@@ -916,10 +919,10 @@ const char *update_draw_config(void) {
   }
 
   // Button
-  DrawRectangleRec(g_pre_game_state.button, BLUE);
-  DrawRectangleLines(g_pre_game_state.button.x, g_pre_game_state.button.y,
-                     g_pre_game_state.button.width,
-                     g_pre_game_state.button.height, DARKBLUE);
+  DrawRectangleRounded(g_pre_game_state.button, BUTTON_ROUNDNESS,
+                       BUTTON_SEGEMENTS, BLUE);
+  DrawRectangleRoundedLines(g_pre_game_state.button, BUTTON_ROUNDNESS,
+                            BUTTON_SEGEMENTS, BUTTON_LINE_THICKNESS, DARKBLUE);
   DrawText(
       g_pre_game_state.button_text,
       (float)(2 * g_pre_game_state.button.x + g_pre_game_state.button.width) /
@@ -945,10 +948,33 @@ const char *update_draw_config(void) {
 
 #define PLAYER_LABEL_FONT_SIZE FONT_SIZE_MEDIUM
 #define PLAYER_LABEL_CHAR_SIZE CHAR_SIZE_MEDIUM
-#define PLAYER_LABEL_PADDING ((float)WIN_HEIHT / 50.f)
+#define PLAYER_LABEL_PADDING ((float)WIN_HEIHT / 150.f)
+
+#define PLAYING_FIELD_WIDTH_PADDING ((float)WIN_WIDTH / 70.f)
+#define PLAYING_FIELD_PADDING ((float)WIN_HEIHT / 15.f)
+
+#define TICHU_BUTTON_WIDTH BUTTON_WIDTH
+#define TICHU_BUTTON_HEIGHT BUTTON_HEIGHT
+
+#define PLAY_BUTTON_WIDTH BUTTON_WIDTH
+#define PLAY_BUTTON_HEIGHT BUTTON_HEIGHT
+#define PLAY_BUTTON_PADDING ((float)WIN_HEIHT / 100.f)
+
+#define BOMB_BUTTON_WIDTH BUTTON_WIDTH
+#define BOMB_BUTTON_HEIGHT BUTTON_HEIGHT
+#define BOMB_BUTTON_PADDING PLAY_BUTTON_PADDING
+
+float get_card_height(void) {
+  return (float)g_assets.mahjong.height * CARD_SCALE;
+}
+float get_card_width(void) {
+  return (float)g_assets.mahjong.width * CARD_SCALE;
+}
 
 void draw_labels_and_buttons(void) {
   int font_size = FONT_SIZE_SMALL;
+  int top_player_y = 0;
+  int bottom_player_y = 0;
   for (unsigned int i = 0;
        i < LENGTH(g_game_state.game.game_config.sitting_order); ++i) {
     char *name = g_game_state.game.game_config.sitting_order[i];
@@ -957,30 +983,30 @@ void draw_labels_and_buttons(void) {
     switch (i) {
     case 0: {
       x = (float)WIN_HEIHT / 2.f - MeasureText(name, font_size) / 2.f;
-      y = CARD_PADDING + g_assets.back.height * CARD_SCALE_NPC +
-          PLAYER_LABEL_PADDING;
+      y = (float)CARD_PADDING + g_assets.back.height * CARD_SCALE_NPC +
+          (float)PLAYER_LABEL_PADDING;
+      top_player_y = y;
     } break;
     case 1: {
-      unsigned long num_cards = get_num_cards(g_game_state.game.hands[i]);
 
       float cards_height =
           (float)g_assets.back_rotated.height * CARD_SCALE_NPC +
-          CARD_SPACING_NPC * (num_cards - 1);
+          (float)CARD_SPACING_NPC * 13;
       x = (float)WIN_WIDTH - CARD_PADDING - MeasureText(name, font_size);
       y = (float)WIN_HEIHT / 2.f - PLAYER_LABEL_CHAR_SIZE - cards_height / 2.f -
           PLAYER_LABEL_PADDING;
     } break;
     case 2: {
-      x = (float)WIN_HEIHT / 2.f - MeasureText(name, font_size) / 2.f;
-      y = (float)WIN_WIDTH - (float)g_assets.mahjong.height * CARD_SCALE -
-          CARD_PADDING - PLAYER_LABEL_CHAR_SIZE - PLAYER_LABEL_PADDING;
+      x = (float)WIN_WIDTH / 2.f - MeasureText(name, font_size) / 2.f;
+      y = (float)WIN_HEIHT - get_card_height() - CARD_PADDING -
+          PLAYER_LABEL_CHAR_SIZE - PLAYER_LABEL_PADDING;
+      bottom_player_y = y;
     } break;
     case 3: {
-      unsigned long num_cards = get_num_cards(g_game_state.game.hands[i]);
 
       float cards_height =
           (float)g_assets.back_rotated.height * CARD_SCALE_NPC +
-          CARD_SPACING_NPC * (num_cards - 1);
+          (float)CARD_SPACING_NPC * 13;
       x = CARD_PADDING;
       y = (float)WIN_HEIHT / 2.f - PLAYER_LABEL_CHAR_SIZE - cards_height / 2.f -
           PLAYER_LABEL_PADDING;
@@ -990,6 +1016,69 @@ void draw_labels_and_buttons(void) {
     }
     DrawText(name, x, y, font_size, BLACK);
   }
+
+  float max_cards_width = get_card_width() + CARD_SPACING * 13;
+  float playing_field_width = max_cards_width + 2 * PLAYING_FIELD_WIDTH_PADDING;
+  float playing_field_x = WIN_WIDTH / 2.f - playing_field_width / 2.f;
+  float playing_field_y =
+      top_player_y + PLAYER_LABEL_CHAR_SIZE + PLAYING_FIELD_PADDING;
+  float playing_field_card_spacing = 0.5f * get_card_height();
+  float playing_field_height =
+      1.2f * playing_field_card_spacing + get_card_height();
+  Rectangle playing_field = {.width = playing_field_width,
+                             .height = playing_field_height,
+                             .x = playing_field_x,
+                             .y = playing_field_y};
+  DrawRectangleRoundedLines(playing_field, 0.1, 0, 4, DARKBLUE);
+  Rectangle bomb_button = {
+      playing_field_x,
+      bottom_player_y - BOMB_BUTTON_HEIGHT - BOMB_BUTTON_PADDING,
+      BOMB_BUTTON_WIDTH,
+      BOMB_BUTTON_HEIGHT,
+  };
+  DrawRectangleRounded(bomb_button, BUTTON_ROUNDNESS, BUTTON_SEGEMENTS, RED);
+  DrawRectangleRoundedLines(bomb_button, BUTTON_ROUNDNESS, BUTTON_SEGEMENTS,
+                            BUTTON_LINE_THICKNESS, DARKBROWN);
+  const char *bomb_text = "Bomb";
+  DrawText(bomb_text,
+           bomb_button.x + bomb_button.width / 2.f -
+               MeasureText(bomb_text, BUTTON_FONT_SIZE) / 2.f,
+           bomb_button.y + bomb_button.height / 2.f - BUTTON_CHAR_SIZE / 2.f,
+           BUTTON_FONT_SIZE, BLACK);
+
+  Rectangle play_button = {
+      playing_field_x + playing_field_width - PLAY_BUTTON_WIDTH,
+      bottom_player_y - PLAY_BUTTON_HEIGHT - PLAY_BUTTON_PADDING,
+      PLAY_BUTTON_WIDTH,
+      PLAY_BUTTON_HEIGHT,
+  };
+  DrawRectangleRounded(play_button, BUTTON_ROUNDNESS, BUTTON_SEGEMENTS,
+                       DARKBLUE);
+  DrawRectangleRoundedLines(play_button, BUTTON_ROUNDNESS, BUTTON_SEGEMENTS,
+                            BUTTON_LINE_THICKNESS, DARKGRAY);
+  const char *play_text = "Play";
+  DrawText(play_text,
+           play_button.x + play_button.width / 2.f -
+               MeasureText(play_text, BUTTON_FONT_SIZE) / 2.f,
+           play_button.y + play_button.height / 2.f - BUTTON_CHAR_SIZE / 2.f,
+           BUTTON_FONT_SIZE, BLACK);
+
+  Rectangle tichu_button = {
+      playing_field_x + playing_field_width / 2.f - TICHU_BUTTON_WIDTH / 2.f,
+      playing_field_y + playing_field_height / 2.f - TICHU_BUTTON_HEIGHT / 2.f,
+      TICHU_BUTTON_WIDTH,
+      TICHU_BUTTON_HEIGHT,
+  };
+  DrawRectangleRounded(tichu_button, BUTTON_ROUNDNESS, BUTTON_SEGEMENTS,
+                       ORANGE);
+  DrawRectangleRoundedLines(tichu_button, BUTTON_ROUNDNESS, BUTTON_SEGEMENTS,
+                            BUTTON_LINE_THICKNESS, RED);
+  const char *tichu_text = "Tichu";
+  DrawText(tichu_text,
+           tichu_button.x + tichu_button.width / 2.f -
+               MeasureText(tichu_text, BUTTON_FONT_SIZE) / 2.f,
+           tichu_button.y + tichu_button.height / 2.f - BUTTON_CHAR_SIZE / 2.f,
+           BUTTON_FONT_SIZE, BLACK);
 }
 
 const char *update_draw_game(const char *game_json) {
