@@ -32,13 +32,13 @@ dealXCards'Test =
                 ( Map.fromList
                     [
                         ( "Alice"
-                        , [PokerCard (Two, Spades)]
+                        , [PokerCard (Two, Red)]
                         )
-                    , ("Bob", [PokerCard (Three, Spades)])
-                    , ("Charlie", [PokerCard (Four, Spades)])
-                    , ("David", [PokerCard (Five, Spades)])
+                    , ("Bob", [PokerCard (Three, Red)])
+                    , ("Charlie", [PokerCard (Four, Red)])
+                    , ("David", [PokerCard (Five, Red)])
                     ]
-                , [PokerCard (Six, Spades)]
+                , [PokerCard (Six, Red)]
                 )
                 dealedHands
 
@@ -64,10 +64,10 @@ deal1CardDealerFirstTest =
          in assertEqual
                 "Everybody has one card"
                 ( Map.fromList
-                    [ ("Alice", [PokerCard (Five, Spades)])
-                    , ("Bob", [PokerCard (Two, Spades)])
-                    , ("Charlie", [PokerCard (Three, Spades)])
-                    , ("David", [PokerCard (Four, Spades)])
+                    [ ("Alice", [PokerCard (Five, Red)])
+                    , ("Bob", [PokerCard (Two, Red)])
+                    , ("Charlie", [PokerCard (Three, Red)])
+                    , ("David", [PokerCard (Four, Red)])
                     ]
                 )
                 (hands game)
@@ -79,10 +79,10 @@ deal1CardDealerLastTest =
          in assertEqual
                 "Everybody has one card"
                 ( Map.fromList
-                    [ ("Alice", [PokerCard (Two, Spades)])
-                    , ("Bob", [PokerCard (Three, Spades)])
-                    , ("Charlie", [PokerCard (Four, Spades)])
-                    , ("David", [PokerCard (Five, Spades)])
+                    [ ("Alice", [PokerCard (Two, Red)])
+                    , ("Bob", [PokerCard (Three, Red)])
+                    , ("Charlie", [PokerCard (Four, Red)])
+                    , ("David", [PokerCard (Five, Red)])
                     ]
                 )
                 (hands game)

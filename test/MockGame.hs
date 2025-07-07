@@ -6,7 +6,7 @@ import Game.Structures
 import System.Random (mkStdGen)
 
 testDeck :: TichuCards
-testDeck = [PokerCard (v, c) | c <- [Spades .. Clubs], v <- [Two .. Ace]] ++ [Dragon, Phoenix, Mahjong, Dog]
+testDeck = [PokerCard (v, c) | c <- [Red .. Black], v <- [Two .. Ace]] ++ [Dragon, Phoenix, Mahjong, Dog]
 
 testGame :: String -> Game
 testGame dealer =
