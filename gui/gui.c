@@ -81,10 +81,12 @@ typedef struct {
   bool movable[TOTAL_CARDS];
   bool show_front[TOTAL_CARDS];
   bool rotated_back[TOTAL_CARDS];
-  int selected_piece_idx;
+  int selected_card_idx_mouse;
   Rectangle playing_field;
   Rectangle play_button;
+  bool play_button_hidden;
   Rectangle tichu_button;
+  bool tichu_button_hidden;
   Rectangle bomb_button;
   float bottom_player_label_y;
   float top_player_label_y;
@@ -97,6 +99,18 @@ GameState g_game_state = {0};
 static_assert(LENGTH(g_game_state.player_actions) ==
                   LENGTH(g_game_state.num_actions),
               "Must be the same length");
+
+bool is_valid_player_action(size_t player_idx, PlayerAction *action) {
+  assert(player_idx < NUM_PLAYERS && "Wrong player index");
+  for (size_t i = 0; i < g_game_state.num_actions[player_idx]; ++i) {
+    if (memcmp(&g_game_state.player_actions[player_idx][i], action,
+               sizeof(*action)) == 0) {
+      return true;
+    }
+  }
+
+  return false;
+}
 
 void set_highest_prio(size_t idx) {
   int cut = -1;
@@ -277,6 +291,14 @@ Texture2D get_card_asset(Card card, bool show_front, bool rotated_back) {
   }
 }
 
+bool is_mouse_pressed(void) {
+#if WASM
+  return mouse_pressed > 0;
+#else
+  return IsMouseButtonPressed(MOUSE_BUTTON_LEFT);
+#endif
+}
+
 bool is_mouse_down(void) {
 #if WASM
   return mouse_down > 0;
@@ -334,7 +356,8 @@ void update_hands(void) {
 
       g_render_state.visible[index] = true;
 
-      if ((long long)index == (long long)g_render_state.selected_piece_idx) {
+      if ((long long)index ==
+          (long long)g_render_state.selected_card_idx_mouse) {
         // Do not update pose if it is selected
         continue;
       }
@@ -404,16 +427,17 @@ void update_hands(void) {
   }
 }
 
-void update_card_position(void) {
+/// NOTE: This function implements the logic of moving the card with the mouse
+void update_card_position_mouse(void) {
   static Vector2 previous_mouse_touch = {0};
   if (is_mouse_down()) {
     Vector2 mouse_touch = get_mouse_position();
-    if (g_render_state.selected_piece_idx >= 0) {
-      g_render_state.card_pose[g_render_state.selected_piece_idx].pos.x +=
+    if (g_render_state.selected_card_idx_mouse >= 0) {
+      g_render_state.card_pose[g_render_state.selected_card_idx_mouse].pos.x +=
           mouse_touch.x - previous_mouse_touch.x;
-      g_render_state.card_pose[g_render_state.selected_piece_idx].pos.y +=
+      g_render_state.card_pose[g_render_state.selected_card_idx_mouse].pos.y +=
           mouse_touch.y - previous_mouse_touch.y;
-      set_highest_prio(g_render_state.selected_piece_idx);
+      set_highest_prio(g_render_state.selected_card_idx_mouse);
     } else {
       for (size_t i = 0; i < LENGTH(g_render_state.render_prio); ++i) {
         size_t idx = g_render_state.render_prio[i];
@@ -423,7 +447,7 @@ void update_card_position(void) {
                                g_render_state.rotated_back[idx]);
         if (g_render_state.movable[idx] &&
             CheckCollisionPointRec(mouse_touch, card_rec)) {
-          g_render_state.selected_piece_idx = idx;
+          g_render_state.selected_card_idx_mouse = idx;
           set_highest_prio(idx);
           break;
         }
@@ -431,8 +455,12 @@ void update_card_position(void) {
     }
     previous_mouse_touch = mouse_touch;
   } else {
-    g_render_state.selected_piece_idx = -1;
+    g_render_state.selected_card_idx_mouse = -1;
   }
+}
+
+void select_card(void) {
+  // TODO: Implement
 }
 
 #define BOX_CHAR_SIZE CHAR_SIZE_BIG
@@ -588,6 +616,7 @@ void set_pre_game_state_player_names(void) {
       (Rectangle){button_x, button_y, BUTTON_WIDTH, BUTTON_HEIGHT};
   STRBUFFCPY(g_pre_game_state.button_text, "Next");
 }
+
 bool has_duplicates(char strings[][MAX_BYTES_INPUT], long long n) {
   for (long long i = 0; i < n - 1; ++i) {
     for (long long j = i + 1; j < n; ++j) {
@@ -748,6 +777,7 @@ void reset_global_pre_game_state(void) {
 float get_card_height(void) {
   return (float)g_assets.mahjong.height * CARD_SCALE;
 }
+
 float get_card_width(void) {
   return (float)g_assets.mahjong.width * CARD_SCALE;
 }
@@ -755,7 +785,7 @@ float get_card_width(void) {
 void reset_global_game_state(void) {
   memset(&g_render_state, 0, sizeof(g_render_state));
   memset(&g_game_state, 0, sizeof(g_game_state));
-  g_render_state.selected_piece_idx = -1; // Nothing selected
+  g_render_state.selected_card_idx_mouse = -1; // Nothing selected
 
   for (size_t i = 0; i < LENGTH(g_render_state.render_prio); ++i) {
     g_render_state.render_prio[i] = i;
@@ -911,7 +941,7 @@ const char *update_draw_config(void) {
   // Currently selected textbox and input
   Rectangle *selected_tb =
       &g_pre_game_state.text_box[g_pre_game_state.selected_text_box];
-  char (*selected_tb_input)[MAX_BYTES_INPUT] =
+  char(*selected_tb_input)[MAX_BYTES_INPUT] =
       &g_pre_game_state.text_box_input[g_pre_game_state.selected_text_box];
   int *selected_char_counter =
       &g_pre_game_state.input_char_counter[g_pre_game_state.selected_text_box];
@@ -1111,7 +1141,7 @@ const char *update_draw_game(const char *game_json) {
   parse_game_and_actions(&g_game_state, game_json);
 
   update_hands();
-  update_card_position();
+  select_card();
 
   BeginDrawing();
   ClearBackground(WHITE);

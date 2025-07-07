@@ -933,7 +933,8 @@ ptrdiff_t parse_game_actions(GameState *game_state, jsmntok_t *game_token,
       int array_size = current_token->size;
       free(game_state->player_actions[idx]);
       game_state->player_actions[idx] =
-          malloc(array_size * sizeof(*game_state->player_actions[idx]));
+          // NOTE: Use calloc such that we can easily compare the structs
+          calloc(array_size, sizeof(*game_state->player_actions[idx]));
       assert(game_state->player_actions[idx] != NULL && "Out of memory.");
       game_state->num_actions[idx] = array_size;
       ++current_token;

@@ -151,6 +151,7 @@ typedef struct {
   /// Dynamically allocated players actions
   PlayerAction *player_actions[NUM_PLAYERS];
   unsigned long long num_actions[NUM_PLAYERS];
+  char error[50];
   char current_action_json[MAX_BYTES_CURRENT_ACTION_JSON];
 } GameState;
 
