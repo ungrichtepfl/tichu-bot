@@ -1,25 +1,28 @@
-package:=tichu-bot
-cli_exe:=tichu-cli
-gui_exe:=tichu-gui
+package := tichu-bot
+cli_exe := tichu-cli
+gui_exe := tichu-gui
 
-wasm_exe:=tichu-wasm
-wasm_dir:=wasm
-ghc_version_num:=9.12.2
-ghc_version:=ghc-$(ghc_version_num)
-ghc_wasm_version_num:=$(ghc_version_num).20250327
-pkg_version:=0.1.1.0
+wasm_exe := tichu-wasm
+wasm_dir := wasm
+ghc_version_num := 9.12.2
+ghc_version := ghc-$(ghc_version_num)
+ghc_wasm_version_num := $(ghc_version_num).20250327
+pkg_version := 0.1.1.0
 
-ghc_wasm_env:="$$HOME/.ghc-wasm/env"
+ghc_wasm_env := "$$HOME/.ghc-wasm/env"
 
-CFLAGS:= -Wall -Werror -Wextra -Wpedantic -Wno-overlength-strings -ggdb -std=c23 -pedantic
-CSRCDIR:=gui
-CMAIN:=$(CSRCDIR)/main.c
-CSRC:=$(CSRCDIR)/gui.c
-CINCLUDE:=-I./$(CSRCDIR)/raylib-5.0/linux_amd64/include
-CLFLAGS:=-L./$(CSRCDIR)/raylib-5.0/linux_amd64/lib -l:libraylib.a -lm
-COUT:=cbuild
-CPP:=$(COUT)/gui_pp.c
-CEXE:=$(COUT)/main
+CFLAGS := -Wall -Werror -Wextra -Wpedantic -Wno-overlength-strings -ggdb -std=c23 -pedantic
+CSRCDIR := gui
+CMAIN := $(CSRCDIR)/main.c
+CSRC := $(CSRCDIR)/gui.c
+CINCLUDE := -I./$(CSRCDIR)/raylib-5.0/linux_amd64/include
+CLFLAGS := -L./$(CSRCDIR)/raylib-5.0/linux_amd64/lib -l:libraylib.a -lm
+COUT := cbuild
+CPP := $(COUT)/gui_pp.c
+CEXE := $(COUT)/main
+
+.PHONY: all
+all: cli-build gui-build
 
 .PHONY: cli-build
 cli-build: $(package).cabal
@@ -87,3 +90,7 @@ clean:
 update-index:
 	cabal update
 	. $(ghc_wasm_env) && wasm32-wasi-cabal update
+
+.PHONY: test
+test: $(package).cabal
+	cabal test
