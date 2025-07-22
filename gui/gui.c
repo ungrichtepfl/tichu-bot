@@ -78,9 +78,10 @@ typedef struct {
   CardPose card_pose[TOTAL_CARDS];
   size_t render_prio[TOTAL_CARDS];
   bool visible[TOTAL_CARDS];
-  bool movable[TOTAL_CARDS];
+  bool selectable[TOTAL_CARDS];
   bool show_front[TOTAL_CARDS];
   bool rotated_back[TOTAL_CARDS];
+  bool selected[TOTAL_CARDS];
   int selected_card_idx_mouse;
   Rectangle playing_field;
   Rectangle play_button;
@@ -344,7 +345,7 @@ unsigned long get_num_cards(Card hand[MAX_CARDS_PER_PLAYER]) {
 
 void update_hands(void) {
   memset(g_render_state.visible, 0, sizeof(g_render_state.visible));
-  memset(g_render_state.movable, 0, sizeof(g_render_state.movable));
+  memset(g_render_state.selectable, 0, sizeof(g_render_state.selectable));
   memset(g_render_state.rotated_back, 0, sizeof(g_render_state.rotated_back));
   memset(g_render_state.show_front, 1, sizeof(g_render_state.show_front));
 
@@ -400,7 +401,7 @@ void update_hands(void) {
         Texture2D card_asset = get_card_asset(card, false, false);
         float cards_width =
             (float)card_asset.width * scale + spacing * (num_cards - 1);
-        g_render_state.movable[index] = true;
+        g_render_state.selectable[index] = true;
         g_render_state.show_front[index] = true;
         g_render_state.card_pose[index].pos.x =
             (float)WIN_WIDTH / 2.f - cards_width / 2.f + spacing * (float)j;
@@ -445,7 +446,7 @@ void update_card_position_mouse(void) {
         Rectangle card_rec =
             get_card_rectangle(card, g_render_state.show_front[idx],
                                g_render_state.rotated_back[idx]);
-        if (g_render_state.movable[idx] &&
+        if (g_render_state.selectable[idx] &&
             CheckCollisionPointRec(mouse_touch, card_rec)) {
           g_render_state.selected_card_idx_mouse = idx;
           set_highest_prio(idx);
@@ -460,7 +461,21 @@ void update_card_position_mouse(void) {
 }
 
 void select_card(void) {
-  // TODO: Implement
+  if (is_mouse_pressed()) {
+    Vector2 mouse_touch = GetMousePosition();
+    for (size_t i = 0; i < LENGTH(g_render_state.render_prio); ++i) {
+      size_t idx = g_render_state.render_prio[i];
+      Card card = get_card_from_index(idx);
+      Rectangle card_rec =
+          get_card_rectangle(card, g_render_state.show_front[idx],
+                             g_render_state.rotated_back[idx]);
+      if (g_render_state.selectable[idx] &&
+          CheckCollisionPointRec(mouse_touch, card_rec)) {
+        g_render_state.selected[idx] ^= true;
+        break;
+      }
+    }
+  }
 }
 
 #define BOX_CHAR_SIZE CHAR_SIZE_BIG
@@ -758,17 +773,17 @@ void reset_global_pre_game_state(void) {
 
 #define PLAYER_LABEL_FONT_SIZE FONT_SIZE_MEDIUM
 #define PLAYER_LABEL_CHAR_SIZE CHAR_SIZE_MEDIUM
-#define PLAYER_LABEL_PADDING ((float)WIN_HEIHT / 150.f)
+#define PLAYER_LABEL_PADDING ((float)WIN_HEIHT / 75.f)
 
 #define PLAYING_FIELD_WIDTH_PADDING ((float)WIN_WIDTH / 70.f)
-#define PLAYING_FIELD_PADDING ((float)WIN_HEIHT / 15.f)
+#define PLAYING_FIELD_PADDING ((float)WIN_HEIHT / 30.f)
 
 #define TICHU_BUTTON_WIDTH BUTTON_WIDTH
 #define TICHU_BUTTON_HEIGHT BUTTON_HEIGHT
 
 #define PLAY_BUTTON_WIDTH BUTTON_WIDTH
 #define PLAY_BUTTON_HEIGHT BUTTON_HEIGHT
-#define PLAY_BUTTON_PADDING ((float)WIN_HEIHT / 100.f)
+#define PLAY_BUTTON_PADDING ((float)WIN_HEIHT / 50.f)
 
 #define BOMB_BUTTON_WIDTH BUTTON_WIDTH
 #define BOMB_BUTTON_HEIGHT BUTTON_HEIGHT
@@ -858,6 +873,11 @@ void draw_cards(void) {
     CardPose pose = g_render_state.card_pose[idx];
     Rectangle card_rec = get_card_rectangle(
         card, g_render_state.show_front[idx], g_render_state.rotated_back[idx]);
+    if (g_render_state.selected[idx]) {
+      float dy = 0.15 * card_texture.height * pose.scale;
+      pose.pos.y -= dy;
+      card_rec.y -= dy;
+    }
     DrawTextureEx(card_texture, pose.pos, pose.rot, pose.scale, WHITE);
     float thickness = card_rec.width / 80.f;
     DrawRectangleLinesEx(card_rec, thickness, DARKGRAY);
