@@ -310,6 +310,7 @@ parse_tichu_combination_content_cards(TichuCombination *tichu_combination,
     current_token += parse_playing_card(&tichu_combination->cards[a],
                                         current_token, game_json);
   }
+  tichu_combination->num_cards = array_size;
 
   return current_token - game_token;
 }
@@ -327,9 +328,10 @@ ptrdiff_t parse_tichu_combination_content(TichuCombination *tichu_combination,
   ++current_token;
 
   if (array_size == 1) {
-    // NOTE: There seems to only one array (No array in array)
+    // NOTE: There seems to be only one array (No array in array)
     current_token += parse_playing_card(&tichu_combination->cards[0],
                                         current_token, game_json);
+    tichu_combination->num_cards = 1;
   } else if (array_size == 2) {
 
     current_token += parse_tichu_combination_content_cards(

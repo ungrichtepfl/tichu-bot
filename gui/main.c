@@ -13,7 +13,7 @@ int main(void) {
     /* if (strcmp(game_config, "null") == 0) */
     /*   STRBUFFCPY(game_config, update_draw_config()); */
     /* else */
-      update_draw_game(test_json2);
+      update_draw_game(test_json1);
   }
 
   deinit();

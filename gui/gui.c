@@ -91,6 +91,7 @@ typedef struct {
   Rectangle bomb_button;
   float bottom_player_label_y;
   float top_player_label_y;
+  char error[50];
 } RenderState;
 
 RenderState g_render_state = {0};
@@ -100,6 +101,29 @@ GameState g_game_state = {0};
 static_assert(LENGTH(g_game_state.player_actions) ==
                   LENGTH(g_game_state.num_actions),
               "Must be the same length");
+
+typedef struct {
+  size_t indexes[MAX_CARDS_PER_PLAYER];
+  size_t num_cards;
+} SelectedCards;
+
+SelectedCards get_selected_cards(void) {
+  SelectedCards selected = {0};
+  size_t j = 0;
+  for (size_t i = 0; i < LENGTH(g_render_state.selected); ++i) {
+    if (g_render_state.selected[i]) {
+      assert(j < LENGTH(selected.indexes) && "Too many selected cards");
+      selected.indexes[j] = i;
+      ++j;
+    }
+  }
+  selected.num_cards = j;
+  return selected;
+}
+
+bool is_same_card(Card *card1, Card *card2) {
+  return (memcmp(card1, card2, sizeof(*card1)) == 0);
+}
 
 bool is_valid_player_action(size_t player_idx, PlayerAction *action) {
   assert(player_idx < NUM_PLAYERS && "Wrong player index");
@@ -335,6 +359,8 @@ Rectangle get_card_rectangle(Card card, bool show_front, bool back_rotated) {
 #define CARD_SCALE 1.f
 #define CARD_SCALE_NPC 0.85f
 
+#define PLAYING_PLAYER_INDEX 2
+
 unsigned long get_num_cards(Card hand[MAX_CARDS_PER_PLAYER]) {
   for (unsigned long i = 0; i < MAX_CARDS_PER_PLAYER; ++i) {
     if (END_OF_CARDS(hand[i]))
@@ -472,6 +498,7 @@ void select_card(void) {
       if (g_render_state.selectable[idx] &&
           CheckCollisionPointRec(mouse_touch, card_rec)) {
         g_render_state.selected[idx] ^= true;
+        STRBUFFCPY(g_render_state.error, "");
         break;
       }
     }
@@ -1078,6 +1105,7 @@ const char *update_draw_config(void) {
 
 void draw_labels_and_buttons(void) {
   int font_size = FONT_SIZE_SMALL;
+  int char_size = CHAR_SIZE_SMALL;
   for (unsigned int i = 0;
        i < LENGTH(g_game_state.game.game_config.sitting_order); ++i) {
     char *name = g_game_state.game.game_config.sitting_order[i];
@@ -1100,6 +1128,10 @@ void draw_labels_and_buttons(void) {
     case 2: {
       x = (float)WIN_WIDTH / 2.f - MeasureText(name, font_size) / 2.f;
       y = g_render_state.bottom_player_label_y;
+      float x_error = (float)WIN_WIDTH / 2.f -
+                      MeasureText(g_render_state.error, FONT_SIZE_SMALL) / 2.f;
+      float y_error = y + char_size + 5;
+      DrawText(g_render_state.error, x_error, y_error, font_size, RED);
     } break;
     case 3: {
       float cards_height =
@@ -1133,7 +1165,9 @@ void draw_labels_and_buttons(void) {
                        BUTTON_SEGEMENTS, DARKBLUE);
   DrawRectangleRoundedLines(g_render_state.play_button, BUTTON_ROUNDNESS,
                             BUTTON_SEGEMENTS, BUTTON_LINE_THICKNESS, DARKGRAY);
-  const char *play_text = "Play";
+
+  SelectedCards selected = get_selected_cards();
+  const char *play_text = selected.num_cards == 0 ? "Pass" : "Play";
   DrawText(play_text,
            g_render_state.play_button.x +
                g_render_state.play_button.width / 2.f -
@@ -1156,12 +1190,82 @@ void draw_labels_and_buttons(void) {
       BUTTON_FONT_SIZE, BLACK);
 }
 
+bool contain_same_cards(SelectedCards *selected,
+                        Card cards[MAX_CARDS_PER_PLAYER], size_t num_cards) {
+  if (selected->num_cards != num_cards)
+    return false;
+  bool found[MAX_CARDS_PER_PLAYER] = {0};
+  for (size_t i = 0; i < selected->num_cards; ++i) {
+    Card selected_card = get_card_from_index(selected->indexes[i]);
+    for (size_t j = 0; j < num_cards; ++j) {
+      if (is_same_card(&selected_card, &cards[j])) {
+        found[i] = true;
+        break;
+      }
+    }
+  }
+  for (size_t i = 0; i < selected->num_cards; ++i) {
+    if (!found[i])
+      return false;
+  }
+  return true;
+}
+
+long long player_action_from_selected(SelectedCards *selected) {
+  long long idx = -1;
+  PlayerAction *player_actions =
+      g_game_state.player_actions[PLAYING_PLAYER_INDEX];
+  size_t num_actions = g_game_state.num_actions[PLAYING_PLAYER_INDEX];
+  for (size_t i = 0; i < num_actions; ++i) {
+    if (player_actions[i].type == Play) {
+      if (contain_same_cards(selected, player_actions[i].combination.cards,
+                             player_actions[i].combination.num_cards)) {
+        idx = i;
+      }
+    }
+  }
+  return idx;
+}
+
+void check_buttons(void) {
+  if (is_mouse_pressed()) {
+    Vector2 mouse_pos = GetMousePosition();
+    if (CheckCollisionPointRec(mouse_pos, g_render_state.bomb_button)) {
+      printf("Bomb button pressed\n");
+    }
+    if (CheckCollisionPointRec(mouse_pos, g_render_state.play_button)) {
+      SelectedCards selected = get_selected_cards();
+      if (selected.num_cards == 0) {
+        PlayerAction action = (PlayerAction){.type = Pass};
+        if (!is_valid_player_action(PLAYING_PLAYER_INDEX, &action)) {
+          STRBUFFCPY(g_render_state.error, "Cannot pass!");
+          return;
+        }
+        // TODO: Pass
+      } else {
+        long long player_action_idx = player_action_from_selected(&selected);
+        if (player_action_idx == -1) {
+          STRBUFFCPY(g_render_state.error, "Not a valid combination!");
+          memset(g_render_state.selected, 0, LENGTH(g_render_state.selected));
+          return;
+        }
+        printf("Play\n");
+        // TODO: play action
+      }
+    }
+    if (CheckCollisionPointRec(mouse_pos, g_render_state.tichu_button)) {
+      printf("Tichu button pressed\n");
+    }
+  }
+}
+
 const char *update_draw_game(const char *game_json) {
 
   parse_game_and_actions(&g_game_state, game_json);
 
   update_hands();
   select_card();
+  check_buttons();
 
   BeginDrawing();
   ClearBackground(WHITE);
