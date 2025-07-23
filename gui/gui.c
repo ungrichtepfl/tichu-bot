@@ -85,10 +85,7 @@ typedef struct {
   int selected_card_idx_mouse;
   Rectangle playing_field;
   Rectangle play_button;
-  bool play_button_hidden;
   Rectangle tichu_button;
-  bool tichu_button_hidden;
-  Rectangle bomb_button;
   float bottom_player_label_y;
   float top_player_label_y;
   char error[50];
@@ -805,16 +802,13 @@ void reset_global_pre_game_state(void) {
 #define PLAYING_FIELD_WIDTH_PADDING ((float)WIN_WIDTH / 70.f)
 #define PLAYING_FIELD_PADDING ((float)WIN_HEIHT / 30.f)
 
-#define TICHU_BUTTON_WIDTH BUTTON_WIDTH
-#define TICHU_BUTTON_HEIGHT BUTTON_HEIGHT
-
 #define PLAY_BUTTON_WIDTH BUTTON_WIDTH
 #define PLAY_BUTTON_HEIGHT BUTTON_HEIGHT
 #define PLAY_BUTTON_PADDING ((float)WIN_HEIHT / 50.f)
 
-#define BOMB_BUTTON_WIDTH BUTTON_WIDTH
-#define BOMB_BUTTON_HEIGHT BUTTON_HEIGHT
-#define BOMB_BUTTON_PADDING PLAY_BUTTON_PADDING
+#define TICHU_BUTTON_WIDTH BUTTON_WIDTH
+#define TICHU_BUTTON_HEIGHT BUTTON_HEIGHT
+#define TICHU_BUTTON_PADDING PLAY_BUTTON_PADDING
 
 float get_card_height(void) {
   return (float)g_assets.mahjong.height * CARD_SCALE;
@@ -861,13 +855,13 @@ void reset_global_game_state(void) {
   g_render_state.top_player_label_y = top_player_label_y;
   g_render_state.bottom_player_label_y = bottom_player_label_y;
 
-  Rectangle bomb_button = {
+  Rectangle tichu_button = {
       playing_field_x,
-      bottom_player_label_y - BOMB_BUTTON_HEIGHT - BOMB_BUTTON_PADDING,
-      BOMB_BUTTON_WIDTH,
-      BOMB_BUTTON_HEIGHT,
+      bottom_player_label_y - TICHU_BUTTON_HEIGHT - TICHU_BUTTON_PADDING,
+      TICHU_BUTTON_WIDTH,
+      TICHU_BUTTON_HEIGHT,
   };
-  g_render_state.bomb_button = bomb_button;
+  g_render_state.tichu_button = tichu_button;
 
   Rectangle play_button = {
       playing_field_x + playing_field_width - PLAY_BUTTON_WIDTH,
@@ -877,13 +871,6 @@ void reset_global_game_state(void) {
   };
   g_render_state.play_button = play_button;
 
-  Rectangle tichu_button = {
-      playing_field_x + playing_field_width / 2.f - TICHU_BUTTON_WIDTH / 2.f,
-      playing_field_y + playing_field_height / 2.f - TICHU_BUTTON_HEIGHT / 2.f,
-      TICHU_BUTTON_WIDTH,
-      TICHU_BUTTON_HEIGHT,
-  };
-  g_render_state.tichu_button = tichu_button;
 
   ACTION_RESET();
 }
@@ -1148,17 +1135,19 @@ void draw_labels_and_buttons(void) {
   }
 
   DrawRectangleRoundedLines(g_render_state.playing_field, 0.1, 0, 4, DARKBLUE);
-  DrawRectangleRounded(g_render_state.bomb_button, BUTTON_ROUNDNESS,
+  DrawRectangleRounded(g_render_state.tichu_button, BUTTON_ROUNDNESS,
                        BUTTON_SEGEMENTS, RED);
-  DrawRectangleRoundedLines(g_render_state.bomb_button, BUTTON_ROUNDNESS,
+  DrawRectangleRoundedLines(g_render_state.tichu_button, BUTTON_ROUNDNESS,
                             BUTTON_SEGEMENTS, BUTTON_LINE_THICKNESS, DARKBROWN);
-  const char *bomb_text = "Bomb";
-  DrawText(bomb_text,
-           g_render_state.bomb_button.x +
-               g_render_state.bomb_button.width / 2.f -
-               MeasureText(bomb_text, BUTTON_FONT_SIZE) / 2.f,
-           g_render_state.bomb_button.y +
-               g_render_state.bomb_button.height / 2.f - BUTTON_CHAR_SIZE / 2.f,
+  PlayerAction tichu_action = {.type = CallTichu};
+  if (is_valid_player_action(PLAYING_PLAYER_INDEX, &tichu_action)) {
+  const char *tichu_text = "Tichu";
+  DrawText(tichu_text,
+           g_render_state.tichu_button.x +
+               g_render_state.tichu_button.width / 2.f -
+               MeasureText(tichu_text, BUTTON_FONT_SIZE) / 2.f,
+           g_render_state.tichu_button.y +
+               g_render_state.tichu_button.height / 2.f - BUTTON_CHAR_SIZE / 2.f,
            BUTTON_FONT_SIZE, BLACK);
 
   DrawRectangleRounded(g_render_state.play_button, BUTTON_ROUNDNESS,
@@ -1175,19 +1164,7 @@ void draw_labels_and_buttons(void) {
            g_render_state.play_button.y +
                g_render_state.play_button.height / 2.f - BUTTON_CHAR_SIZE / 2.f,
            BUTTON_FONT_SIZE, BLACK);
-
-  DrawRectangleRounded(g_render_state.tichu_button, BUTTON_ROUNDNESS,
-                       BUTTON_SEGEMENTS, ORANGE);
-  DrawRectangleRoundedLines(g_render_state.tichu_button, BUTTON_ROUNDNESS,
-                            BUTTON_SEGEMENTS, BUTTON_LINE_THICKNESS, RED);
-  const char *tichu_text = "Tichu";
-  DrawText(
-      tichu_text,
-      g_render_state.tichu_button.x + g_render_state.tichu_button.width / 2.f -
-          MeasureText(tichu_text, BUTTON_FONT_SIZE) / 2.f,
-      g_render_state.tichu_button.y + g_render_state.tichu_button.height / 2.f -
-          BUTTON_CHAR_SIZE / 2.f,
-      BUTTON_FONT_SIZE, BLACK);
+  }
 }
 
 bool contain_same_cards(SelectedCards *selected,
@@ -1230,9 +1207,7 @@ long long player_action_from_selected(SelectedCards *selected) {
 void check_buttons(void) {
   if (is_mouse_pressed()) {
     Vector2 mouse_pos = GetMousePosition();
-    if (CheckCollisionPointRec(mouse_pos, g_render_state.bomb_button)) {
-      printf("Bomb button pressed\n");
-    }
+
     if (CheckCollisionPointRec(mouse_pos, g_render_state.play_button)) {
       SelectedCards selected = get_selected_cards();
       if (selected.num_cards == 0) {
@@ -1254,7 +1229,12 @@ void check_buttons(void) {
       }
     }
     if (CheckCollisionPointRec(mouse_pos, g_render_state.tichu_button)) {
-      printf("Tichu button pressed\n");
+      PlayerAction action = (PlayerAction){.type = CallTichu};
+      if (!is_valid_player_action(PLAYING_PLAYER_INDEX, &action)) {
+        STRBUFFCPY(g_render_state.error, "Cannot call tichu!");
+        return;
+      }
+      printf("Tichu\n");
     }
   }
 }
