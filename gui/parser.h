@@ -10,18 +10,23 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define NUM_JSON_TOKENS (1 << 12)
+#define MAX(a, b) (a > b ? a : b)
+#define MIN(a, b) (a < b ? a : b)
+#define LENGTH(a) (sizeof(a) / sizeof(a[0]))
+
+#define NUM_JSON_TOKENS (1 << 16)
 jsmn_parser json_parser;
 jsmntok_t json_tokens[NUM_JSON_TOKENS];
 #define SAFECPY(g, t, n)                                                       \
   strncpy(g, t, MIN((long long)sizeof(g) - 1ll, (long long)n))
 #define STRBUFFCPY(b, s) strncpy(b, s, (long long)sizeof(b) - 1ll)
-#define STRBUFFCAT(b, s)                                                       \
-  strncat(b, s, MAX(0ll, (long long)sizeof(b) - 1ll - (long long)strlen(s)))
-
-#define MAX(a, b) (a > b ? a : b)
-#define MIN(a, b) (a < b ? a : b)
-#define LENGTH(a) (sizeof(a) / sizeof(a[0]))
+/* TODO: Fix errors when run with -O2 flag
+#define STRBUFFCAT1(b, s)                                                      \
+  strncat(b, s,                                                                \
+          MAX(0ll, (long long)sizeof(b) - 1ll - (long long)strlen(b) -         \
+                       (long long)strlen(s)))
+*/
+#define STRBUFFCAT(b, s) strcat(b, s)
 
 bool json_str_equal(const char *json, jsmntok_t *tok, const char *s) {
   if (tok->type == JSMN_STRING && (int)strlen(s) == tok->end - tok->start &&

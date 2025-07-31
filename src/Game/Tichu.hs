@@ -250,7 +250,9 @@ updateGame game playersAction =
                 ( case playersAction of
                     Just action ->
                         distribute game action
-                    Nothing -> game -- Nothing todo
+                    -- Nothing -> game -- Nothing todo
+                    Nothing -> -- TODO: Remove and uncomment above as soon as distribute is implemented
+                        game{gamePhase = Playing (startingPlayer $ hands game) 0} -- TODO: Implement
                 )
             Playing _ _ ->
                 ( case playersAction of
