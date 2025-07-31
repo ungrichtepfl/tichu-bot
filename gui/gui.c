@@ -635,7 +635,7 @@ void set_pre_game_state_player_names(void) {
   g_pre_game_state.title_y = title_y;
   STRBUFFCPY(g_pre_game_state.text_box_label[0], "Player 1:");
   STRBUFFCPY(g_pre_game_state.text_box_label[1], "Player 2:");
-  STRBUFFCPY(g_pre_game_state.text_box_label[2], "Player 3:");
+  STRBUFFCPY(g_pre_game_state.text_box_label[2], "Player 3 (you):");
   STRBUFFCPY(g_pre_game_state.text_box_label[3], "Player 4:");
   g_pre_game_state.text_box[0] = (Rectangle){x, y, width, height};
   g_pre_game_state.text_box[1] = (Rectangle){x, y + height + dy, width, height};
@@ -870,7 +870,6 @@ void reset_global_game_state(void) {
       PLAY_BUTTON_HEIGHT,
   };
   g_render_state.play_button = play_button;
-
 
   ACTION_RESET();
 }
@@ -1141,29 +1140,31 @@ void draw_labels_and_buttons(void) {
                             BUTTON_SEGEMENTS, BUTTON_LINE_THICKNESS, DARKBROWN);
   PlayerAction tichu_action = {.type = CallTichu};
   if (is_valid_player_action(PLAYING_PLAYER_INDEX, &tichu_action)) {
-  const char *tichu_text = "Tichu";
-  DrawText(tichu_text,
-           g_render_state.tichu_button.x +
-               g_render_state.tichu_button.width / 2.f -
-               MeasureText(tichu_text, BUTTON_FONT_SIZE) / 2.f,
-           g_render_state.tichu_button.y +
-               g_render_state.tichu_button.height / 2.f - BUTTON_CHAR_SIZE / 2.f,
-           BUTTON_FONT_SIZE, BLACK);
+    const char *tichu_text = "Tichu";
+    DrawText(tichu_text,
+             g_render_state.tichu_button.x +
+                 g_render_state.tichu_button.width / 2.f -
+                 MeasureText(tichu_text, BUTTON_FONT_SIZE) / 2.f,
+             g_render_state.tichu_button.y +
+                 g_render_state.tichu_button.height / 2.f -
+                 BUTTON_CHAR_SIZE / 2.f,
+             BUTTON_FONT_SIZE, BLACK);
 
-  DrawRectangleRounded(g_render_state.play_button, BUTTON_ROUNDNESS,
-                       BUTTON_SEGEMENTS, DARKBLUE);
-  DrawRectangleRoundedLines(g_render_state.play_button, BUTTON_ROUNDNESS,
-                            BUTTON_SEGEMENTS, BUTTON_LINE_THICKNESS, DARKGRAY);
+    DrawRectangleRounded(g_render_state.play_button, BUTTON_ROUNDNESS,
+                         BUTTON_SEGEMENTS, DARKBLUE);
+    DrawRectangleRoundedLines(g_render_state.play_button, BUTTON_ROUNDNESS,
+                              BUTTON_SEGEMENTS, BUTTON_LINE_THICKNESS,
+                              DARKGRAY);
 
-  SelectedCards selected = get_selected_cards();
-  const char *play_text = selected.num_cards == 0 ? "Pass" : "Play";
-  DrawText(play_text,
-           g_render_state.play_button.x +
-               g_render_state.play_button.width / 2.f -
-               MeasureText(play_text, BUTTON_FONT_SIZE) / 2.f,
-           g_render_state.play_button.y +
-               g_render_state.play_button.height / 2.f - BUTTON_CHAR_SIZE / 2.f,
-           BUTTON_FONT_SIZE, BLACK);
+    SelectedCards selected = get_selected_cards();
+    const char *play_text = selected.num_cards == 0 ? "Pass" : "Play";
+    DrawText(
+        play_text,
+        g_render_state.play_button.x + g_render_state.play_button.width / 2.f -
+            MeasureText(play_text, BUTTON_FONT_SIZE) / 2.f,
+        g_render_state.play_button.y + g_render_state.play_button.height / 2.f -
+            BUTTON_CHAR_SIZE / 2.f,
+        BUTTON_FONT_SIZE, BLACK);
   }
 }
 
@@ -1205,6 +1206,7 @@ long long player_action_from_selected(SelectedCards *selected) {
 }
 
 void check_buttons(void) {
+
   if (is_mouse_pressed()) {
     Vector2 mouse_pos = GetMousePosition();
 
@@ -1216,7 +1218,8 @@ void check_buttons(void) {
           STRBUFFCPY(g_render_state.error, "Cannot pass!");
           return;
         }
-        // TODO: Pass
+        serialize_player_action(&action, &g_game_state.current_action_json);
+        return;
       } else {
         long long player_action_idx = player_action_from_selected(&selected);
         if (player_action_idx == -1) {
@@ -1224,8 +1227,11 @@ void check_buttons(void) {
           memset(g_render_state.selected, 0, LENGTH(g_render_state.selected));
           return;
         }
-        printf("Play\n");
-        // TODO: play action
+        serialize_player_action(
+            &g_game_state
+                 .player_actions[PLAYING_PLAYER_INDEX][player_action_idx],
+            &g_game_state.current_action_json);
+        return;
       }
     }
     if (CheckCollisionPointRec(mouse_pos, g_render_state.tichu_button)) {
@@ -1234,7 +1240,8 @@ void check_buttons(void) {
         STRBUFFCPY(g_render_state.error, "Cannot call tichu!");
         return;
       }
-      printf("Tichu\n");
+      serialize_player_action(&action, &g_game_state.current_action_json);
+      return;
     }
   }
 }

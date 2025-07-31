@@ -1137,4 +1137,229 @@ void serialize_game_config(GameConfig *game_config,
   STRBUFFCAT(*game_config_json, "}");
 }
 
+void append_card_value_str(
+    int value, char (*player_action_json)[MAX_BYTES_CURRENT_ACTION_JSON]) {
+  char *v = NULL;
+  switch (value) {
+  case 2: {
+    v = "Two";
+  } break;
+  case 3: {
+    v = "Three";
+  } break;
+  case 4: {
+    v = "Four";
+  } break;
+  case 5: {
+    v = "Five";
+  } break;
+  case 6: {
+    v = "Six";
+  } break;
+  case 7: {
+    v = "Seven";
+  } break;
+  case 8: {
+    v = "Eight";
+  } break;
+  case 9: {
+    v = "Nine";
+  } break;
+  case 10: {
+    v = "Ten";
+  } break;
+  case 11: {
+    v = "Jack";
+  } break;
+  case 12: {
+    v = "Queen";
+  } break;
+  case 13: {
+    v = "King";
+  } break;
+  case 14: {
+    v = "Ace";
+  } break;
+  default:
+    assert(false && "Unreachable");
+  }
+  STRBUFFCAT(*player_action_json, "\"");
+  STRBUFFCAT(*player_action_json, v);
+  STRBUFFCAT(*player_action_json, "\"");
+}
+
+void append_tichu_combination_tag_str(
+    TichuCombinationType type,
+    char (*player_action_json)[MAX_BYTES_CURRENT_ACTION_JSON]) {
+  char *s = NULL;
+  switch (type) {
+  case SingleCard: {
+    s = "SingleCard";
+  } break;
+  case Pair: {
+    s = "Pair";
+  } break;
+  case ThreeOfAKind: {
+    s = "ThreeOfAKind";
+  } break;
+  case Straight: {
+    s = "Straight";
+  } break;
+  case FullHouse: {
+    s = "FullHouse";
+  } break;
+  case Stairs: {
+    s = "Stairs";
+  } break;
+  case Bomb: {
+    s = "Bomb";
+  } break;
+  default:
+    assert(false && "Unreachable");
+  }
+  STRBUFFCAT(*player_action_json, "\"");
+  STRBUFFCAT(*player_action_json, s);
+  STRBUFFCAT(*player_action_json, "\"");
+}
+
+void append_card_object_str(
+    Card *card, char (*player_action_json)[MAX_BYTES_CURRENT_ACTION_JSON]) {
+
+  // RED_CARD,
+  // GREEN_CARD,
+  // BLUE_CARD,
+  // BLACK_CARD,
+  // DRAGON,
+  // PHOENIX,
+  // MAHJONG,
+  // DOG,
+  char *tag = NULL;
+  char *color = NULL;
+  switch (card->color) {
+  case RED_CARD: {
+    color = "Red";
+    tag = "PokerCard";
+  } break;
+  case BLUE_CARD: {
+    color = "Blue";
+    tag = "PokerCard";
+  } break;
+  case GREEN_CARD: {
+    color = "Green";
+    tag = "PokerCard";
+  } break;
+  case BLACK_CARD: {
+    color = "Black";
+    tag = "PokerCard";
+  } break;
+  case DRAGON: {
+    tag = "Dragon";
+  } break;
+  case PHOENIX: {
+    tag = "Phoenix";
+  } break;
+  case MAHJONG: {
+    tag = "Mahjong";
+  } break;
+  case DOG: {
+    tag = "Dog";
+  } break;
+  default:
+    assert(false && "Unreachable");
+  }
+  assert(tag != NULL && "Tag should not be null");
+  STRBUFFCAT(*player_action_json, "{\"tag\":");
+  STRBUFFCAT(*player_action_json, "\"");
+  STRBUFFCAT(*player_action_json, tag);
+  STRBUFFCAT(*player_action_json, "\"");
+  if (card->color == DRAGON || card->color == PHOENIX ||
+      card->color == MAHJONG || card->color == DOG) {
+    STRBUFFCAT(*player_action_json, "}");
+    return;
+  }
+  assert(color != NULL && "Color should not be null");
+  STRBUFFCAT(*player_action_json, ",");
+  STRBUFFCAT(*player_action_json, "\"contents\":");
+  STRBUFFCAT(*player_action_json, "[");
+  append_card_value_str(card->number, player_action_json);
+  STRBUFFCAT(*player_action_json, ",");
+  STRBUFFCAT(*player_action_json, "\"");
+  STRBUFFCAT(*player_action_json, color);
+  STRBUFFCAT(*player_action_json, "\"");
+  STRBUFFCAT(*player_action_json, "]");
+  STRBUFFCAT(*player_action_json, "}");
+}
+
+void append_tichu_combination_object_str(
+    TichuCombination *tichu_combination,
+    char (*player_action_json)[MAX_BYTES_CURRENT_ACTION_JSON]) {
+  STRBUFFCAT(*player_action_json, "{");
+  STRBUFFCAT(*player_action_json, "\"tag\":");
+  append_tichu_combination_tag_str(tichu_combination->type, player_action_json);
+  STRBUFFCAT(*player_action_json, ",");
+  STRBUFFCAT(*player_action_json, "\"contents\":");
+  if (tichu_combination->type != SingleCard) // Array in array
+    STRBUFFCAT(*player_action_json, "[");
+  STRBUFFCAT(*player_action_json, "[");
+  for (size_t i = 0; i < tichu_combination->num_cards; ++i) {
+    append_card_object_str(&tichu_combination->cards[i], player_action_json);
+    if (tichu_combination->num_cards != i + 1)
+      STRBUFFCAT(*player_action_json, ",");
+  }
+  STRBUFFCAT(*player_action_json, "]");
+  if (tichu_combination->type != SingleCard) { // Array in array
+    STRBUFFCAT(*player_action_json, ",");
+    append_card_value_str(tichu_combination->value, player_action_json);
+    STRBUFFCAT(*player_action_json, "]");
+  }
+  STRBUFFCAT(*player_action_json, "}");
+}
+
+void serialize_player_action(
+    PlayerAction *action,
+    char (*player_action_json)[MAX_BYTES_CURRENT_ACTION_JSON]) {
+  STRBUFFCPY(*player_action_json, "{");
+  STRBUFFCAT(*player_action_json, "\"tag\":");
+  // {\"tag\":\"Stop\"}
+  // {\"tag\":\"CallTichu\"}
+  // {\"contents\":{\"contents\":[{\"tag\":\"Mahjong\"}],\"tag\":\"SingleCard\"},\"tag\":\"Play\"}
+  // {\"contents\":{\"contents\":[[{\"contents\":[\"Two\",\"Red\"],\"tag\":\"PokerCard\"},{\"contents\":[\"Two\",\"Blue\"],\"tag\":\"PokerCard\"}],\"Two\"],\"tag\":\"Pair\"},\"tag\":\"Play\"}
+  char *tag = NULL;
+  switch (action->type) {
+  case Stop: {
+    tag = "Stop";
+  } break;
+  case CallTichu: {
+    tag = "CallTichu";
+  } break;
+  case CallGrandTichu: {
+    tag = "CallGrandTichu";
+  } break;
+  case Pass: {
+    tag = "Pass";
+  } break;
+  case Play: {
+    tag = "Play";
+  } break;
+  default:
+    assert(false && "Unreachable");
+  }
+  STRBUFFCAT(*player_action_json, "\"");
+  STRBUFFCAT(*player_action_json, tag);
+  STRBUFFCAT(*player_action_json, "\"");
+  if (action->type != Play) {
+    // Only a tag
+    // {\"tag\":\"Stop\"}
+    // {\"tag\":\"CallTichu\"}
+    STRBUFFCAT(*player_action_json, "}");
+    return;
+  }
+  // {\"contents\":{\"contents\":[{\"tag\":\"Mahjong\"}],\"tag\":\"SingleCard\"},\"tag\":\"Play\"}
+  // {\"contents\":{\"contents\":[[{\"contents\":[\"Two\",\"Red\"],\"tag\":\"PokerCard\"},{\"contents\":[\"Two\",\"Blue\"],\"tag\":\"PokerCard\"}],\"Two\"],\"tag\":\"Pair\"},\"tag\":\"Play\"}
+  STRBUFFCAT(*player_action_json, ",");
+  STRBUFFCAT(*player_action_json, "\"contents\":");
+  append_tichu_combination_object_str(&action->combination, player_action_json);
+  STRBUFFCAT(*player_action_json, "}");
+}
+
 #endif // PARSER_H
