@@ -356,7 +356,7 @@ Rectangle get_card_rectangle(Card card, bool show_front, bool back_rotated) {
 #define CARD_SCALE 1.f
 #define CARD_SCALE_NPC 0.85f
 
-#define PLAYING_PLAYER_INDEX 2
+#define USER_PLAYER_INDEX 2
 
 unsigned long get_num_cards(Card hand[MAX_CARDS_PER_PLAYER]) {
   for (unsigned long i = 0; i < MAX_CARDS_PER_PLAYER; ++i) {
@@ -902,7 +902,8 @@ void reset_game(void) {
   reset_global_game_state();
 }
 
-void init(void) {
+void init(int user_player_index) {
+  assert(user_player_index == USER_PLAYER_INDEX && "Wrong user player.");
   InitWindow(WIN_WIDTH, WIN_HEIHT, "Tichu");
   load_global_assets();
   reset_game();
@@ -1139,7 +1140,7 @@ void draw_labels_and_buttons(void) {
   DrawRectangleRoundedLines(g_render_state.tichu_button, BUTTON_ROUNDNESS,
                             BUTTON_SEGEMENTS, BUTTON_LINE_THICKNESS, DARKBROWN);
   PlayerAction tichu_action = {.type = CallTichu};
-  if (is_valid_player_action(PLAYING_PLAYER_INDEX, &tichu_action)) {
+  if (is_valid_player_action(USER_PLAYER_INDEX, &tichu_action)) {
     const char *tichu_text = "Tichu";
     DrawText(tichu_text,
              g_render_state.tichu_button.x +
@@ -1191,9 +1192,8 @@ bool contain_same_cards(SelectedCards *selected,
 
 long long player_action_from_selected(SelectedCards *selected) {
   long long idx = -1;
-  PlayerAction *player_actions =
-      g_game_state.player_actions[PLAYING_PLAYER_INDEX];
-  size_t num_actions = g_game_state.num_actions[PLAYING_PLAYER_INDEX];
+  PlayerAction *player_actions = g_game_state.player_actions[USER_PLAYER_INDEX];
+  size_t num_actions = g_game_state.num_actions[USER_PLAYER_INDEX];
   for (size_t i = 0; i < num_actions; ++i) {
     if (player_actions[i].type == Play) {
       if (contain_same_cards(selected, player_actions[i].combination.cards,
@@ -1214,7 +1214,7 @@ void check_buttons(void) {
       SelectedCards selected = get_selected_cards();
       if (selected.num_cards == 0) {
         PlayerAction action = (PlayerAction){.type = Pass};
-        if (!is_valid_player_action(PLAYING_PLAYER_INDEX, &action)) {
+        if (!is_valid_player_action(USER_PLAYER_INDEX, &action)) {
           STRBUFFCPY(g_render_state.error, "Cannot pass!");
           return;
         }
@@ -1228,15 +1228,14 @@ void check_buttons(void) {
           return;
         }
         serialize_player_action(
-            &g_game_state
-                 .player_actions[PLAYING_PLAYER_INDEX][player_action_idx],
+            &g_game_state.player_actions[USER_PLAYER_INDEX][player_action_idx],
             &g_game_state.current_action_json);
         return;
       }
     }
     if (CheckCollisionPointRec(mouse_pos, g_render_state.tichu_button)) {
       PlayerAction action = (PlayerAction){.type = CallTichu};
-      if (!is_valid_player_action(PLAYING_PLAYER_INDEX, &action)) {
+      if (!is_valid_player_action(USER_PLAYER_INDEX, &action)) {
         STRBUFFCPY(g_render_state.error, "Cannot call tichu!");
         return;
       }

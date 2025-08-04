@@ -21,17 +21,6 @@ import qualified Data.Map as Map
 
 import Game.Structures
 
--- From https://hackage.haskell.org/package/monad-loops-0.4.3/docs/src/Control-Monad-Loops.html
-iterateUntilM :: (Monad m) => (a -> Bool) -> (a -> m a) -> a -> m a
-iterateUntilM p f v
-    | p v = return v
-    | otherwise = f v >>= iterateUntilM p f
-
-iterateUntilM_ :: (Monad m) => (a -> Bool) -> (a -> m a) -> a -> m ()
-iterateUntilM_ p f v
-    | p v = return ()
-    | otherwise = f v >>= iterateUntilM_ p f
-
 exitGame :: IO a
 exitGame = putStrLn "Exiting Game. Thank you for playing." >> exitSuccess
 
