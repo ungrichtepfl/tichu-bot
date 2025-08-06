@@ -34,6 +34,7 @@ data Value
     deriving (Show, Eq, Ord, Enum, Bounded, Read)
 
 data Color = Red | Green | Blue | Black
+--          Herz | Kreuz | Eggen | Schaufel
     deriving (Show, Eq, Enum, Read)
 
 data TichuCard = PokerCard (Value, Color) | Dragon | Phoenix | Mahjong | Dog
@@ -57,21 +58,7 @@ instance Show TichuCard where
 pokerCardUnicodeMatrix :: [[Char]]
 pokerCardUnicodeMatrix =
     [
-        [ '\x1F0A2'
-        , '\x1F0A3'
-        , '\x1F0A4'
-        , '\x1F0A5'
-        , '\x1F0A6'
-        , '\x1F0A7'
-        , '\x1F0A8'
-        , '\x1F0A9'
-        , '\x1F0AA'
-        , '\x1F0AB'
-        , '\x1F0AD'
-        , '\x1F0AE'
-        , '\x1F0A1'
-        ]
-    ,
+        -- Herz
         [ '\x1F0B2'
         , '\x1F0B3'
         , '\x1F0B4'
@@ -87,6 +74,22 @@ pokerCardUnicodeMatrix =
         , '\x1F0B1'
         ]
     ,
+        -- Kreuz
+        [ '\x1F0D2'
+        , '\x1F0D3'
+        , '\x1F0D4'
+        , '\x1F0D5'
+        , '\x1F0D6'
+        , '\x1F0D7'
+        , '\x1F0D8'
+        , '\x1F0D9'
+        , '\x1F0DA'
+        , '\x1F0DB'
+        , '\x1F0DD'
+        , '\x1F0DE'
+        , '\x1F0D1'
+        ],
+        -- Eggen
         [ '\x1F0C2'
         , '\x1F0C3'
         , '\x1F0C4'
@@ -102,19 +105,20 @@ pokerCardUnicodeMatrix =
         , '\x1F0C1'
         ]
     ,
-        [ '\x1F0D2'
-        , '\x1F0D3'
-        , '\x1F0D4'
-        , '\x1F0D5'
-        , '\x1F0D6'
-        , '\x1F0D7'
-        , '\x1F0D8'
-        , '\x1F0D9'
-        , '\x1F0DA'
-        , '\x1F0DB'
-        , '\x1F0DD'
-        , '\x1F0DE'
-        , '\x1F0D1'
+        -- Schaufel
+        [ '\x1F0A2'
+        , '\x1F0A3'
+        , '\x1F0A4'
+        , '\x1F0A5'
+        , '\x1F0A6'
+        , '\x1F0A7'
+        , '\x1F0A8'
+        , '\x1F0A9'
+        , '\x1F0AA'
+        , '\x1F0AB'
+        , '\x1F0AD'
+        , '\x1F0AE'
+        , '\x1F0A1'
         ]
     ]
 
