@@ -2,7 +2,7 @@
 #include "test_json.h"
 
 int main(void) {
-  init();
+  init(USER_PLAYER_INDEX);
 
   parse_game_and_actions(&g_game_state, test_json1);
   parse_game_and_actions(&g_game_state, test_json2);

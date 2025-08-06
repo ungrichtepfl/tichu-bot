@@ -348,8 +348,6 @@ Rectangle get_card_rectangle(Card card, bool show_front, bool back_rotated) {
   };
 }
 
-#define END_OF_CARDS(card) (memcmp(&card, &EMPTY_CARD, CARD_SIZE) == 0)
-
 #define CARD_PADDING ((float)WIN_HEIHT / 30.f)
 #define CARD_SPACING ((float)WIN_WIDTH / 30.f)
 #define CARD_SPACING_NPC ((float)WIN_WIDTH / 40.f)
@@ -358,22 +356,10 @@ Rectangle get_card_rectangle(Card card, bool show_front, bool back_rotated) {
 
 #define USER_PLAYER_INDEX 2
 
-unsigned long get_num_cards(Card hand[MAX_CARDS_PER_PLAYER]) {
-  for (unsigned long i = 0; i < MAX_CARDS_PER_PLAYER; ++i) {
-    if (END_OF_CARDS(hand[i]))
-      return i;
-  }
-  return MAX_CARDS_PER_PLAYER;
-}
-
 void update_hands(void) {
-  memset(g_render_state.visible, 0, sizeof(g_render_state.visible));
-  memset(g_render_state.selectable, 0, sizeof(g_render_state.selectable));
-  memset(g_render_state.rotated_back, 0, sizeof(g_render_state.rotated_back));
-  memset(g_render_state.show_front, 1, sizeof(g_render_state.show_front));
 
   for (unsigned long i = 0; i < LENGTH(g_game_state.game.hands); ++i) {
-    unsigned long num_cards = get_num_cards(g_game_state.game.hands[i]);
+    unsigned long num_cards = g_game_state.game.num_hands[i];
     for (unsigned long j = 0; j < num_cards; ++j) {
       Card card = g_game_state.game.hands[i][j];
       size_t index = get_card_index(card);
@@ -874,6 +860,27 @@ void reset_global_game_state(void) {
   ACTION_RESET();
 }
 
+void print_card(Card *card) { printf("%d: %d\n", card->color, card->number); }
+
+void update_board(void) {
+
+  size_t num_board = g_game_state.game.num_board;
+  if (num_board == 0)
+    return;
+  TichuCombination *tichu_combination = &g_game_state.game.board[num_board - 1];
+  printf("------------START: %d---------------\n", tichu_combination->type);
+  for (size_t i = 0; i < tichu_combination->num_cards; ++i) {
+    Card card = tichu_combination->cards[i];
+    print_card(&card);
+    size_t index = get_card_index(card);
+    g_render_state.card_pose[index].pos.y = (float)WIN_HEIHT / 2;
+    g_render_state.card_pose[index].pos.x = (float)WIN_WIDTH / 2 - 50 + i * 10;
+    g_render_state.visible[index] = true;
+    set_highest_prio(index);
+  }
+  printf("--------------END-------------\n");
+}
+
 void draw_cards(void) {
   for (int i = (int)LENGTH(g_render_state.render_prio) - 1; i >= 0; --i) {
     size_t idx = g_render_state.render_prio[i];
@@ -1249,7 +1256,12 @@ const char *update_draw_game(const char *game_json) {
 
   parse_game_and_actions(&g_game_state, game_json);
 
+  memset(g_render_state.visible, 0, sizeof(g_render_state.visible));
+  memset(g_render_state.selectable, 0, sizeof(g_render_state.selectable));
+  memset(g_render_state.rotated_back, 0, sizeof(g_render_state.rotated_back));
+  memset(g_render_state.show_front, 1, sizeof(g_render_state.show_front));
   update_hands();
+  update_board();
   select_card();
   check_buttons();
 

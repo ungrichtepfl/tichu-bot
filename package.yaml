@@ -25,6 +25,7 @@ dependencies:
   - bytestring >= 0.12 && < 1
   - scientific >= 0.3 && < 1
   - vector >= 0.13 && < 1
+  - monad-loops >= 0.4.3 && < 1
 ghc-options:
   - -O2
   - -Wall
@@ -101,7 +102,6 @@ executables:
       - -Wpartial-fields
       - -Wredundant-constraints
     dependencies:
-      - monad-loops >= 0.4.3 && < 1
       - tichu-bot
 
   tichu-wasm:

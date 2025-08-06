@@ -438,6 +438,7 @@ ptrdiff_t parse_board(Game *game, jsmntok_t *game_token,
     current_token +=
         parse_tichu_combination(&game->board[a], current_token, game_json);
   }
+  game->num_board = array_size;
   return current_token - game_token;
 }
 ptrdiff_t parse_finish_order(Game *game, jsmntok_t *game_token,
@@ -696,6 +697,7 @@ parse_hands(Game *game, jsmntok_t *game_token, const char *game_json,
       current_token +=
           parse_playing_card(&game->hands[idx][a], current_token, game_json);
     }
+    game->num_hands[idx] = array_size;
   }
   assert(parsed_keys_mask_cmp == parsed_keys_mask &&
          "Some players hands have not been parsed.");
@@ -818,6 +820,7 @@ parse_tricks(Game *game, jsmntok_t *game_token, const char *game_json,
       current_token +=
           parse_playing_card(&game->tricks[idx][a], current_token, game_json);
     }
+    game->num_tricks[idx] = array_size;
   }
   assert(parsed_keys_mask_cmp == parsed_keys_mask &&
          "Some players tricks have not been parsed.");

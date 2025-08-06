@@ -85,6 +85,19 @@ getCurrentUserAction cAction = do
                 c_deinit
                 error $ "ERROR: Wrong players action.\nPlayer Action: " ++ cActionString
 
+showListSep :: (Show a) => String -> [a] -> String
+showListSep _ [] = ""
+showListSep _ [x] = show x
+showListSep sep (x : xs) = show x ++ sep ++ showListSep sep xs
+
+showLastPlayedCardsSep :: String -> Game -> String
+showLastPlayedCardsSep sep game = case board game of
+    [] -> "Empty board"
+    (lastComb : _) -> showListSep sep $ cardsFromCombination lastComb
+
+showLastPlayedCards :: Game -> String
+showLastPlayedCards = showLastPlayedCardsSep ", "
+
 main :: IO ()
 main =
     let
@@ -100,6 +113,7 @@ main =
         gameLoop gameOutput@(game, possibleActions) =
              do
                     action <- getCurrentAction gameOutput
+                    putStrLn $ showLastPlayedCards game
                     let gameOutput' = updateGame game action
                     let game' = fst gameOutput'
                     end <- c_windowShouldClose

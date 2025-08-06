@@ -47,9 +47,6 @@ typedef struct {
   int number;
 } Card;
 
-const Card EMPTY_CARD = {0};
-const unsigned long CARD_SIZE = sizeof(EMPTY_CARD);
-
 typedef enum {
   SingleCard,
   Pair,
@@ -109,8 +106,11 @@ typedef struct {
 typedef struct {
   GameConfig game_config;
   Card hands[NUM_PLAYERS][MAX_CARDS_PER_PLAYER];
+  size_t num_hands[NUM_PLAYERS];
   Card tricks[NUM_PLAYERS][TOTAL_CARDS];
+  size_t num_tricks[NUM_PLAYERS];
   TichuCombination board[TOTAL_CARDS];
+  size_t num_board;
   GamePhase game_phase;
   TichuType tichus[NUM_PLAYERS];
   Score scores[NUM_TEAMS];
