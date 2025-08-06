@@ -58,8 +58,8 @@ isNstraight cards n
                 values' = [minVal .. maxVal]
                 values'' = values' \\ values
              in if Phoenix `elem` cards'
-                    then length values'' <= 1 && nub cards' == cards'
-                    else numCards == length values'
+                    then length values'' <= 1 && nub cards' == cards' && nub values == values
+                    else numCards == length values' && nub values == values
 
 isBomb :: TichuCards -> Bool
 isBomb cards

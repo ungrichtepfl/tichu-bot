@@ -30,6 +30,8 @@ combinationsTests =
         , testStraight11
         , testStraight12
         , testStraight13
+        , testStraight14
+        , testStraight15
         , testBomb
         , testBomb1
         , testBomb2
@@ -289,6 +291,30 @@ testStraight13 =
                 , Phoenix
                 , PokerCard (Five, Black)
                 , Dragon
+                ]
+         in assertEqual "Straight" False (isStraight cards)
+
+testStraight14 :: TestTree
+testStraight14 =
+    testCase "isStraight 14 cards false" $
+        let cards =
+                [ PokerCard (Ten, Black)
+                , PokerCard (Queen, Black)
+                , PokerCard (Queen, Blue)
+                , PokerCard (King, Red)
+                , PokerCard (Ace, Green)
+                ]
+         in assertEqual "Straight" False (isStraight cards)
+
+testStraight15 :: TestTree
+testStraight15 =
+    testCase "isStraight 15 cards false" $
+        let cards =
+                [ PokerCard (Ten, Black)
+                , PokerCard (Queen, Black)
+                , PokerCard (Queen, Blue)
+                , PokerCard (King, Red)
+                , Phoenix
                 ]
          in assertEqual "Straight" False (isStraight cards)
 
