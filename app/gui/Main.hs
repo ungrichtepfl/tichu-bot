@@ -108,29 +108,26 @@ configLoop =
 gameLoop :: GameConfig -> IO ()
 gameLoop config =
     let
-        (startingGame, startingActions) = newGame config 0
-        startingPreviousPlayingPlayer = ""
-        stop (game, _, _) = shouldGameStop game
+        stop (game, _) = shouldGameStop game
         loop ::
-            (Game, Maybe (Map PlayerName [PlayerAction]), PlayerName) ->
-            IO (Game, Maybe (Map PlayerName [PlayerAction]), PlayerName)
-        loop (game, possibleActions, previousPlayingPlayer) = do
-            let toSend = (game, possibleActions)
+            (Game, Maybe (Map PlayerName [PlayerAction])) ->
+            IO (Game, Maybe (Map PlayerName [PlayerAction]))
+        loop toSend@(game, possibleActions) = do
+            let currentPlayingPlayer = case gamePhase game of
+                    Playing p _ -> p
+                    _ -> ""
             withCAString toSend c_updateCStateAndRenderGame
             action <- getCurrentAction game possibleActions
             let (game', possibleActions') =
-                    if isNothing action && previousPlayingPlayer == getUserPlayerName game
+                    if isNothing action && currentPlayingPlayer == getUserPlayerName game
                         then (game, possibleActions)
                         else updateGame game action
             end <- c_windowShouldClose
             let game'' = game'{shouldGameStop = end || shouldGameStop game'}
-            let currentPlayingPlayer = case gamePhase game'' of
-                    Playing p _ -> p
-                    _ -> ""
-            return (game'', possibleActions', currentPlayingPlayer)
+            return (game'', possibleActions')
      in
         do
-            iterateUntilM stop loop (startingGame, startingActions, startingPreviousPlayingPlayer) >> c_deinit
+            iterateUntilM stop loop (newGame config 0) >> c_deinit
 
 main :: IO ()
 main =
