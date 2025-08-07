@@ -760,12 +760,7 @@ parse_tichus(Game *game, jsmntok_t *game_token, const char *game_json,
       game->tichus[idx] = NoTichu;
       ++current_token;
 
-    } else if (current_token->type == JSMN_OBJECT) {
-      assert(current_token->size == 1 && "There must only be one tichu type.");
-      ++current_token;
-      assert(json_str_equal(game_json, current_token, "tag") &&
-             "The key must be called tag.");
-      ++current_token;
+    } else if (current_token->type == JSMN_STRING) {
       if (json_str_equal(game_json, current_token, "Tichu")) {
         game->tichus[idx] = Tichu;
       } else if (json_str_equal(game_json, current_token, "GrandTichu")) {

@@ -1270,10 +1270,9 @@ void update_c_state_and_render_game(const char *game_json) {
 }
 
 const char *get_user_action() {
-
+  ACTION_RESET();
   select_card();
   check_buttons();
-
   return g_game_state.current_action_json;
 }
 
