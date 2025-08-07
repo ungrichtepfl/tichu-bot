@@ -2,22 +2,21 @@ module Game.Utils (module Game.Utils) where
 
 import Control.Exception (assert)
 import Control.Monad (forM)
-
-import qualified Control.Monad.ST as MST
 import Data.Array.IO (
     newListArray,
     readArray,
     writeArray,
  )
-import qualified Data.Array.ST as AST
 import Data.List (elemIndex, (\\))
 import Data.Map (Map)
 import Data.Maybe (fromJust)
-import qualified Data.STRef as STR
 import System.Exit (exitSuccess)
 import System.Random (StdGen, randomR)
 
+import qualified Control.Monad.ST as MST
+import qualified Data.Array.ST as AST
 import qualified Data.Map as Map
+import qualified Data.STRef as STR
 
 import Game.Structures
 

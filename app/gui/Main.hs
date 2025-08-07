@@ -4,19 +4,22 @@ module Main (main) where
 
 import Control.Monad.Loops
 import Data.Aeson (FromJSON, ToJSON)
-import qualified Data.Aeson as AS
-import qualified Data.ByteString.Lazy.Char8 as BL
 import Data.Map (Map)
-import qualified Data.Map as Map
 import Data.Maybe (isJust, isNothing)
 import Foreign.C.String (CString)
+
+import qualified Data.Aeson as AS
+import qualified Data.ByteString.Lazy.Char8 as BL
+import qualified Data.Map as Map
 import qualified Foreign.C.String as CS
+
+import Bots.Random
 import Game.Structures
 import Game.Tichu
 import Game.Utils
-import Bots.Random
 
-foreign import ccall "update_draw_game" c_updateDrawGame :: CString -> IO CString
+foreign import ccall "get_user_action" c_getUserAction :: IO CString
+foreign import ccall "update_c_state_and_render_game" c_updateCStateAndRenderGame :: CString -> IO ()
 foreign import ccall "update_draw_config" c_updateDrawConfig :: IO CString
 foreign import ccall "init" c_init :: Int -> IO ()
 foreign import ccall "deinit" c_deinit :: IO ()
@@ -49,30 +52,22 @@ getGameConfig cGameConfig = do
                 c_deinit
                 error $ "ERROR: Wrong game config.\nGame Config: " ++ cGameConfigString
 
-getCurrentAction :: (Game , Maybe (Map PlayerName [PlayerAction])) -> IO (Maybe (PlayerName, PlayerAction))
-getCurrentAction gameOutput@(game, mPlayerActions) = case mPlayerActions of
-                                                Nothing -> return $ Nothing
-                                                Just playerActions -> getCurrentAction' playerActions (playerNames' game)
-    where
-        getCurrentAction' _ [] = return $ Nothing
-        getCurrentAction' playersAction (player:ps) = do
-                                        action <- getActionForPlayer playersAction player
-                                        if isNothing action then
-                                            getCurrentAction' playersAction ps
-                                            else return $ (\a -> (player, a)) <$> action
-
-        getActionForPlayer playerActions player = if player == getUserPlayerName game then
-                                            do
-                                                cAction <- withCAString gameOutput c_updateDrawGame
-                                                getCurrentUserAction cAction
-                                    else case gamePhase game of
-                                        Playing p _ -> if p == player then
-                                                let actions = playerActions Map.! player in
-                                                if null actions then return $ Nothing
-                                                    else
-                                                Just <$> randomPlayer game actions player
-                                                else return $ Nothing
-                                        _ -> return $ Nothing
+getCurrentAction :: Game -> Maybe (Map PlayerName [PlayerAction]) -> IO (Maybe (PlayerName, PlayerAction))
+getCurrentAction _ Nothing = return Nothing
+getCurrentAction game (Just playerActions) =
+    case gamePhase game of
+        Playing player _ ->
+            if player == getUserPlayerName game
+                then do
+                    cAction <- c_getUserAction
+                    userAction <- getCurrentUserAction cAction
+                    return $ (\a -> (player, a)) <$> userAction
+                else
+                    let actions = playerActions Map.! player
+                     in do
+                            botAction <- randomPlayer game actions player
+                            return $ Just (player, botAction)
+        _ -> return Nothing
 
 getCurrentUserAction :: CString -> IO (Maybe PlayerAction)
 getCurrentUserAction cAction = do
@@ -98,33 +93,52 @@ showLastPlayedCardsSep sep game = case board game of
 showLastPlayedCards :: Game -> String
 showLastPlayedCards = showLastPlayedCardsSep ", "
 
-main :: IO ()
-main =
-    let
-        shouldStopConfigLoop configOutput = isJust (fst configOutput) || snd configOutput
-        configLoop :: (Maybe GameConfig, Bool) -> IO (Maybe GameConfig, Bool)
-        configLoop _ = do
+configLoop :: IO (Maybe GameConfig)
+configLoop =
+    let stop configOutput = isJust (fst configOutput) || snd configOutput
+        loop _ = do
             cConf <- c_updateDrawConfig
             mConf <- getGameConfig cConf
             end <- c_windowShouldClose
             return (mConf, end)
-        shouldStopGameLoop gameOutput = shouldGameStop (fst gameOutput)
-        gameLoop :: (Game, Maybe (Map PlayerName [PlayerAction])) -> IO (Game, Maybe (Map PlayerName [PlayerAction]))
-        gameLoop gameOutput@(game, possibleActions) =
-             do
-                    action <- getCurrentAction gameOutput
-                    putStrLn $ showLastPlayedCards game
-                    let gameOutput' = updateGame game action
-                    let game' = fst gameOutput'
-                    end <- c_windowShouldClose
-                    let game'' = game'{shouldGameStop = end || shouldGameStop game}
-                    return (game'', snd gameOutput')
+     in do
+            (mConfig, _) <- iterateUntilM stop loop (Nothing, False)
+            return mConfig
+
+gameLoop :: GameConfig -> IO ()
+gameLoop config =
+    let
+        (startingGame, startingActions) = newGame config 0
+        startingPreviousPlayingPlayer = ""
+        stop (game, _, _) = shouldGameStop game
+        loop ::
+            (Game, Maybe (Map PlayerName [PlayerAction]), PlayerName) ->
+            IO (Game, Maybe (Map PlayerName [PlayerAction]), PlayerName)
+        loop (game, possibleActions, previousPlayingPlayer) = do
+            let toSend = (game, possibleActions)
+            withCAString toSend c_updateCStateAndRenderGame
+            action <- getCurrentAction game possibleActions
+            let (game', possibleActions') =
+                    if isNothing action && previousPlayingPlayer == getUserPlayerName game
+                        then (game, possibleActions)
+                        else updateGame game action
+            end <- c_windowShouldClose
+            let game'' = game'{shouldGameStop = end || shouldGameStop game'}
+            let currentPlayingPlayer = case gamePhase game'' of
+                    Playing p _ -> p
+                    _ -> ""
+            return (game'', possibleActions', currentPlayingPlayer)
      in
         do
-            c_init userPlayerIndex
-            -- (mConfig, _) <- iterateUntilM shouldStopConfigLoop configLoop (Nothing, False)
-            -- case mConfig of
-            case Just ( GameConfig ["Alice", "Bob", "Charlie", "David"] ["Team 1", "Team 2"] 1000  ) of
-                Just config ->
-                    iterateUntilM shouldStopGameLoop gameLoop (newGame config 0) >> c_deinit
-                Nothing -> c_deinit
+            iterateUntilM stop loop (startingGame, startingActions, startingPreviousPlayingPlayer) >> c_deinit
+
+main :: IO ()
+main =
+    do
+        c_init userPlayerIndex
+        -- mConfig <- configLoop
+        -- case mConfig of
+        case Just (GameConfig ["Alice", "Bob", "Charlie", "David"] ["Team 1", "Team 2"] 1000) of
+            Just config ->
+                gameLoop config >> c_deinit
+            Nothing -> c_deinit

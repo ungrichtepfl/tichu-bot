@@ -868,17 +868,14 @@ void update_board(void) {
   if (num_board == 0)
     return;
   TichuCombination *tichu_combination = &g_game_state.game.board[num_board - 1];
-  printf("------------START: %d---------------\n", tichu_combination->type);
   for (size_t i = 0; i < tichu_combination->num_cards; ++i) {
     Card card = tichu_combination->cards[i];
-    print_card(&card);
     size_t index = get_card_index(card);
     g_render_state.card_pose[index].pos.y = (float)WIN_HEIHT / 2;
     g_render_state.card_pose[index].pos.x = (float)WIN_WIDTH / 2 - 50 + i * 10;
     g_render_state.visible[index] = true;
     set_highest_prio(index);
   }
-  printf("--------------END-------------\n");
 }
 
 void draw_cards(void) {
@@ -1252,26 +1249,30 @@ void check_buttons(void) {
   }
 }
 
-const char *update_draw_game(const char *game_json) {
-
+void update_c_state_and_render_game(const char *game_json) {
+  // Update state
   parse_game_and_actions(&g_game_state, game_json);
-
   memset(g_render_state.visible, 0, sizeof(g_render_state.visible));
   memset(g_render_state.selectable, 0, sizeof(g_render_state.selectable));
   memset(g_render_state.rotated_back, 0, sizeof(g_render_state.rotated_back));
   memset(g_render_state.show_front, 1, sizeof(g_render_state.show_front));
   update_hands();
   update_board();
-  select_card();
-  check_buttons();
+  sprintf(g_render_state.error, "FPS: %d", GetFPS());
 
+  // Draw State
   BeginDrawing();
   ClearBackground(WHITE);
   DrawTexture(get_background_asset(), 0, 0, WHITE);
   draw_labels_and_buttons();
   draw_cards();
-
   EndDrawing();
+}
+
+const char *get_user_action() {
+
+  select_card();
+  check_buttons();
 
   return g_game_state.current_action_json;
 }
