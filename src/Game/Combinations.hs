@@ -87,7 +87,9 @@ isStairs cards
     | containsSpecialCardsNoPhoenix cards = False
     | otherwise =
         let uniqueValues = nubBy (\c1 c2 -> value c1 == value c2) (nonPhoenixCards cards)
-         in length cards == 2 * length uniqueValues && isNstraight uniqueValues (length uniqueValues)
+            triples = drawKfromN (sort $ nonPhoenixCards cards) 3
+            hasATriple = any isThreeOfAKind triples
+         in length cards == 2 * length uniqueValues && isNstraight uniqueValues (length uniqueValues) && not hasATriple
 
 possibleCombinations :: TichuCards -> [TichuCombination]
 possibleCombinations cards = concatMap combinationsLengthK [1 .. length cards]

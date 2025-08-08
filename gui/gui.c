@@ -863,18 +863,38 @@ void reset_global_game_state(void) {
 void print_card(Card *card) { printf("%d: %d\n", card->color, card->number); }
 
 void update_board(void) {
-
   size_t num_board = g_game_state.game.num_board;
   if (num_board == 0)
     return;
-  TichuCombination *tichu_combination = &g_game_state.game.board[num_board - 1];
-  for (size_t i = 0; i < tichu_combination->num_cards; ++i) {
+  TichuCombination *tichu_combination = &g_game_state.game.board[0];
+  size_t num_cards = tichu_combination->num_cards;
+  float cards_width = (float)g_assets.mahjong.width * CARD_SCALE +
+                      CARD_SPACING * (num_cards - 1);
+  float card_height = (float)g_assets.mahjong.height * CARD_SCALE;
+  for (size_t i = 0; i < num_cards; ++i) {
     Card card = tichu_combination->cards[i];
     size_t index = get_card_index(card);
-    g_render_state.card_pose[index].pos.y = (float)WIN_HEIHT / 2;
-    g_render_state.card_pose[index].pos.x = (float)WIN_WIDTH / 2 - 50 + i * 10;
+    g_render_state.card_pose[index].pos.y =
+        (float)WIN_HEIHT / 2 - card_height / 2;
+    g_render_state.card_pose[index].pos.x =
+        (float)WIN_WIDTH / 2 - cards_width / 2 + i * CARD_SPACING;
     g_render_state.visible[index] = true;
     set_highest_prio(index);
+  }
+}
+
+#define GAME_PHASE_TEXT_PADDING 30
+void draw_current_playing_player(void) {
+  if (g_game_state.game.game_phase.type == Playing) {
+    char *name = g_game_state.game.game_phase.player_name;
+    char text[50 * MAX_BYTES_INPUT] = {0};
+    STRBUFFCPY(text, name);
+    STRBUFFCAT(text, " is playing");
+    DrawText(text,
+             (float)WIN_WIDTH / 2 -
+                 (float)MeasureText(text, FONT_SIZE_SMALL) / 2,
+             g_render_state.playing_field.y + GAME_PHASE_TEXT_PADDING,
+             FONT_SIZE_SMALL, RED);
   }
 }
 
@@ -1139,12 +1159,14 @@ void draw_labels_and_buttons(void) {
   }
 
   DrawRectangleRoundedLines(g_render_state.playing_field, 0.1, 0, 4, DARKBLUE);
-  DrawRectangleRounded(g_render_state.tichu_button, BUTTON_ROUNDNESS,
-                       BUTTON_SEGEMENTS, RED);
-  DrawRectangleRoundedLines(g_render_state.tichu_button, BUTTON_ROUNDNESS,
-                            BUTTON_SEGEMENTS, BUTTON_LINE_THICKNESS, DARKBROWN);
+
   PlayerAction tichu_action = {.type = CallTichu};
   if (is_valid_player_action(USER_PLAYER_INDEX, &tichu_action)) {
+    DrawRectangleRounded(g_render_state.tichu_button, BUTTON_ROUNDNESS,
+                         BUTTON_SEGEMENTS, RED);
+    DrawRectangleRoundedLines(g_render_state.tichu_button, BUTTON_ROUNDNESS,
+                              BUTTON_SEGEMENTS, BUTTON_LINE_THICKNESS,
+                              DARKBROWN);
     const char *tichu_text = "Tichu";
     DrawText(tichu_text,
              g_render_state.tichu_button.x +
@@ -1154,23 +1176,22 @@ void draw_labels_and_buttons(void) {
                  g_render_state.tichu_button.height / 2.f -
                  BUTTON_CHAR_SIZE / 2.f,
              BUTTON_FONT_SIZE, BLACK);
-
-    DrawRectangleRounded(g_render_state.play_button, BUTTON_ROUNDNESS,
-                         BUTTON_SEGEMENTS, DARKBLUE);
-    DrawRectangleRoundedLines(g_render_state.play_button, BUTTON_ROUNDNESS,
-                              BUTTON_SEGEMENTS, BUTTON_LINE_THICKNESS,
-                              DARKGRAY);
-
-    SelectedCards selected = get_selected_cards();
-    const char *play_text = selected.num_cards == 0 ? "Pass" : "Play";
-    DrawText(
-        play_text,
-        g_render_state.play_button.x + g_render_state.play_button.width / 2.f -
-            MeasureText(play_text, BUTTON_FONT_SIZE) / 2.f,
-        g_render_state.play_button.y + g_render_state.play_button.height / 2.f -
-            BUTTON_CHAR_SIZE / 2.f,
-        BUTTON_FONT_SIZE, BLACK);
   }
+
+  DrawRectangleRounded(g_render_state.play_button, BUTTON_ROUNDNESS,
+                       BUTTON_SEGEMENTS, DARKBLUE);
+  DrawRectangleRoundedLines(g_render_state.play_button, BUTTON_ROUNDNESS,
+                            BUTTON_SEGEMENTS, BUTTON_LINE_THICKNESS, DARKGRAY);
+
+  SelectedCards selected = get_selected_cards();
+  const char *play_text = selected.num_cards == 0 ? "Pass" : "Play";
+  DrawText(play_text,
+           g_render_state.play_button.x +
+               g_render_state.play_button.width / 2.f -
+               MeasureText(play_text, BUTTON_FONT_SIZE) / 2.f,
+           g_render_state.play_button.y +
+               g_render_state.play_button.height / 2.f - BUTTON_CHAR_SIZE / 2.f,
+           BUTTON_FONT_SIZE, BLACK);
 }
 
 bool contain_same_cards(SelectedCards *selected,
@@ -1234,6 +1255,7 @@ void check_buttons(void) {
         serialize_player_action(
             &g_game_state.player_actions[USER_PLAYER_INDEX][player_action_idx],
             &g_game_state.current_action_json);
+        memset(g_render_state.selected, 0, LENGTH(g_render_state.selected));
         return;
       }
     }
@@ -1258,7 +1280,6 @@ void update_c_state_and_render_game(const char *game_json) {
   memset(g_render_state.show_front, 1, sizeof(g_render_state.show_front));
   update_hands();
   update_board();
-  sprintf(g_render_state.error, "FPS: %d", GetFPS());
 
   // Draw State
   BeginDrawing();
@@ -1266,6 +1287,7 @@ void update_c_state_and_render_game(const char *game_json) {
   DrawTexture(get_background_asset(), 0, 0, WHITE);
   draw_labels_and_buttons();
   draw_cards();
+  draw_current_playing_player();
   EndDrawing();
 }
 

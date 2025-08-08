@@ -53,6 +53,7 @@ combinationsTests =
         , testStairs4
         , testStairs5
         , testStairs6
+        , testStairs7
         ]
 
 testIsNOfAKind :: TestTree
@@ -563,5 +564,16 @@ testStairs6 =
                 , PokerCard (Ten, Black)
                 , PokerCard (Queen, Black)
                 , PokerCard (Queen, Green)
+                ]
+         in assertEqual "Stairs" False (isStairs cards)
+
+testStairs7 :: TestTree
+testStairs7 =
+    testCase "isStairs 4 cards false with triple" $
+        let cards =
+                [ PokerCard (Ten, Blue)
+                , PokerCard (Ten, Green)
+                , PokerCard (Ten, Black)
+                , PokerCard (Jack, Black)
                 ]
          in assertEqual "Stairs" False (isStairs cards)
