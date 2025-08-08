@@ -13,7 +13,7 @@
 
 #define WIN_WIDTH 800
 #define WIN_HEIHT WIN_WIDTH
-#define FPS 60
+#define FPS 30
 
 #define ASSET_BLACK_POSTFIX "a.png"
 #define ASSET_BLUE_POSTFIX "b.png"
@@ -882,6 +882,33 @@ void update_board(void) {
     set_highest_prio(index);
   }
 }
+#define TICHU_PADDING 30
+#define TICHU_SPACING 5
+void draw_tichus(void) {
+  float y = TICHU_PADDING;
+  float x = TICHU_PADDING;
+  int tichus = 0;
+  for (size_t i = 0; i < NUM_PLAYERS; ++i) {
+    if (g_game_state.game.tichus[i] == Tichu ||
+        g_game_state.game.tichus[i] == GrandTichu) {
+      ++tichus;
+      char *name = g_game_state.game.game_config.sitting_order[i];
+      if (tichus == 1) {
+        DrawText("Tichus:", x, y, FONT_SIZE_SMALL, BLACK);
+        y += TICHU_SPACING + CHAR_SIZE_SMALL;
+      }
+      if (g_game_state.game.tichus[i] == GrandTichu) {
+        char buf[MAX_BYTES_INPUT + 50] = {0};
+        STRBUFFCPY(buf, name);
+        STRBUFFCAT(buf, " (GT)");
+        DrawText(buf, x, y, FONT_SIZE_SMALL, BLACK);
+      } else {
+        DrawText(name, x, y, FONT_SIZE_SMALL, BLACK);
+      }
+      y += TICHU_SPACING + CHAR_SIZE_SMALL;
+    }
+  }
+}
 
 #define GAME_PHASE_TEXT_PADDING 30
 void draw_current_playing_player(void) {
@@ -894,7 +921,7 @@ void draw_current_playing_player(void) {
              (float)WIN_WIDTH / 2 -
                  (float)MeasureText(text, FONT_SIZE_SMALL) / 2,
              g_render_state.playing_field.y + GAME_PHASE_TEXT_PADDING,
-             FONT_SIZE_SMALL, RED);
+             FONT_SIZE_SMALL, BLACK);
   }
 }
 
@@ -1288,6 +1315,7 @@ void update_c_state_and_render_game(const char *game_json) {
   draw_labels_and_buttons();
   draw_cards();
   draw_current_playing_player();
+  draw_tichus();
   EndDrawing();
 }
 
