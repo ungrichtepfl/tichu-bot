@@ -118,16 +118,19 @@ gameLoop config =
                     _ -> ""
             withCAString toSend c_updateCStateAndRenderGame
             action <- getCurrentAction game possibleActions
-            let (game', possibleActions') =
-                    if isNothing action && currentPlayingPlayer == getUserPlayerName game
-                        then (game, possibleActions)
-                        else updateGame game action
+            (game', possibleActions') <-
+                if isNothing action && currentPlayingPlayer == getUserPlayerName game
+                    then return $ (game, possibleActions)
+                    else do
+                        let (g, p) = updateGame game action
+                        -- putStrLn $ show g
+                        return $ (g, p)
             end <- c_windowShouldClose
             let game'' = game'{shouldGameStop = end || shouldGameStop game'}
             return (game'', possibleActions')
      in
         do
-            iterateUntilM stop loop (newGame config 0) >> c_deinit
+            iterateUntilM stop loop (newGame config 0) >> return ()
 
 main :: IO ()
 main =

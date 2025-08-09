@@ -749,7 +749,7 @@ void set_new_pre_game_state_phase() {
       error = "The input must be a whole number";
       goto error;
     }
-    if (res > INT_MAX) {
+    if (res > MAX_SCORE) {
       error = "Score limit is too high";
       goto error;
     }
@@ -882,6 +882,40 @@ void update_board(void) {
     set_highest_prio(index);
   }
 }
+
+#define SCORE_SPACING 5
+#define SCORE_PADDING 30
+
+void draw_scores(void) {
+  float y = SCORE_PADDING;
+  char buf[MAX_BYTES_INPUT + 50] = {0};
+  STRBUFFCPY(buf, "Scores:");
+  DrawText(buf,
+           (float)WIN_WIDTH - (float)MeasureText(buf, FONT_SIZE_SMALL) -
+               (float)SCORE_PADDING,
+           y, FONT_SIZE_SMALL, BLACK);
+  y += CHAR_SIZE_SMALL + SCORE_SPACING;
+  size_t max_team_chars = 0;
+  for (size_t i = 0; i < NUM_TEAMS; ++i) {
+    size_t l = strlen(g_game_state.game.game_config.team_names[i]);
+    if (l > max_team_chars) {
+      max_team_chars = l;
+    }
+  }
+  for (size_t i = 0; i < NUM_TEAMS; ++i) {
+    STRBUFFCPY(buf, g_game_state.game.game_config.team_names[i]);
+    STRBUFFCAT(buf, ": ");
+    char tmp[SCORE_DIGITS + 1] = {0};
+    sprintf(tmp, "%" SCORE_DIGITS_STR "d", g_game_state.game.scores[i]);
+    STRBUFFCAT(buf, tmp);
+    DrawText(buf,
+             (float)WIN_WIDTH - (float)MeasureText(buf, FONT_SIZE_SMALL) +
+                 -(float)SCORE_PADDING,
+             y, FONT_SIZE_SMALL, BLACK);
+    y += CHAR_SIZE_SMALL + SCORE_SPACING;
+  }
+}
+
 #define TICHU_PADDING 30
 #define TICHU_SPACING 5
 void draw_tichus(void) {
@@ -962,8 +996,10 @@ void init(int user_player_index) {
 }
 
 void deinit(void) {
-  for (unsigned long i = 0; i < LENGTH(g_game_state.player_actions); ++i)
+  for (unsigned long i = 0; i < LENGTH(g_game_state.player_actions); ++i) {
     free(g_game_state.player_actions[i]);
+    g_game_state.player_actions[i] = NULL;
+  }
   unload_global_assets();
   CloseWindow();
 }
@@ -1316,6 +1352,7 @@ void update_c_state_and_render_game(const char *game_json) {
   draw_cards();
   draw_current_playing_player();
   draw_tichus();
+  draw_scores();
   EndDrawing();
 }
 

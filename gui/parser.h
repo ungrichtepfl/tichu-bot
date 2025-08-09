@@ -912,6 +912,7 @@ ptrdiff_t parse_game_actions(GameState *game_state, jsmntok_t *game_token,
            "Player actions must be null");
     for (unsigned long i = 0; i < LENGTH(game_state->player_actions); ++i) {
       free(game_state->player_actions[i]);
+      game_state->player_actions[i] = NULL;
       game_state->num_actions[i] = 0;
     }
     ++current_token;
