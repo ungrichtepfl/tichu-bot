@@ -14,6 +14,7 @@ import qualified Data.Map as Map
 import qualified Foreign.C.String as CS
 
 import Bots.Random
+import Game.Interface
 import Game.Structures
 import Game.Tichu
 import Game.Utils
@@ -24,6 +25,16 @@ foreign import ccall "update_draw_config" c_updateDrawConfig :: IO CString
 foreign import ccall "init" c_init :: Int -> IO ()
 foreign import ccall "deinit" c_deinit :: IO ()
 foreign import ccall "window_should_close" c_windowShouldClose :: IO Bool
+
+data CInterface = CInterface
+
+instance Interface CInterface where
+    gameInit _ = c_init
+    gameDeinit _ = c_deinit
+    updateDrawConfig _ = c_updateDrawConfig >>= getGameConfig
+    windowShouldClose _ = c_windowShouldClose
+    updateStateAndRenderGame _ toSend = withCAString toSend c_updateCStateAndRenderGame
+    getUserAction _ = c_getUserAction >>= getCurrentUserAction
 
 userPlayerIndex :: Int
 userPlayerIndex = 2
@@ -52,15 +63,16 @@ getGameConfig cGameConfig = do
                 c_deinit
                 error $ "ERROR: Wrong game config.\nGame Config: " ++ cGameConfigString
 
-getCurrentAction :: Game -> Maybe (Map PlayerName [PlayerAction]) -> IO (Maybe (PlayerName, PlayerAction))
-getCurrentAction _ Nothing = return Nothing
-getCurrentAction game (Just playerActions) =
+getCurrentAction ::
+    (Interface interface) =>
+    interface -> Game -> Maybe (Map PlayerName [PlayerAction]) -> IO (Maybe (PlayerName, PlayerAction))
+getCurrentAction _ _ Nothing = return Nothing
+getCurrentAction interface game (Just playerActions) =
     case gamePhase game of
         Playing player _ ->
             if player == getUserPlayerName game
                 then do
-                    cAction <- c_getUserAction
-                    userAction <- getCurrentUserAction cAction
+                    userAction <- getUserAction interface
                     return $ (\a -> (player, a)) <$> userAction
                 else
                     let actions = playerActions Map.! player
@@ -93,20 +105,19 @@ showLastPlayedCardsSep sep game = case board game of
 showLastPlayedCards :: Game -> String
 showLastPlayedCards = showLastPlayedCardsSep ", "
 
-configLoop :: IO (Maybe GameConfig)
-configLoop =
+configLoop :: (Interface interface) => interface -> IO (Maybe GameConfig)
+configLoop interface =
     let stop configOutput = isJust (fst configOutput) || snd configOutput
         loop _ = do
-            cConf <- c_updateDrawConfig
-            mConf <- getGameConfig cConf
+            conf <- updateDrawConfig interface
             end <- c_windowShouldClose
-            return (mConf, end)
+            return (conf, end)
      in do
-            (mConfig, _) <- iterateUntilM stop loop (Nothing, False)
-            return mConfig
+            (config, _) <- iterateUntilM stop loop (Nothing, False)
+            return config
 
-gameLoop :: GameConfig -> IO ()
-gameLoop config =
+gameLoop :: (Interface interface) => interface -> GameConfig -> IO ()
+gameLoop interface config =
     let
         stop (game, _) = shouldGameStop game
         loop ::
@@ -116,15 +127,13 @@ gameLoop config =
             let currentPlayingPlayer = case gamePhase game of
                     Playing p _ -> p
                     _ -> ""
-            withCAString toSend c_updateCStateAndRenderGame
-            action <- getCurrentAction game possibleActions
-            (game', possibleActions') <-
-                if isNothing action && currentPlayingPlayer == getUserPlayerName game
-                    then return $ (game, possibleActions)
-                    else do
-                        let (g, p) = updateGame game action
-                        -- putStrLn $ show g
-                        return $ (g, p)
+            updateStateAndRenderGame interface toSend
+            action <- getCurrentAction interface game possibleActions
+            let (game', possibleActions') =
+                    if isNothing action && currentPlayingPlayer == getUserPlayerName game
+                        then (game, possibleActions)
+                        else
+                            updateGame game action
             end <- c_windowShouldClose
             let game'' = game'{shouldGameStop = end || shouldGameStop game'}
             return (game'', possibleActions')
@@ -135,10 +144,11 @@ gameLoop config =
 main :: IO ()
 main =
     do
-        c_init userPlayerIndex
+        let interface = CInterface
+        gameInit interface userPlayerIndex
         -- mConfig <- configLoop
         -- case mConfig of
         case Just (GameConfig ["Alice", "Bob", "Charlie", "David"] ["Team 1", "Team 2"] 1000) of
             Just config ->
-                gameLoop config >> c_deinit
-            Nothing -> c_deinit
+                gameLoop interface config >> gameDeinit interface
+            Nothing -> gameDeinit interface
