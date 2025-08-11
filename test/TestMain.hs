@@ -2,6 +2,7 @@ import Test.Tasty
 
 import TestCombinations
 import TestTichu
+import TestUtils
 
 main :: IO ()
 main =
@@ -10,5 +11,6 @@ main =
             "All Tests"
             [ combinationsTests
             , tichuTests
+            , utilsTests
             ]
         )
