@@ -73,20 +73,26 @@ containsSpecialCardsNoPhoenix cards = any (`elem` cards) [Dragon, Mahjong, Dog]
 noNothings :: (Eq a) => [Maybe a] -> Bool
 noNothings = all (`notElem` Nothing)
 
-nextInOrder :: Game -> PlayerName -> PlayerName
-nextInOrder game pn =
+nextInOrder :: Game -> PlayerName -> Bool -> PlayerName
+nextInOrder game pn dogPlayed =
     let pns = sittingOrder $ gameConfig game
         index = fromJust (assert (pn `elem` pns) elemIndex pn pns)
+        index' =
+            if dogPlayed
+                then
+                    (index + (length pns `div` 2 - 1)) -- Skip player if dog is played
+                        `mod` length pns
+                else index
         newIndex :: Int -> Int
         newIndex i =
             let
-                playersHands = Map.elems $ hands game
                 indexCandidate = (i + 1) `mod` length pns
              in
-                case playersHands !! indexCandidate of
-                    [] -> newIndex indexCandidate -- skip player if he has no cards
-                    _ -> indexCandidate
-     in pns !! newIndex index
+                if pns !! indexCandidate `elem` finishOrder game
+                    then
+                        newIndex indexCandidate -- skip player already finished
+                    else indexCandidate
+     in pns !! newIndex index'
 
 emptyDistribution :: [PlayerName] -> Distribution
 emptyDistribution pns = Map.fromList [(pn, Map.empty) | pn <- pns]
@@ -124,9 +130,9 @@ playerNames = sittingOrder
 playerNames' :: Game -> [PlayerName]
 playerNames' = sittingOrder . gameConfig
 
-getCurrentPlayerWithPasses :: Game -> (PlayerName, Passes)
-getCurrentPlayerWithPasses game = case gamePhase game of
-    Playing playerName numberOfPassesBefore -> (playerName, numberOfPassesBefore)
+getCurrentPlayerWithPassesAndPlayerToBeat :: Game -> (PlayerName, Passes, PlayerToBeat)
+getCurrentPlayerWithPassesAndPlayerToBeat game = case gamePhase game of
+    Playing playerName numberOfPassesBefore playerToBeat -> (playerName, numberOfPassesBefore, playerToBeat)
     _ -> error "Wrong game phase should be Playing"
 
 getActivePlayers :: Game -> [PlayerName]
@@ -135,7 +141,9 @@ getActivePlayers game = case sittingOrder (gameConfig game) \\ finishOrder game 
     ps -> ps
 
 getCurrentPlayer :: Game -> PlayerName
-getCurrentPlayer = fst . getCurrentPlayerWithPasses
+getCurrentPlayer g =
+    let (n, _, _) = getCurrentPlayerWithPassesAndPlayerToBeat g
+     in n
 
 canBePlayedOnTop :: TichuCombination -> TichuCombination -> Bool
 canBePlayedOnTop (SingleCard _) (SingleCard [Phoenix]) = error "Value of Phoenix is not known."

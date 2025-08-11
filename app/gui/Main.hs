@@ -25,6 +25,7 @@ foreign import ccall "update_draw_config" c_updateDrawConfig :: IO CString
 foreign import ccall "init" c_init :: Int -> IO ()
 foreign import ccall "deinit" c_deinit :: IO ()
 foreign import ccall "window_should_close" c_windowShouldClose :: IO Bool
+foreign import ccall "new_round" c_newRound :: IO ()
 
 data CInterface = CInterface
 
@@ -35,6 +36,7 @@ instance Interface CInterface where
     windowShouldClose _ = c_windowShouldClose
     updateStateAndRenderGame _ toSend = withCAString toSend c_updateCStateAndRenderGame
     getUserAction _ = c_getUserAction >>= getCurrentUserAction
+    newRound _ = c_newRound
 
 userPlayerIndex :: Int
 userPlayerIndex = 2
@@ -69,7 +71,7 @@ getCurrentAction ::
 getCurrentAction _ _ Nothing = return Nothing
 getCurrentAction interface game (Just playerActions) =
     case gamePhase game of
-        Playing player _ ->
+        Playing player _ _ ->
             if player == getUserPlayerName game
                 then do
                     userAction <- getUserAction interface
@@ -125,10 +127,13 @@ gameLoop interface config =
             IO (Game, Maybe (Map PlayerName [PlayerAction]))
         loop toSend@(game, possibleActions) = do
             let currentPlayingPlayer = case gamePhase game of
-                    Playing p _ -> p
+                    Playing p _ _ -> p
                     _ -> ""
             updateStateAndRenderGame interface toSend
             action <- getCurrentAction interface game possibleActions
+            case action of
+                Just a -> putStrLn $ ">>> " ++ fst a ++ " played : " ++ show (snd a)
+                _ -> return ()
             let (game', possibleActions') =
                     if isNothing action && currentPlayingPlayer == getUserPlayerName game
                         then (game, possibleActions)
@@ -136,10 +141,11 @@ gameLoop interface config =
                             updateGame game action
             end <- c_windowShouldClose
             let game'' = game'{shouldGameStop = end || shouldGameStop game'}
+            if gamePhase game'' == NextRound then newRound interface else return ()
             return (game'', possibleActions')
      in
         do
-            iterateUntilM stop loop (newGame config 0) >> return ()
+            iterateUntilM stop loop (initialGame config 0) >> return ()
 
 main :: IO ()
 main =

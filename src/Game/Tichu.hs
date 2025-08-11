@@ -6,7 +6,7 @@ import Control.Exception (assert)
 import Data.List (elemIndex, sort, (\\))
 import Data.Map (Map)
 import Data.Maybe (fromJust, isJust, isNothing)
-import System.Random (mkStdGen)
+import System.Random (StdGen, mkStdGen)
 
 import qualified Data.Map as Map
 
@@ -33,25 +33,28 @@ initialTichus names = Map.fromList [(n, Nothing) | n <- names]
 initialScores :: [TeamName] -> Map TeamName Score
 initialScores names = Map.fromList [(n, 0) | n <- names]
 
-newGame :: GameConfig -> Int -> (Game, Maybe (Map PlayerName [PlayerAction]))
-newGame config seed =
+initialGame :: GameConfig -> Int -> (Game, Maybe (Map PlayerName [PlayerAction]))
+initialGame config seed =
     let gen = mkStdGen seed
-        game =
-            Game
-                { gameConfig = config
-                , hands = initialHands $ playerNames config
-                , tricks = initialTricks $ playerNames config
-                , board = []
-                , gamePhase = Starting
-                , tichus = initialTichus $ playerNames config
-                , scores = initialScores $ teamNames config
-                , currentDealer = head $ playerNames config
-                , finishOrder = []
-                , shouldGameStop = False
-                , winnerTeams = []
-                , generator = gen
-                }
+        game = newGame gen config
      in (game, allPossiblePlayerActions game)
+
+newGame :: StdGen -> GameConfig -> Game
+newGame gen config =
+    Game
+        { gameConfig = config
+        , hands = initialHands $ playerNames config
+        , tricks = initialTricks $ playerNames config
+        , board = []
+        , gamePhase = Starting
+        , tichus = initialTichus $ playerNames config
+        , scores = initialScores $ teamNames config
+        , currentDealer = head $ playerNames config
+        , finishOrder = []
+        , shouldGameStop = False
+        , winnerTeams = []
+        , generator = gen
+        }
 
 currentDealerIndex :: Game -> Int
 currentDealerIndex game =
@@ -123,7 +126,7 @@ possiblePlayerActions :: Game -> PlayerName -> [PlayerAction]
 possiblePlayerActions game pn =
     let defaultActions = Stop : [CallTichu | canStillCallTichu game pn]
      in case gamePhase game of
-            Playing currentPlayer _ ->
+            Playing currentPlayer _ _ ->
                 let combinations =
                         filter
                             (isValidForBoard $ board game)
@@ -157,54 +160,76 @@ playerListWithCurrentPlayerFirst game =
 canStillCallTichu :: Game -> PlayerName -> Bool
 canStillCallTichu game pn = length (hands game Map.! pn) == maxCards && isNothing (tichus game Map.! pn)
 
-applyPlayerAction :: Game -> (PlayerName, PlayerAction) -> Game
-applyPlayerAction game (pn, playerAction) =
+applyPlayerAction :: Game -> (PlayerName, PlayerAction) -> PlayerName -> Int -> PlayerToBeat -> Game
+applyPlayerAction game (pn, playerAction) currentPlayer passes mPlayerToBeat =
     -- TODO: Finish implementation
-    let (currentPlayer, passes) = getCurrentPlayerWithPasses game
-     in case playerAction of
-            Play combination ->
-                let playerHand = hands game Map.! currentPlayer
-                    cards = cardsFromCombination combination
-                    newPlayerHand = playerHand \\ cards
-                    newHands = Map.insert currentPlayer newPlayerHand $ hands game
-                    newFinishOrder = if null newPlayerHand then currentPlayer : finishOrder game else finishOrder game
-                    endOfRound = case length newFinishOrder of
-                        3 -> True
-                        2 -> any (all (`elem` newFinishOrder)) (Map.elems $ playersByTeam game) -- match
-                        _ -> False
-                    newGamePhase =
-                        if endOfRound
-                            then Scoring
-                            else Playing (nextInOrder game currentPlayer) 0
-                 in game
-                        { hands = newHands
-                        , board =
-                            combination
-                                : board game
-                        , gamePhase = newGamePhase
-                        , finishOrder = newFinishOrder
-                        }
-            Pass ->
-                if pn == currentPlayer
-                    then
-                        if passes < 2
-                            then game{gamePhase = Playing (nextInOrder game currentPlayer) (passes + 1)}
-                            else -- FIXME: Give away trick with dragon!
-                                let nextPlayer = nextInOrder game currentPlayer
-                                    trickNextPlayer = tricks game Map.! nextPlayer
-                                    newTrick = concatMap cardsFromCombination (board game) ++ trickNextPlayer
-                                    newBoard = []
-                                    newPasses = 0
-                                    newGamePhase = Playing nextPlayer newPasses
-                                 in game
-                                        { gamePhase = newGamePhase
-                                        , board = newBoard
-                                        , tricks = Map.insert nextPlayer newTrick $ tricks game
-                                        }
-                    else game
-            Stop -> game{shouldGameStop = True}
-            CallTichu -> game{tichus = Map.insert pn (Just Tichu) (tichus game)}
-            CallGrandTichu -> game{tichus = Map.insert pn (Just GrandTichu) (tichus game)}
+    case playerAction of
+        Play combination ->
+            let playerHand = hands game Map.! currentPlayer
+                cards = cardsFromCombination combination
+                newPlayerHand = playerHand \\ cards
+                newHands = Map.insert currentPlayer newPlayerHand $ hands game
+                newFinishOrder = if null newPlayerHand then currentPlayer : finishOrder game else finishOrder game
+                numPlayers = length (sittingOrder $ gameConfig game)
+                endOfRound =
+                    if length newFinishOrder
+                        == numPlayers - 1
+                        then True
+                        else
+                            if length newFinishOrder == numPlayers - 2
+                                then any (all (`elem` newFinishOrder)) (Map.elems $ playersByTeam game) -- match
+                                else False
+                isDog = combination == SingleCard [Dog]
+                newGamePhase =
+                    if endOfRound
+                        then Scoring
+                        else Playing (nextInOrder game currentPlayer isDog) 0 (if isDog then Nothing else Just currentPlayer)
+             in game
+                    { hands = newHands
+                    , board =
+                        if not isDog
+                            then
+                                combination
+                                    : board game
+                            else []
+                    , tricks =
+                        if not isDog
+                            then tricks game
+                            else
+                                Map.insert
+                                    pn
+                                    (cardsFromCombination combination ++ (tricks game) Map.! pn)
+                                    (tricks game)
+                    , gamePhase = newGamePhase
+                    , finishOrder = newFinishOrder
+                    }
+        Pass ->
+            case mPlayerToBeat of
+                Nothing -> error "There must be a player to beat"
+                Just playerToBeat ->
+                    if pn == currentPlayer
+                        then
+                            let playerToBeatNoCards = null (hands game Map.! playerToBeat)
+                                numPasses = length (sittingOrder $ gameConfig game) - length (finishOrder game) - 2 + if playerToBeatNoCards then 1 else 0
+                             in if passes < numPasses
+                                    then game{gamePhase = Playing (nextInOrder game currentPlayer False) (passes + 1) mPlayerToBeat}
+                                    else -- FIXME: Give away trick with dragon!
+                                    -- Player to beat won
+                                        let nextPlayer = nextInOrder game currentPlayer False
+                                            trickPlayerToBeat = tricks game Map.! playerToBeat
+                                            newTricksPlayerToBeat = concatMap cardsFromCombination (board game) ++ trickPlayerToBeat
+                                            newBoard = []
+                                            newPasses = 0
+                                            newGamePhase = Playing nextPlayer newPasses Nothing
+                                         in game
+                                                { gamePhase = newGamePhase
+                                                , board = newBoard
+                                                , tricks = Map.insert playerToBeat newTricksPlayerToBeat $ tricks game
+                                                }
+                        else game
+        Stop -> game{shouldGameStop = True}
+        CallTichu -> game{tichus = Map.insert pn (Just Tichu) (tichus game)}
+        CallGrandTichu -> game{tichus = Map.insert pn (Just GrandTichu) (tichus game)}
 
 startGame :: Game -> Game
 startGame game =
@@ -220,20 +245,17 @@ startGame game =
             }
 
 distribute :: Game -> (PlayerName, PlayerAction) -> Game
-distribute game _ = game{gamePhase = Playing (startingPlayer $ hands game) 0} -- TODO: Implement
+distribute game _ = game{gamePhase = Playing (startingPlayer $ hands game) 0 Nothing} -- TODO: Implement
 
 nextRound :: Game -> Game
-nextRound game = do
+nextRound game =
     let
-        (initialDeck, gen') = shuffle orderedDeck (generator game)
+        config = gameConfig game
+        game' = newGame (generator game) config
      in
-        game
-            { hands = setEmpty $ hands game
-            , tricks = setEmpty $ tricks game
-            , gamePhase = Dealing initialDeck
-            , tichus = setNothing $ tichus game
-            , currentDealer = nextInOrder game (currentDealer game)
-            , generator = gen'
+        game'
+            { scores = initialScores $ teamNames config
+            , currentDealer = nextInOrder game' (currentDealer game) False
             }
 
 finish :: Game -> Game
@@ -253,12 +275,12 @@ updateGame game playersAction =
                     -- Nothing -> game -- Nothing todo
                     Nothing ->
                         -- TODO: Remove and uncomment above as soon as distribute is implemented
-                        game{gamePhase = Playing (startingPlayer $ hands game) 0} -- TODO: Implement
+                        game{gamePhase = Playing (startingPlayer $ hands game) 0 Nothing} -- TODO: Implement
                 )
-            Playing _ _ ->
+            Playing currentPlayer passes playerToBeat ->
                 ( case playersAction of
                     Just action ->
-                        applyPlayerAction game action
+                        applyPlayerAction game action currentPlayer passes playerToBeat
                     Nothing -> game -- Nothing todo
                 )
             NextRound -> nextRound game
@@ -295,28 +317,40 @@ giveAwayLooserTricksAndHands game = case playerNames' game \\ finishOrder game o
 
 score :: Game -> Game
 score game =
-    let newScore =
+    let
+        newScore =
             Map.mapWithKey
                 scorePerTeam
                 (playersByTeam game)
         newGamePhase = if any (>= scoreLimit (gameConfig game)) (Map.elems newScore) then Finished else NextRound
         winnerTeams' = fst <$> Map.toList (Map.filter (>= scoreLimit (gameConfig game)) (scores game))
-     in game{scores = newScore, gamePhase = newGamePhase, winnerTeams = winnerTeams'}
+     in
+        game{scores = newScore, gamePhase = newGamePhase, winnerTeams = winnerTeams'}
   where
+    matchForTeam :: [TeamName] -> Bool
+    matchForTeam tns = case finishOrder game of
+        [] -> False
+        [_] -> False
+        p1 : (p2 : _) -> p1 `elem` tns && p2 `elem` tns
+    anyMatch :: Bool
+    anyMatch = any id (Map.elems $ Map.map matchForTeam (playersByTeam game))
     scorePerTeam :: TeamName -> [PlayerName] -> Int
     scorePerTeam teamName playersInTeam =
         let currentScore = scores game
             currentTricks = tricks game
             currentScoreForTeam = currentScore Map.! teamName
             scoreFromCardsOrMatch =
-                if all (`elem` finishOrder game) playersInTeam
+                if matchForTeam playersInTeam
                     then matchBonus
                     else
-                        sum
-                            ( map
-                                (\pn -> cardsScore (currentTricks Map.! pn))
-                                playersInTeam
-                            )
+                        if anyMatch
+                            then 0
+                            else
+                                sum
+                                    ( map
+                                        (\pn -> cardsScore (currentTricks Map.! pn))
+                                        playersInTeam
+                                    )
             winner = head $ finishOrder game
             scoreForTichu =
                 if winner `elem` playersInTeam

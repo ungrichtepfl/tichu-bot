@@ -11,3 +11,4 @@ class Interface a where
     updateDrawConfig :: a -> IO (Maybe GameConfig)
     getUserAction :: a -> IO (Maybe PlayerAction)
     updateStateAndRenderGame :: a -> (Game, Maybe (Map PlayerName [PlayerAction])) -> IO ()
+    newRound :: a -> IO ()

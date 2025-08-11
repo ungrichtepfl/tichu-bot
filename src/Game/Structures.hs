@@ -3,17 +3,17 @@
 
 module Game.Structures (module Game.Structures) where
 
-import Data.Map (Map)
-
 import Data.Aeson (FromJSON (..), ToJSON (..), withArray)
-import qualified Data.Aeson as Aeson
 import Data.Aeson.Types (Parser)
 import Data.Bits (xor)
+import Data.Map (Map)
 import Data.Scientific (toBoundedInteger)
 import Data.Vector (toList)
 import Data.Word (Word64)
 import GHC.Generics (Generic)
 import System.Random (StdGen, genWord64, mkStdGen)
+
+import qualified Data.Aeson as Aeson
 
 type Passes = Int
 
@@ -34,7 +34,7 @@ data Value
     deriving (Show, Eq, Ord, Enum, Bounded, Read)
 
 data Color = Red | Green | Blue | Black
---          Herz | Kreuz | Eggen | Schaufel
+    --          Herz | Kreuz | Eggen | Schaufel
     deriving (Show, Eq, Enum, Read)
 
 data TichuCard = PokerCard (Value, Color) | Dragon | Phoenix | Mahjong | Dog
@@ -57,8 +57,8 @@ instance Show TichuCard where
 
 pokerCardUnicodeMatrix :: [[Char]]
 pokerCardUnicodeMatrix =
-    [
-        -- Herz
+    [ -- Herz
+
         [ '\x1F0B2'
         , '\x1F0B3'
         , '\x1F0B4'
@@ -73,8 +73,8 @@ pokerCardUnicodeMatrix =
         , '\x1F0BE'
         , '\x1F0B1'
         ]
-    ,
-        -- Kreuz
+    , -- Kreuz
+
         [ '\x1F0D2'
         , '\x1F0D3'
         , '\x1F0D4'
@@ -88,8 +88,9 @@ pokerCardUnicodeMatrix =
         , '\x1F0DD'
         , '\x1F0DE'
         , '\x1F0D1'
-        ],
-        -- Eggen
+        ]
+    , -- Eggen
+
         [ '\x1F0C2'
         , '\x1F0C3'
         , '\x1F0C4'
@@ -104,8 +105,8 @@ pokerCardUnicodeMatrix =
         , '\x1F0CE'
         , '\x1F0C1'
         ]
-    ,
-        -- Schaufel
+    , -- Schaufel
+
         [ '\x1F0A2'
         , '\x1F0A3'
         , '\x1F0A4'
@@ -174,11 +175,13 @@ data GameConfig = GameConfig
 
 type Distribution = Map PlayerName (Map PlayerName TichuCard)
 
+type PlayerToBeat = Maybe PlayerName
+
 data GamePhase
     = Starting
     | Dealing TichuCards
     | Distributing
-    | Playing PlayerName Passes
+    | Playing PlayerName Passes PlayerToBeat
     | GiveAwayLooserTricksAndHands
     | Scoring
     | NextRound
@@ -189,7 +192,7 @@ instance Show GamePhase where
     show Starting = "Starting"
     show (Dealing _) = "Dealing "
     show Distributing = "Distributing"
-    show (Playing pn passes) = "Players turn: " ++ show pn ++ ". Passes before: " ++ show passes
+    show (Playing pn passes playerToBeat) = "Players turn: " ++ show pn ++ ". Passes before: " ++ show passes ++ "Player to beat: " ++ show playerToBeat
     show GiveAwayLooserTricksAndHands = "GiveAwayLooserTricksAndHands"
     show Scoring = "Scoring"
     show NextRound = "NextRound"

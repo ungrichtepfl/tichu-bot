@@ -513,13 +513,25 @@ ptrdiff_t parse_game_phase_content(Game *game, jsmntok_t *game_token,
          "Game phase content must be an array.");
   int array_size = current_token->size;
   ++current_token;
-  if (array_size == 2 && current_token->type == JSMN_STRING &&
+  if (array_size == 3 && current_token->type == JSMN_STRING &&
       (current_token + 1)->type == JSMN_PRIMITIVE) {
     // The Playing Phase
     SAFECPY(game->game_phase.player_name, game_json + current_token->start,
             current_token->end - current_token->start);
     ++current_token;
     game->game_phase.num_passes = str_to_int(game_json + current_token->start);
+    ++current_token;
+    if (current_token->type == JSMN_PRIMITIVE) {
+      assert(*(game_json + current_token->start) == 'n' &&
+             "If it is a primitive it must be null");
+      game->game_phase.beatable_player[0] = '\0';
+    } else {
+      assert(current_token->type == JSMN_STRING &&
+             "Current beatable player must be a string");
+      SAFECPY(game->game_phase.beatable_player,
+              game_json + current_token->start,
+              current_token->end - current_token->start);
+    }
     ++current_token;
   } else if (current_token->type == JSMN_OBJECT) {
     // The Dealing Phase

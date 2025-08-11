@@ -388,7 +388,7 @@ void update_hands(void) {
         g_render_state.card_pose[index].pos.y = CARD_PADDING;
       } break;
       case 1: {
-        // Right player
+        // Left player
         float scale = CARD_SCALE_NPC;
         float spacing = CARD_SPACING_NPC;
         g_render_state.card_pose[index].scale = scale;
@@ -396,9 +396,7 @@ void update_hands(void) {
                             spacing * (num_cards - 1);
         g_render_state.show_front[index] = false;
         g_render_state.rotated_back[index] = true;
-        g_render_state.card_pose[index].pos.x =
-            (float)WIN_WIDTH - (float)g_assets.back_rotated.width * scale -
-            CARD_PADDING;
+        g_render_state.card_pose[index].pos.x = CARD_PADDING;
         g_render_state.card_pose[index].pos.y =
             (float)WIN_HEIHT / 2.f - cards_width / 2.f + spacing * (float)j;
       } break;
@@ -418,7 +416,7 @@ void update_hands(void) {
             (float)WIN_HEIHT - (float)card_asset.height * scale - CARD_PADDING;
       } break;
       case 3: {
-        // Left player
+        // Right player
         float scale = CARD_SCALE_NPC;
         float spacing = CARD_SPACING_NPC;
         g_render_state.card_pose[index].scale = scale;
@@ -426,7 +424,9 @@ void update_hands(void) {
                             spacing * (num_cards - 1);
         g_render_state.show_front[index] = false;
         g_render_state.rotated_back[index] = true;
-        g_render_state.card_pose[index].pos.x = CARD_PADDING;
+        g_render_state.card_pose[index].pos.x =
+            (float)WIN_WIDTH - (float)g_assets.back_rotated.width * scale -
+            CARD_PADDING;
         g_render_state.card_pose[index].pos.y =
             (float)WIN_HEIHT / 2.f - cards_width / 2.f + spacing * (float)j;
       } break;
@@ -878,6 +878,7 @@ void update_board(void) {
         (float)WIN_HEIHT / 2 - card_height / 2;
     g_render_state.card_pose[index].pos.x =
         (float)WIN_WIDTH / 2 - cards_width / 2 + i * CARD_SPACING;
+    g_render_state.card_pose[index].scale = CARD_SCALE_NPC;
     g_render_state.visible[index] = true;
     set_highest_prio(index);
   }
@@ -977,8 +978,8 @@ void draw_cards(void) {
       card_rec.y -= dy;
     }
     DrawTextureEx(card_texture, pose.pos, pose.rot, pose.scale, WHITE);
-    float thickness = card_rec.width / 80.f;
-    DrawRectangleLinesEx(card_rec, thickness, DARKGRAY);
+    float thickness = card_rec.width / 50.f;
+    DrawRectangleLinesEx(card_rec, thickness, BLACK);
   }
 }
 
@@ -1191,11 +1192,10 @@ void draw_labels_and_buttons(void) {
       y = g_render_state.top_player_label_y;
     } break;
     case 1: {
-
       float cards_height =
           (float)g_assets.back_rotated.height * CARD_SCALE_NPC +
           (float)CARD_SPACING_NPC * 13;
-      x = (float)WIN_WIDTH - CARD_PADDING - MeasureText(name, font_size);
+      x = CARD_PADDING;
       y = (float)WIN_HEIHT / 2.f - PLAYER_LABEL_CHAR_SIZE - cards_height / 2.f -
           PLAYER_LABEL_PADDING;
     } break;
@@ -1208,10 +1208,11 @@ void draw_labels_and_buttons(void) {
       DrawText(g_render_state.error, x_error, y_error, font_size, RED);
     } break;
     case 3: {
+
       float cards_height =
           (float)g_assets.back_rotated.height * CARD_SCALE_NPC +
           (float)CARD_SPACING_NPC * 13;
-      x = CARD_PADDING;
+      x = (float)WIN_WIDTH - CARD_PADDING - MeasureText(name, font_size);
       y = (float)WIN_HEIHT / 2.f - PLAYER_LABEL_CHAR_SIZE - cards_height / 2.f -
           PLAYER_LABEL_PADDING;
     } break;
@@ -1333,6 +1334,8 @@ void check_buttons(void) {
     }
   }
 }
+
+void new_round(void) { reset_global_game_state(); }
 
 void update_c_state_and_render_game(const char *game_json) {
   // Update state
