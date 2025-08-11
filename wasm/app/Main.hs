@@ -1,6 +1,7 @@
 module Main where
 
 import GHC.Wasm.Prim
+
 import Jsi (newGame, updateGame)
 
 foreign export javascript "updateGame" updateGame :: JSString -> JSString -> JSString

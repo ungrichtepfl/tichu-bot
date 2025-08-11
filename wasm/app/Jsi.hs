@@ -3,16 +3,17 @@
 
 module Jsi (updateGame, newGame) where
 
-import Bots.Random
-
-import qualified Data.ByteString.Lazy.Char8 as BL
+import Data.Aeson (FromJSON, ToJSON)
 import GHC.Wasm.Prim (JSString)
+
+import qualified Data.Aeson as AS
+import qualified Data.ByteString.Lazy.Char8 as BL
+import qualified Data.Map as Map
 import qualified GHC.Wasm.Prim as WP
 
-import qualified Data.Map as Map
+import Bots.Random
 import Game.Structures
-import qualified Data.Aeson as AS
-import Data.Aeson (FromJSON , ToJSON )
+
 import qualified Game.Tichu as Tichu
 
 makeJsString :: (ToJSON a) => a -> JSString

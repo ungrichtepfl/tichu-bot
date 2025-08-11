@@ -1,8 +1,8 @@
 import Test.Tasty
+import TestUtils
 
 import TestCombinations
 import TestTichu
-import TestUtils
 
 main :: IO ()
 main =
