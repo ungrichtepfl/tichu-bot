@@ -19,7 +19,7 @@ playTichu = do
     gameConf <- getGameConfig
     gamePlayers <- getGamePlayers $ sittingOrder gameConf
     let seed = 0
-    iterateUntilM_ shouldGameStop (update gamePlayers) (fst $ newGame gameConf seed)
+    iterateUntilM_ shouldGameStop (update gamePlayers) (fst $ initialGame gameConf seed)
 
 getGamePlayers :: [PlayerName] -> IO (Map PlayerName GamePlayer)
 getGamePlayers pns =
@@ -113,18 +113,17 @@ getMaxScore =
     echoScore :: Int -> IO Int
     echoScore sl = putStrLnA ("Score limit chosen: " ++ show sl) >> return sl
 
-updateGameByPlayerAction :: Game -> Map PlayerName GamePlayer -> PlayerName -> PlayerAction -> IO Game
-updateGameByPlayerAction game gamePlayers pn pa =
-    let game' = applyPlayerAction game (pn, pa)
+updateGameByPlayerAction ::
+    Game -> PlayerName -> PlayerAction -> Passes -> PlayerToBeat -> IO Game
+updateGameByPlayerAction game pn pa passes playerToBeat =
+    let game' = applyPlayerAction game (pn, pa) pn passes playerToBeat
      in if pa `elem` [CallTichu, CallGrandTichu]
-            then do
-                putStrLnA ("Player " ++ show pn ++ " called " ++ if pa == CallTichu then "Tichu." else "Grand Tichu.")
-                pa' <- getPlayerActionsByName game' gamePlayers pn
-                return $ applyPlayerAction game' (pn, pa')
+            then
+                putStrLnA ("Player " ++ show pn ++ " called " ++ if pa == CallTichu then "Tichu." else "Grand Tichu.") >> return game'
             else putStrLnA ("Player " ++ show pn ++ " played " ++ show pa ++ ".") >> return game'
 
-display :: Game -> IO ()
-display game =
+displayGame :: Game -> IO ()
+displayGame game =
     putStrLnQ
         "Game State:"
         >> printQI
@@ -136,18 +135,30 @@ display game =
         >> newLine
 
 update :: Map PlayerName GamePlayer -> Game -> IO Game
-update gamePlayers game = display game >> updateGame game gamePlayers
+update gamePlayers game =
+    -- displayGame game >> -- NOTE: Uncomment for debugging
+    updateGame game gamePlayers
 
-play :: Game -> Map PlayerName GamePlayer -> IO Game
-play game gamePlayers =
+play :: Game -> Map PlayerName GamePlayer -> Passes -> PlayerToBeat -> IO Game
+play game gamePlayers passes playerToBeat =
     foldM
-        (\g pn -> getPlayerActionsByName g gamePlayers pn >>= updateGameByPlayerAction g gamePlayers pn)
+        ( \g pn -> do
+            pa <- getPlayerActionsByName g gamePlayers pn
+            case gamePhase g of
+                Playing playerPlaying passes' playerToBeat' ->
+                    if pn /= playerPlaying && pa == Pass -- Here we just check if they also want to call tichu or if they want to bomb
+                        then
+                            return g
+                        else
+                            updateGameByPlayerAction g pn pa passes' playerToBeat'
+                _ -> updateGameByPlayerAction g pn pa passes playerToBeat
+        )
         game
         (sortBy currentPlayerFirst (getActivePlayers game))
   where
     currentPlayerFirst :: PlayerName -> PlayerName -> Ordering
     currentPlayerFirst pn' pn'' = case gamePhase game of
-        Playing currentPlayer _ -> if pn' == currentPlayer then LT else if pn'' == currentPlayer then GT else EQ
+        Playing currentPlayer _ _ -> if pn' == currentPlayer then LT else if pn'' == currentPlayer then GT else EQ
         _ -> EQ
 
 finish :: Game -> IO Game
@@ -200,12 +211,12 @@ nextRound game =
             , tricks = setEmpty $ tricks game
             , gamePhase = Dealing initialDeck
             , tichus = setNothing $ tichus game
-            , currentDealer = nextInOrder game (currentDealer game)
+            , currentDealer = nextInOrder game (currentDealer game) False
             , generator = gen'
             }
 
 distribute :: Game -> Game
-distribute game = game{gamePhase = Playing (startingPlayer $ hands game) 0} -- TODO: Implement
+distribute game = game{gamePhase = Playing (startingPlayer $ hands game) 0 Nothing} -- TODO: Implement
 
 updateGame :: Game -> Map PlayerName GamePlayer -> IO Game
 updateGame game gamePlayers = do
@@ -213,7 +224,7 @@ updateGame game gamePlayers = do
         Starting -> return $ startGame game
         Dealing _ -> return $ dealAllCards game
         Distributing -> return $ distribute game
-        Playing _ _ -> play game gamePlayers
+        Playing _ passes playerToBeat -> play game gamePlayers passes playerToBeat
         NextRound -> return $ nextRound game
         GiveAwayLooserTricksAndHands -> return $ giveAwayLooserTricksAndHands game
         Scoring -> return $ score game

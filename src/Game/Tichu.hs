@@ -160,7 +160,7 @@ playerListWithCurrentPlayerFirst game =
 canStillCallTichu :: Game -> PlayerName -> Bool
 canStillCallTichu game pn = length (hands game Map.! pn) == maxCards && isNothing (tichus game Map.! pn)
 
-applyPlayerAction :: Game -> (PlayerName, PlayerAction) -> PlayerName -> Int -> PlayerToBeat -> Game
+applyPlayerAction :: Game -> (PlayerName, PlayerAction) -> PlayerName -> Passes -> PlayerToBeat -> Game
 applyPlayerAction game (pn, playerAction) currentPlayer passes mPlayerToBeat =
     -- TODO: Finish implementation
     case playerAction of
