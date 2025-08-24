@@ -5,7 +5,7 @@ module Game.Tichu (module Game.Tichu) where
 import Control.Exception (assert)
 import Data.List (elemIndex, sort, (\\))
 import Data.Map (Map)
-import Data.Maybe (fromJust, isJust, isNothing)
+import Data.Maybe (fromJust, isJust, isNothing, mapMaybe)
 import System.Random (StdGen, mkStdGen)
 
 import qualified Data.Map as Map
@@ -182,7 +182,7 @@ applyPlayerAction game (pn, playerAction) currentPlayer passes mPlayerToBeat =
                 isDog = combination == SingleCard [Dog]
                 newGamePhase =
                     if endOfRound
-                        then Scoring
+                        then GiveAwayLooserTricksAndHands
                         else Playing (nextInOrder game currentPlayer isDog) 0 (if isDog then Nothing else Just currentPlayer)
              in game
                     { hands = newHands
@@ -254,7 +254,7 @@ nextRound game =
         game' = newGame (generator game) config
      in
         game'
-            { scores = initialScores $ teamNames config
+            { scores = scores game
             , currentDealer = nextInOrder game' (currentDealer game) False
             }
 
@@ -272,10 +272,9 @@ updateGame game playersAction =
                 ( case playersAction of
                     Just action ->
                         distribute game action
-                    -- Nothing -> game -- Nothing todo
                     Nothing ->
-                        -- TODO: Remove and uncomment above as soon as distribute is implemented
-                        game{gamePhase = Playing (startingPlayer $ hands game) 0 Nothing} -- TODO: Implement
+                        -- NOTE: Just start game if distributing is not implemented yet
+                        game{gamePhase = Playing (startingPlayer $ hands game) 0 Nothing}
                 )
             Playing currentPlayer passes playerToBeat ->
                 ( case playersAction of
@@ -296,82 +295,70 @@ startingPlayer = head . Map.keys . Map.filter (elem Mahjong)
 giveAwayLooserTricksAndHands :: Game -> Game
 giveAwayLooserTricksAndHands game = case playerNames' game \\ finishOrder game of
     [looser] ->
-        let winner = head $ finishOrder game
-            newTricks = Map.insert looser [] (tricks game)
-            newTricks' =
-                Map.insert
-                    winner
-                    ( (tricks game Map.! winner)
-                        ++ (tricks game Map.! looser)
-                    )
-                    newTricks
+        let winner = head (reverse $ finishOrder game)
+            newTricksWinner = (tricks game Map.! winner) ++ (tricks game Map.! looser)
+            newTricksWinnerLoser = Map.insert looser [] . Map.insert winner newTricksWinner $ (tricks game)
             playerOtherTeam = head $ head $ filter (notElem looser) (Map.elems $ playersByTeam game)
-            newTricks'' = Map.insert playerOtherTeam ((tricks game Map.! playerOtherTeam) ++ (hands game Map.! looser)) newTricks'
+            handLoser = hands game Map.! looser
+            newTricksOtherPlayer = (newTricksWinnerLoser Map.! playerOtherTeam) ++ handLoser
+            newTricks = Map.insert playerOtherTeam newTricksOtherPlayer newTricksWinnerLoser
             newHands = Map.insert looser [] (hands game)
          in game
-                { tricks = newTricks''
+                { tricks = newTricks
                 , hands = newHands
                 , gamePhase = Scoring
                 }
-    _ -> error ("There should be 3 player in finishing order found: " ++ show (finishOrder game))
+    _ -> error ("There should be numPlayers - 1 player in finishing order found: " ++ show (finishOrder game))
 
 score :: Game -> Game
 score game =
     let
-        newScore =
-            Map.mapWithKey
-                scorePerTeam
-                (playersByTeam game)
         newGamePhase = if any (>= scoreLimit (gameConfig game)) (Map.elems newScore) then Finished else NextRound
         winnerTeams' = fst <$> Map.toList (Map.filter (>= scoreLimit (gameConfig game)) (scores game))
      in
         game{scores = newScore, gamePhase = newGamePhase, winnerTeams = winnerTeams'}
   where
-    matchForTeam :: [TeamName] -> Bool
-    matchForTeam tns = case finishOrder game of
-        [] -> False
-        [_] -> False
-        p1 : (p2 : _) -> p1 `elem` tns && p2 `elem` tns
-    anyMatch :: Bool
-    anyMatch = any id (Map.elems $ Map.map matchForTeam (playersByTeam game))
-    scorePerTeam :: TeamName -> [PlayerName] -> Int
-    scorePerTeam teamName playersInTeam =
-        let currentScore = scores game
-            currentTricks = tricks game
-            currentScoreForTeam = currentScore Map.! teamName
-            scoreFromCardsOrMatch =
-                if matchForTeam playersInTeam
-                    then matchBonus
-                    else
-                        if anyMatch
-                            then 0
-                            else
-                                sum
-                                    ( map
-                                        (\pn -> cardsScore (currentTricks Map.! pn))
-                                        playersInTeam
-                                    )
-            winner = head $ finishOrder game
-            scoreForTichu =
-                if winner `elem` playersInTeam
-                    then
-                        if isTichu (tichus game Map.! winner)
-                            then tichuBonus
-                            else
-                                if isGrandTichu (tichus game Map.! winner)
-                                    then grandTichuBonus
-                                    else 0
-                    else 0
-            scoreForFailedTichu =
-                sum $
-                    Map.mapWithKey
-                        ( \pn t ->
-                            if pn == winner || notElem pn playersInTeam
-                                then 0
-                                else
-                                    if isTichu t
-                                        then -tichuBonus
-                                        else if isGrandTichu t then -grandTichuBonus else 0
-                        )
-                        (tichus game)
-         in currentScoreForTeam + scoreFromCardsOrMatch + scoreForTichu + scoreForFailedTichu
+    matchBonusForTeam :: TeamName -> Int
+    matchBonusForTeam tn =
+        let playersInTeam = playersByTeam game Map.! tn
+         in case reverse $ finishOrder game of
+                [] -> 0
+                [_] -> 0
+                p1 : (p2 : _) ->
+                    if p1 `elem` playersInTeam && p2 `elem` playersInTeam
+                        then matchBonus
+                        else 0
+    teams = teamNames $ gameConfig game
+    matchBonusPerTeam = map matchBonusForTeam teams
+    anyMatch = any (> 0) matchBonusPerTeam
+    winnerPlayer = head (reverse $ finishOrder game)
+    tichuBonusForTeam :: TeamName -> Int
+    tichuBonusForTeam tn =
+        let playersInTeam = playersByTeam game Map.! tn
+         in sum (map tichuBonusForPlayer playersInTeam)
+      where
+        tichuBonusForPlayer pn = case tichus game Map.! pn of
+            Nothing -> 0
+            Just Tichu -> if pn == winnerPlayer then tichuBonus else -tichuBonus
+            Just GrandTichu -> if pn == winnerPlayer then grandTichuBonus else -grandTichuBonus
+    tichuBonusPerTeam = map tichuBonusForTeam teams
+    trickScoreForTeam :: TeamName -> Int
+    trickScoreForTeam tn
+        | anyMatch = 0
+        | otherwise =
+            let playersInTeam = playersByTeam game Map.! tn
+                teamTricks =
+                    mapMaybe
+                        (\pn -> if pn `elem` playersInTeam then Just (tricks game Map.! pn) else Nothing)
+                        (playerNames' game)
+             in sum $ map cardsScore teamTricks
+
+    tricksScorePerTeam = map trickScoreForTeam teams
+    scorePerTeam =
+        zipWith3
+            (\a b c -> a + b + c)
+            matchBonusPerTeam
+            tichuBonusPerTeam
+            tricksScorePerTeam
+    scoreThisRound = Map.fromList $ zip teams scorePerTeam
+    newScore = Map.mapWithKey (\k v -> v + scoreThisRound Map.! k) (scores game)
