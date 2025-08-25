@@ -902,6 +902,19 @@ void update_board(void) {
   float card_height = (float)g_assets.mahjong.height * CARD_SCALE;
   for (size_t i = 0; i < num_cards; ++i) {
     Card card = tichu_combination->cards[i];
+    if (tichu_combination->type == SingleCard && card.color == PHOENIX &&
+        num_cards == 1 && num_board > 1) {
+      // Single card phoenix is played show the last card on the board
+      TichuCombination *before_phoenix = &g_game_state.game.board[1];
+      size_t index = get_card_index(before_phoenix->cards[0]);
+      g_render_state.card_pose[index].pos.y =
+          (float)WIN_HEIHT / 2 - card_height / 2 - CARD_SPACING;
+      g_render_state.card_pose[index].pos.x =
+          (float)WIN_WIDTH / 2 - cards_width / 2 + CARD_SPACING;
+      g_render_state.card_pose[index].scale = CARD_SCALE_NPC * 0.9f;
+      g_render_state.visible[index] = true;
+      set_highest_prio(index);
+    }
     size_t index = get_card_index(card);
     g_render_state.card_pose[index].pos.y =
         (float)WIN_HEIHT / 2 - card_height / 2;
