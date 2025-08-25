@@ -95,19 +95,6 @@ getCurrentUserAction cAction = do
                 c_deinit
                 error $ "ERROR: Wrong players action.\nPlayer Action: " ++ cActionString
 
-showListSep :: (Show a) => String -> [a] -> String
-showListSep _ [] = ""
-showListSep _ [x] = show x
-showListSep sep (x : xs) = show x ++ sep ++ showListSep sep xs
-
-showLastPlayedCardsSep :: String -> Game -> String
-showLastPlayedCardsSep sep game = case board game of
-    [] -> "Empty board"
-    (lastComb : _) -> showListSep sep $ cardsFromCombination lastComb
-
-showLastPlayedCards :: Game -> String
-showLastPlayedCards = showLastPlayedCardsSep ", "
-
 configLoop :: (Interface interface) => interface -> IO (Maybe GameConfig)
 configLoop interface =
     let stop configOutput = isJust (fst configOutput) || snd configOutput
@@ -167,9 +154,8 @@ main =
     do
         let interface = CInterface
         gameInit interface userPlayerIndex
-        -- mConfig <- configLoop
-        -- case mConfig of
-        case Just (GameConfig ["Alice", "Bob", "Charlie", "David"] ["Team 1", "Team 2"] 1000) of
+        mConfig <- configLoop interface
+        case mConfig of
             Just config ->
                 gameLoop interface config >> gameDeinit interface
             Nothing -> gameDeinit interface
