@@ -9,7 +9,7 @@ import Game.Structures
 import Game.Utils
 import IO
 
-commandLinePlayer :: Game -> [PlayerAction] -> PlayerName -> IO PlayerAction
+commandLinePlayer :: Game -> [PlayerAction] -> PlayerName -> IO (PlayerAction, Game)
 commandLinePlayer game allPossibleActions pn = do
     showPlayerInfo
     putStrLnQI "Combination to beat:"
@@ -18,7 +18,8 @@ commandLinePlayer game allPossibleActions pn = do
     printQI $ map cardsFromCombination (board game)
     putStrLnQI ("Hands of player " ++ show pn ++ ":")
     putStrLnQI (showListSep " " (hands game Map.! pn) ++ " ") -- Space needed for unicode symbols to show correctly
-    askForPlayerAction pn allPossibleActions
+    action <- askForPlayerAction pn allPossibleActions
+    return (action, game)
   where
     showPlayerInfo :: IO ()
     showPlayerInfo =
@@ -62,14 +63,20 @@ askForPlayerAction playerName possibleActions = do
                         >> exitGame
                 Just action -> putStrLnA ("Player " ++ show playerName ++ " played: " ++ show action) >> return action
 
-commandLinePlayer' :: (String, GamePlayer)
+commandLinePlayer' :: (String, GamePlayerIO)
 commandLinePlayer' = ("commandLinePlayer", commandLinePlayer)
 
-defaultPlayerTypes :: [(String, GamePlayer)]
-defaultPlayerTypes = [commandLinePlayer', randomPlayer', randomPlayer', randomPlayer']
+randomPlayerIO :: GamePlayerIO
+randomPlayerIO a b c = return $ randomPlayer a b c
 
-textToPlayer :: String -> Maybe GamePlayer
+randomPlayerIO' :: (String, GamePlayerIO)
+randomPlayerIO' = (fst randomPlayer', randomPlayerIO)
+
+defaultPlayerTypes :: [(String, GamePlayerIO)]
+defaultPlayerTypes = [commandLinePlayer', randomPlayerIO', randomPlayerIO', randomPlayerIO']
+
+textToPlayer :: String -> Maybe GamePlayerIO
 textToPlayer p
     | p == fst commandLinePlayer' = Just commandLinePlayer
-    | p == fst randomPlayer' = Just randomPlayer
+    | p == fst randomPlayer' = Just randomPlayerIO
     | otherwise = Nothing

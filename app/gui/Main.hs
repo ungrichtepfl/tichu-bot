@@ -69,21 +69,20 @@ getGameConfig cGameConfig = do
 
 getCurrentAction ::
     (Interface interface) =>
-    interface -> Game -> Maybe (Map PlayerName [PlayerAction]) -> IO (Maybe (PlayerName, PlayerAction))
-getCurrentAction _ _ Nothing = return Nothing
+    interface -> Game -> Maybe (Map PlayerName [PlayerAction]) -> IO (Maybe (PlayerName, PlayerAction), Game)
+getCurrentAction _ game Nothing = return (Nothing, game)
 getCurrentAction interface game (Just playerActions) =
     case gamePhase game of
         Playing player _ _ ->
             if player == getUserPlayerName game
                 then do
                     userAction <- getUserAction interface
-                    return $ (\a -> (player, a)) <$> userAction
+                    return ((\a -> (player, a)) <$> userAction, game)
                 else
                     let actions = playerActions Map.! player
-                     in do
-                            botAction <- randomPlayer game actions player
-                            return $ Just (player, botAction)
-        _ -> return Nothing
+                        (botAction, g) = randomPlayer game actions player
+                     in return (Just (player, botAction), g)
+        _ -> return (Nothing, game)
 
 getCurrentUserAction :: CString -> IO (Maybe PlayerAction)
 getCurrentUserAction cAction = do
@@ -144,21 +143,21 @@ gameLoop interface config =
                     Playing p _ _ -> p
                     _ -> ""
             updateStateAndRenderGame interface toSend
-            action <- getCurrentAction interface game possibleActions
+            (action, game') <- getCurrentAction interface game possibleActions
             case action of
                 Just a -> putStrLn $ ">>> " ++ fst a ++ " played : " ++ show (snd a)
                 _ -> return ()
-            let (game', possibleActions') =
-                    if isNothing action && currentPlayingPlayer == getUserPlayerName game
-                        then (game, possibleActions)
+            let (game'', possibleActions') =
+                    if isNothing action && currentPlayingPlayer == getUserPlayerName game'
+                        then (game', possibleActions)
                         else
-                            updateGame game action
+                            updateGame game' action
             end <- gameShouldStop interface
-            let game'' = game'{shouldGameStop = end}
-            case gamePhase game'' of
-                NextRound -> newRound interface >> return (game'', possibleActions')
-                Finished -> iterateUntilM restartStop restartLoop (game'', Nothing)
-                _ -> return (game'', possibleActions')
+            let game''' = game''{shouldGameStop = end}
+            case gamePhase game''' of
+                NextRound -> newRound interface >> return (game''', possibleActions')
+                Finished -> iterateUntilM restartStop restartLoop (game''', Nothing)
+                _ -> return (game''', possibleActions')
      in
         do
             iterateUntilM stop loop (initialGame config 0) >> return ()
@@ -170,7 +169,7 @@ main =
         gameInit interface userPlayerIndex
         -- mConfig <- configLoop
         -- case mConfig of
-        case Just (GameConfig ["Alice", "Bob", "Charlie", "David"] ["Team 1", "Team 2"] 1) of
+        case Just (GameConfig ["Alice", "Bob", "Charlie", "David"] ["Team 1", "Team 2"] 1000) of
             Just config ->
                 gameLoop interface config >> gameDeinit interface
             Nothing -> gameDeinit interface

@@ -7,7 +7,7 @@ import Data.List (elemIndex, sort, (\\))
 import Data.Map (Map)
 import Data.Maybe (fromJust, isJust, isNothing, mapMaybe)
 import Debug.Trace (traceShowId)
-import System.Random (StdGen, mkStdGen)
+import System.Random (StdGen, mkStdGen, uniformShuffleList)
 
 import qualified Data.Map as Map
 
@@ -235,8 +235,8 @@ applyPlayerAction game (pn, playerAction) currentPlayer passes mPlayerToBeat =
 startGame :: Game -> Game
 startGame game =
     let
-        (initialDeck, gen') = shuffle orderedDeck (generator game)
-        (shuffledPlayers, gen'') = shuffle (playerNames' game) gen'
+        (initialDeck, gen') = uniformShuffleList orderedDeck (generator game)
+        (shuffledPlayers, gen'') = uniformShuffleList (playerNames' game) gen'
         randomPlayer = head shuffledPlayers
      in
         game

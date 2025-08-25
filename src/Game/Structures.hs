@@ -225,7 +225,8 @@ data Game = Game
     }
     deriving (Show, Eq)
 
-type GamePlayer = Game -> [PlayerAction] -> PlayerName -> IO PlayerAction
+type GamePlayer = Game -> [PlayerAction] -> PlayerName -> (PlayerAction, Game)
+type GamePlayerIO = Game -> [PlayerAction] -> PlayerName -> IO (PlayerAction, Game)
 
 type GamePlayers = [GamePlayer]
 

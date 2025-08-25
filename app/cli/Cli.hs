@@ -3,6 +3,7 @@ module Cli (module Cli) where
 import Control.Monad (foldM)
 import Data.List (nub, sortBy)
 import Data.Map (Map)
+import System.Random (uniformShuffleList)
 import Text.Read (readMaybe)
 
 import qualified Data.Map as Map
@@ -21,7 +22,7 @@ playTichu = do
     let seed = 0
     iterateUntilM_ shouldGameStop (update gamePlayers) (fst $ initialGame gameConf seed)
 
-getGamePlayers :: [PlayerName] -> IO (Map PlayerName GamePlayer)
+getGamePlayers :: [PlayerName] -> IO (Map PlayerName GamePlayerIO)
 getGamePlayers pns =
     putStrLnQ
         ( "Enter player types separated by spaces for players "
@@ -34,7 +35,7 @@ getGamePlayers pns =
         >> getTrimmedLine
         >>= processInput
   where
-    processInput :: String -> IO (Map PlayerName GamePlayer)
+    processInput :: String -> IO (Map PlayerName GamePlayerIO)
     processInput rawInput
         | rawInput == quitSymbol = exitGame
         | otherwise =
@@ -46,7 +47,7 @@ getGamePlayers pns =
                         Just pts -> echoPlayerTypes (zip playerTypesRaw pts)
                     _ -> putStrLnE "Wrong number of player types, should be 4." >> getGamePlayers pns
 
-    echoPlayerTypes :: [(String, GamePlayer)] -> IO (Map PlayerName GamePlayer)
+    echoPlayerTypes :: [(String, GamePlayerIO)] -> IO (Map PlayerName GamePlayerIO)
     echoPlayerTypes gps = putStrLnA ("Player types chosen: " ++ showList' (map fst gps)) >> return (Map.fromList $ zip pns (map snd gps))
 
 getPlayers :: IO [PlayerName]
@@ -134,24 +135,24 @@ displayGame game =
         >> putStrLnQI ("Score: " ++ showMap (scores game))
         >> newLine
 
-update :: Map PlayerName GamePlayer -> Game -> IO Game
+update :: Map PlayerName GamePlayerIO -> Game -> IO Game
 update gamePlayers game =
     -- displayGame game >> -- NOTE: Uncomment for debugging
     updateGame game gamePlayers
 
-play :: Game -> Map PlayerName GamePlayer -> Passes -> PlayerToBeat -> IO Game
+play :: Game -> Map PlayerName GamePlayerIO -> Passes -> PlayerToBeat -> IO Game
 play game gamePlayers passes playerToBeat =
     foldM
         ( \g pn -> do
-            pa <- getPlayerActionsByName g gamePlayers pn
-            case gamePhase g of
+            (pa, g') <- getPlayerActionsByName g gamePlayers pn
+            case gamePhase g' of
                 Playing playerPlaying passes' playerToBeat' ->
                     if pn /= playerPlaying && pa == Pass -- Here we just check if they also want to call tichu or if they want to bomb
                         then
-                            return g
+                            return g'
                         else
-                            updateGameByPlayerAction g pn pa passes' playerToBeat'
-                _ -> updateGameByPlayerAction g pn pa passes playerToBeat
+                            updateGameByPlayerAction g' pn pa passes' playerToBeat'
+                _ -> updateGameByPlayerAction g' pn pa passes playerToBeat
         )
         game
         (sortBy currentPlayerFirst (getActivePlayers game))
@@ -179,14 +180,19 @@ getGameConfig = do
     teams <- getTeamNames
     GameConfig players teams <$> getMaxScore
 
-getPlayerActions :: Game -> Map PlayerName GamePlayer -> IO (Map PlayerName PlayerAction)
+getPlayerActions :: Game -> Map PlayerName GamePlayerIO -> IO (Map PlayerName PlayerAction, Game)
 getPlayerActions game gamePlayers = do
     let players = playerListWithCurrentPlayerFirst game
-    actions <-
-        mapM (getPlayerActionsByName game gamePlayers) players
-    return $ Map.fromList $ zip players actions
+    (actions, game') <-
+        getActions [] players game
+    return $ (Map.fromList $ zip players actions, game')
+  where
+    getActions as [] g = return (as, g)
+    getActions as (p : ps) g = do
+        (a, g') <- getPlayerActionsByName g gamePlayers p
+        getActions (as ++ [a]) ps g'
 
-getPlayerActionsByName :: Game -> Map PlayerName GamePlayer -> PlayerName -> IO PlayerAction
+getPlayerActionsByName :: Game -> Map PlayerName GamePlayerIO -> PlayerName -> IO (PlayerAction, Game)
 getPlayerActionsByName game gamePlayers pn =
     let allPossibleActions = possiblePlayerActions game pn
         gamePlayer = gamePlayers Map.! pn
@@ -194,8 +200,8 @@ getPlayerActionsByName game gamePlayers pn =
 
 startGame :: Game -> Game
 startGame game =
-    let (initialDeck, gen') = shuffle orderedDeck (generator game)
-        (shuffledPlayers, gen'') = shuffle (playerNames' game) gen'
+    let (initialDeck, gen') = uniformShuffleList orderedDeck (generator game)
+        (shuffledPlayers, gen'') = uniformShuffleList (playerNames' game) gen'
         randomPlayer = head shuffledPlayers
      in game
             { gamePhase = Dealing initialDeck
@@ -205,7 +211,7 @@ startGame game =
 
 nextRound :: Game -> Game
 nextRound game =
-    let (initialDeck, gen') = shuffle orderedDeck (generator game)
+    let (initialDeck, gen') = uniformShuffleList orderedDeck (generator game)
      in game
             { hands = setEmpty $ hands game
             , tricks = setEmpty $ tricks game
@@ -218,7 +224,7 @@ nextRound game =
 distribute :: Game -> Game
 distribute game = game{gamePhase = Playing (startingPlayer $ hands game) 0 Nothing} -- TODO: Implement
 
-updateGame :: Game -> Map PlayerName GamePlayer -> IO Game
+updateGame :: Game -> Map PlayerName GamePlayerIO -> IO Game
 updateGame game gamePlayers = do
     case gamePhase game of
         Starting -> return $ startGame game

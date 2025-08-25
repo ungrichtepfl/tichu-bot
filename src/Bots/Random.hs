@@ -1,17 +1,18 @@
 module Bots.Random (randomPlayer, randomPlayer') where
 
-import System.Random (randomRIO)
+import System.Random (uniformShuffleList)
 
 import Game.Structures
 
 randomPlayer :: GamePlayer
-randomPlayer _ allPossibleActions _ = do
+randomPlayer game allPossibleActions _ =
     let possibleActions = filter (Stop /=) allPossibleActions
-    if null possibleActions
-        then error "No possible actions."
-        else do
-            index <- randomRIO (0, length possibleActions - 1)
-            return $ possibleActions !! index
+     in if null possibleActions
+            then error "No possible actions."
+            else
+                let (actionShuffled, g) = uniformShuffleList possibleActions (generator game)
+                    action = head actionShuffled
+                 in (action, game{generator = g})
 
 randomPlayer' :: (String, GamePlayer)
 randomPlayer' = ("randomPlayer", randomPlayer)
