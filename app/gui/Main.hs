@@ -24,8 +24,9 @@ foreign import ccall "update_c_state_and_render_game" c_updateCStateAndRenderGam
 foreign import ccall "update_draw_config" c_updateDrawConfig :: IO CString
 foreign import ccall "init" c_init :: Int -> IO ()
 foreign import ccall "deinit" c_deinit :: IO ()
-foreign import ccall "window_should_close" c_windowShouldClose :: IO Bool
 foreign import ccall "new_round" c_newRound :: IO ()
+foreign import ccall "game_should_stop" c_gameShouldStop :: IO Bool
+foreign import ccall "should_game_restart" c_shouldGameRestart :: IO Bool
 
 data CInterface = CInterface
 
@@ -33,7 +34,8 @@ instance Interface CInterface where
     gameInit _ = c_init
     gameDeinit _ = c_deinit
     updateDrawConfig _ = c_updateDrawConfig >>= getGameConfig
-    windowShouldClose _ = c_windowShouldClose
+    gameShouldStop _ = c_gameShouldStop
+    shouldGameRestart _ = c_shouldGameRestart
     updateStateAndRenderGame _ toSend = withCAString toSend c_updateCStateAndRenderGame
     getUserAction _ = c_getUserAction >>= getCurrentUserAction
     newRound _ = c_newRound
@@ -112,7 +114,7 @@ configLoop interface =
     let stop configOutput = isJust (fst configOutput) || snd configOutput
         loop _ = do
             conf <- updateDrawConfig interface
-            end <- c_windowShouldClose
+            end <- gameShouldStop interface
             return (conf, end)
      in do
             (config, _) <- iterateUntilM stop loop (Nothing, False)
@@ -121,6 +123,18 @@ configLoop interface =
 gameLoop :: (Interface interface) => interface -> GameConfig -> IO ()
 gameLoop interface config =
     let
+        restartStop (game, _) = shouldGameStop game || gamePhase game == Starting
+        restartLoop ::
+            (Game, Maybe (Map PlayerName [PlayerAction])) ->
+            IO (Game, Maybe (Map PlayerName [PlayerAction]))
+        restartLoop (game, _) = do
+            let toSend = (game, Nothing)
+            updateStateAndRenderGame interface toSend
+            end <- gameShouldStop interface
+            restart <- shouldGameRestart interface
+            if restart && not end
+                then return (newGame (generator game) (gameConfig game), Nothing)
+                else return (game{shouldGameStop = end}, Nothing)
         stop (game, _) = shouldGameStop game
         loop ::
             (Game, Maybe (Map PlayerName [PlayerAction])) ->
@@ -139,10 +153,12 @@ gameLoop interface config =
                         then (game, possibleActions)
                         else
                             updateGame game action
-            end <- c_windowShouldClose
-            let game'' = game'{shouldGameStop = end || shouldGameStop game'}
-            if gamePhase game'' == NextRound then newRound interface else return ()
-            return (game'', possibleActions')
+            end <- gameShouldStop interface
+            let game'' = game'{shouldGameStop = end}
+            case gamePhase game'' of
+                NextRound -> newRound interface >> return (game'', possibleActions')
+                Finished -> iterateUntilM restartStop restartLoop (game'', Nothing)
+                _ -> return (game'', possibleActions')
      in
         do
             iterateUntilM stop loop (initialGame config 0) >> return ()
@@ -154,7 +170,7 @@ main =
         gameInit interface userPlayerIndex
         -- mConfig <- configLoop
         -- case mConfig of
-        case Just (GameConfig ["Alice", "Bob", "Charlie", "David"] ["Team 1", "Team 2"] 1000) of
+        case Just (GameConfig ["Alice", "Bob", "Charlie", "David"] ["Team 1", "Team 2"] 1) of
             Just config ->
                 gameLoop interface config >> gameDeinit interface
             Nothing -> gameDeinit interface

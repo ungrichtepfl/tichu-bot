@@ -6,6 +6,7 @@ import Control.Exception (assert)
 import Data.List (elemIndex, sort, (\\))
 import Data.Map (Map)
 import Data.Maybe (fromJust, isJust, isNothing, mapMaybe)
+import Debug.Trace (traceShowId)
 import System.Random (StdGen, mkStdGen)
 
 import qualified Data.Map as Map
@@ -259,8 +260,7 @@ nextRound game =
             }
 
 finish :: Game -> Game
-finish game = do
-    game{shouldGameStop = True}
+finish game = game -- NOTE: Just stay in the finish state until the user changes the game
 
 updateGame :: Game -> Maybe (PlayerName, PlayerAction) -> (Game, Maybe (Map PlayerName [PlayerAction]))
 updateGame game playersAction =
@@ -308,15 +308,16 @@ giveAwayLooserTricksAndHands game = case playerNames' game \\ finishOrder game o
                 , hands = newHands
                 , gamePhase = Scoring
                 }
+    [_, _] -> game{gamePhase = Scoring} -- MATCH does not matter
     _ -> error ("There should be numPlayers - 1 player in finishing order found: " ++ show (finishOrder game))
 
 score :: Game -> Game
 score game =
     let
         newGamePhase = if any (>= scoreLimit (gameConfig game)) (Map.elems newScore) then Finished else NextRound
-        winnerTeams' = fst <$> Map.toList (Map.filter (>= scoreLimit (gameConfig game)) (scores game))
+        winnerTeams' = Map.keys $ Map.filter (>= scoreLimit (gameConfig game)) newScore
      in
-        game{scores = newScore, gamePhase = newGamePhase, winnerTeams = winnerTeams'}
+        game{scores = newScore, gamePhase = newGamePhase, winnerTeams = traceShowId winnerTeams'}
   where
     matchBonusForTeam :: TeamName -> Int
     matchBonusForTeam tn =

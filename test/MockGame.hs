@@ -115,7 +115,7 @@ testGamePlay =
                     )
                 ]
         , tricks = Map.fromList [("Alice", []), ("Bob", []), ("Charlie", []), ("David", [])]
-        , gamePhase = Playing "Alice" 0
+        , gamePhase = Playing "Alice" 0 Nothing
         , tichus = Map.fromList [("Alice", Nothing), ("Bob", Nothing), ("Charlie", Nothing), ("David", Nothing)]
         , scores = Map.fromList [("Team 1", 0), ("Team 2", 0)]
         , board = []

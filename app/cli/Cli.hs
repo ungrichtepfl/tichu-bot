@@ -165,7 +165,7 @@ finish :: Game -> IO Game
 finish game = do
     let winningTeams = Map.toList $ Map.filter (>= scoreLimit (gameConfig game)) (scores game)
     printWinners winningTeams
-    return game
+    return game{shouldGameStop = True}
   where
     printWinners :: [(TeamName, Score)] -> IO ()
     printWinners [] = error "No team won!"

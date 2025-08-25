@@ -122,6 +122,7 @@ typedef struct {
   PlayerName current_dealer[MAX_BYTES_INPUT];
   PlayerName finish_order[NUM_PLAYERS][MAX_BYTES_INPUT];
   TeamName winner_teams[NUM_TEAMS][MAX_BYTES_INPUT];
+  size_t num_winner_teams;
   bool should_game_stop;
 } Game;
 

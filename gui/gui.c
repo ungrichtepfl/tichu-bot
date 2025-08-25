@@ -86,6 +86,7 @@ typedef struct {
   Rectangle playing_field;
   Rectangle play_button;
   Rectangle tichu_button;
+  Rectangle restart_button;
   float bottom_player_label_y;
   float top_player_label_y;
   char error[50];
@@ -319,6 +320,24 @@ bool is_mouse_pressed(void) {
 #else
   return IsMouseButtonPressed(MOUSE_BUTTON_LEFT);
 #endif
+}
+
+bool game_should_stop(void) {
+#if WASM
+  return false;
+#else
+  return WindowShouldClose();
+#endif
+}
+
+bool should_game_restart(void) {
+  if (is_mouse_pressed()) {
+    Vector2 mouse_pos = GetMousePosition();
+    if (CheckCollisionPointRec(mouse_pos, g_render_state.restart_button)) {
+      return true;
+    }
+  }
+  return false;
 }
 
 bool is_mouse_down(void) {
@@ -796,6 +815,10 @@ void reset_global_pre_game_state(void) {
 #define TICHU_BUTTON_HEIGHT BUTTON_HEIGHT
 #define TICHU_BUTTON_PADDING PLAY_BUTTON_PADDING
 
+#define RESTART_BUTTON_HEIGHT BUTTON_HEIGHT
+#define RESTART_BUTTON_WIDTH BUTTON_WIDTH
+#define RESTART_BUTTON_PADDING ((float)WIN_HEIHT / 4.f)
+
 float get_card_height(void) {
   return (float)g_assets.mahjong.height * CARD_SCALE;
 }
@@ -856,6 +879,12 @@ void reset_global_game_state(void) {
       PLAY_BUTTON_HEIGHT,
   };
   g_render_state.play_button = play_button;
+
+  Rectangle restart_button = {
+      (float)WIN_WIDTH / 2.f - RESTART_BUTTON_WIDTH / 2.f,
+      WIN_HEIHT - RESTART_BUTTON_HEIGHT - RESTART_BUTTON_PADDING,
+      RESTART_BUTTON_WIDTH, RESTART_BUTTON_HEIGHT};
+  g_render_state.restart_button = restart_button;
 
   ACTION_RESET();
 }
@@ -1337,6 +1366,56 @@ void check_buttons(void) {
 
 void new_round(void) { reset_global_game_state(); }
 
+#define RESTART_SCREEN_PADDING ((float)WIN_WIDTH / 10.f)
+#define RESTART_SCREEN_SPACING 5.f
+
+void draw_restart_screen(void) {
+
+  char *restart_text_title = "Game is finished!";
+  DrawText(restart_text_title,
+           (float)WIN_WIDTH / 2.f -
+               (float)MeasureText(restart_text_title, FONT_SIZE_BIG) / 2.f,
+           RESTART_SCREEN_PADDING, FONT_SIZE_BIG, BLACK);
+
+  size_t num_winners = g_game_state.game.num_winner_teams;
+  int num_text = 1 + num_winners;
+  char *restart_text_winner_header =
+      num_winners > 1 ? "The winners are:" : "The winner is:";
+  float y = (float)WIN_HEIHT / 2.f -
+            (((float)CHAR_SIZE_MEDIUM * num_text +
+              (float)RESTART_SCREEN_SPACING * (num_text - 1)) /
+             2.f);
+  DrawText(
+      restart_text_winner_header,
+      (float)WIN_WIDTH / 2.f -
+          (float)MeasureText(restart_text_winner_header, FONT_SIZE_MEDIUM) /
+              2.f,
+      y, FONT_SIZE_MEDIUM, BLACK);
+  y += (float)CHAR_SIZE_MEDIUM + (float)RESTART_SCREEN_SPACING;
+  for (size_t i = 0; i < num_winners; ++i) {
+    char restart_winner[MAX_BYTES_INPUT] = {0};
+    STRBUFFCPY(restart_winner, g_game_state.game.winner_teams[i]);
+    DrawText(restart_winner,
+             (float)WIN_WIDTH / 2.f -
+                 (float)MeasureText(restart_winner, FONT_SIZE_MEDIUM) / 2.f,
+             y, FONT_SIZE_MEDIUM, BLACK);
+    y += (float)CHAR_SIZE_MEDIUM + (float)RESTART_SCREEN_SPACING;
+  }
+  DrawRectangleRounded(g_render_state.restart_button, BUTTON_ROUNDNESS,
+                       BUTTON_SEGEMENTS, RED);
+  DrawRectangleRoundedLines(g_render_state.restart_button, BUTTON_ROUNDNESS,
+                            BUTTON_SEGEMENTS, BUTTON_LINE_THICKNESS, DARKBROWN);
+  const char *restart_text = "Restart";
+  DrawText(restart_text,
+           g_render_state.restart_button.x +
+               g_render_state.restart_button.width / 2.f -
+               MeasureText(restart_text, BUTTON_FONT_SIZE) / 2.f,
+           g_render_state.restart_button.y +
+               g_render_state.restart_button.height / 2.f -
+               BUTTON_CHAR_SIZE / 2.f,
+           BUTTON_FONT_SIZE, BLACK);
+}
+
 void update_c_state_and_render_game(const char *game_json) {
   // Update state
   parse_game_and_actions(&g_game_state, game_json);
@@ -1344,18 +1423,29 @@ void update_c_state_and_render_game(const char *game_json) {
   memset(g_render_state.selectable, 0, sizeof(g_render_state.selectable));
   memset(g_render_state.rotated_back, 0, sizeof(g_render_state.rotated_back));
   memset(g_render_state.show_front, 1, sizeof(g_render_state.show_front));
-  update_hands();
-  update_board();
+  switch (g_game_state.game.game_phase.type) {
+  default: {
+    update_hands();
+    update_board();
+  } break;
+  }
 
   // Draw State
   BeginDrawing();
   ClearBackground(WHITE);
   DrawTexture(get_background_asset(), 0, 0, WHITE);
-  draw_labels_and_buttons();
-  draw_cards();
-  draw_current_playing_player();
-  draw_tichus();
-  draw_scores();
+  switch (g_game_state.game.game_phase.type) {
+  case Finished: {
+    draw_restart_screen();
+  } break;
+  default: {
+    draw_labels_and_buttons();
+    draw_cards();
+    draw_current_playing_player();
+    draw_tichus();
+    draw_scores();
+  } break;
+  }
   EndDrawing();
 }
 

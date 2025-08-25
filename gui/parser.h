@@ -1064,6 +1064,7 @@ ptrdiff_t parse_game(Game *game, jsmntok_t *game_token, const char *game_json) {
                 current_token->end - current_token->start);
         ++current_token;
       }
+      game->num_winner_teams = array_size;
 
     } else {
       fprintf(stderr, "Unknown key: %.*s\n", key->end - key->start,
