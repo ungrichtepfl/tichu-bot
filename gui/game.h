@@ -7,6 +7,11 @@
 #define CARDS_PER_COLOR 13
 #define NUM_COLORS 4
 #define NUM_PLAYERS 4
+#define NUM_PLAYERS_USER 1
+#define NUM_PLAYERS_COM 3
+static_assert(NUM_PLAYERS == NUM_PLAYERS_USER + NUM_PLAYERS_COM,
+              "Wrong player numbers");
+
 #define NUM_TEAMS 2
 #define TOTAL_CARDS (CARDS_PER_COLOR * NUM_COLORS + 4)
 #define MAX_CARDS_PER_PLAYER (TOTAL_CARDS / 4)
@@ -69,6 +74,7 @@ typedef struct {
 } TichuCombination;
 
 typedef struct {
+  // NOTE: Player index 2 is the user
   PlayerName sitting_order[NUM_PLAYERS][MAX_BYTES_INPUT];
   TeamName team_names[NUM_TEAMS][MAX_BYTES_INPUT];
   Score score_limit;

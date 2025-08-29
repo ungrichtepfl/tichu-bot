@@ -19,14 +19,11 @@ jsmn_parser json_parser;
 jsmntok_t json_tokens[NUM_JSON_TOKENS];
 #define SAFECPY(g, t, n)                                                       \
   strncpy(g, t, MIN((long long)sizeof(g) - 1ll, (long long)n))
-#define STRBUFFCPY(b, s) strncpy(b, s, (long long)sizeof(b) - 1ll)
-/* TODO: Fix errors when run with -O2 flag
-#define STRBUFFCAT1(b, s)                                                      \
+#define STRBUFFCPY(b, s) snprintf(b, (long long)sizeof(b), "%s", s)
+#define STRBUFFCAT(b, s)                                                       \
   strncat(b, s,                                                                \
           MAX(0ll, (long long)sizeof(b) - 1ll - (long long)strlen(b) -         \
                        (long long)strlen(s)))
-*/
-#define STRBUFFCAT(b, s) strcat(b, s)
 
 bool json_str_equal(const char *json, jsmntok_t *tok, const char *s) {
   if (tok->type == JSMN_STRING && (int)strlen(s) == tok->end - tok->start &&
@@ -1080,6 +1077,9 @@ ptrdiff_t parse_game(Game *game, jsmntok_t *game_token, const char *game_json) {
 }
 
 void parse_game_and_actions(GameState *game_state, const char *game_json) {
+  FILE *f = fopen("test.txt", "w");
+  fprintf(f, "%s", game_json);
+  fclose(f);
 
   jsmn_init(&json_parser);
   int num_tokens = jsmn_parse(&json_parser, game_json, strlen(game_json),

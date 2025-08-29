@@ -522,7 +522,7 @@ void select_card(void) {
 #define BUTTON_CHAR_SIZE CHAR_SIZE_MEDIUM
 #define BUTTON_FONT_SIZE FONT_SIZE_MEDIUM
 #define BUTTON_PADDING ((float)BUTTON_CHAR_SIZE / 3.5f)
-#define BUTTON_PADDING_BOX (1.f * BOX_CHAR_SIZE)
+#define BUTTON_PADDING_BOX (2.f * BOX_CHAR_SIZE)
 #define BUTTON_WIDTH ((float)WIN_WIDTH / 4.5f)
 #define BUTTON_HEIGHT ((float)BUTTON_CHAR_SIZE + 3.f * BUTTON_PADDING)
 #define BUTTON_ROUNDNESS 0.25f
@@ -560,7 +560,7 @@ void set_pre_game_state_start(void) {
 }
 
 void set_pre_game_state_team_names(void) {
-  int number_of_text_boxes = NUM_TEAMS;
+  int number_of_text_boxes = MIN(NUM_PLAYERS_USER, NUM_TEAMS);
   float height = (float)BOX_CHAR_SIZE + 2.f * BOX_PADDING;
   float dy = (float)WIN_HEIHT / 12;
   float title_y = get_title_y(number_of_text_boxes, height, dy);
@@ -570,29 +570,20 @@ void set_pre_game_state_team_names(void) {
 
   g_pre_game_state.number_of_text_boxes = number_of_text_boxes;
   g_pre_game_state.selected_text_box = 0;
-  STRBUFFCPY(g_pre_game_state.title, "Choose Team Names");
+  STRBUFFCPY(g_pre_game_state.title, "Choose Team Name");
   g_pre_game_state.title_y = title_y;
-  STRBUFFCPY(g_pre_game_state.text_box_label[0],
-             g_pre_game_state.game_config.sitting_order[0]);
-  STRBUFFCAT(g_pre_game_state.text_box_label[0], " & ");
-  STRBUFFCAT(g_pre_game_state.text_box_label[0],
-             g_pre_game_state.game_config.sitting_order[2]);
+  STRBUFFCPY(g_pre_game_state.text_box_label[0], "");
 
-  STRBUFFCPY(g_pre_game_state.text_box_label[1],
-             g_pre_game_state.game_config.sitting_order[1]);
-  STRBUFFCAT(g_pre_game_state.text_box_label[1], " & ");
-  STRBUFFCAT(g_pre_game_state.text_box_label[1],
-             g_pre_game_state.game_config.sitting_order[3]);
   g_pre_game_state.text_box[0] = (Rectangle){x, y, width, height};
-  g_pre_game_state.text_box[1] = (Rectangle){x, y + height + dy, width, height};
+
   for (int i = 0; i < number_of_text_boxes; ++i) {
     g_pre_game_state.text_box_input[i][0] = '\0';
     g_pre_game_state.input_char_counter[i] = 0;
   }
 
   int button_x = (float)WIN_WIDTH / 2 - (float)BUTTON_WIDTH / 2;
-  int button_y = g_pre_game_state.text_box[1].y +
-                 g_pre_game_state.text_box[1].height + BUTTON_PADDING_BOX;
+  int button_y = g_pre_game_state.text_box[0].y +
+                 g_pre_game_state.text_box[0].height + BUTTON_PADDING_BOX;
   g_pre_game_state.button =
       (Rectangle){button_x, button_y, BUTTON_WIDTH, BUTTON_HEIGHT};
   STRBUFFCPY(g_pre_game_state.button_text, "Next");
@@ -611,7 +602,7 @@ void set_pre_game_state_score_limit(void) {
   g_pre_game_state.selected_text_box = 0;
   STRBUFFCPY(g_pre_game_state.title, "Choose Score Limit");
   g_pre_game_state.title_y = title_y;
-  STRBUFFCPY(g_pre_game_state.text_box_label[0], "Max Score:");
+  STRBUFFCPY(g_pre_game_state.text_box_label[0], "");
   g_pre_game_state.text_box[0] = (Rectangle){x, y, width, height};
   STRBUFFCPY(g_pre_game_state.text_box_input[0], "1000");
   g_pre_game_state.input_char_counter[0] =
@@ -626,7 +617,7 @@ void set_pre_game_state_score_limit(void) {
 }
 
 void set_pre_game_state_player_names(void) {
-  int number_of_text_boxes = NUM_PLAYERS;
+  int number_of_text_boxes = NUM_PLAYERS_USER;
   float height = (float)BOX_CHAR_SIZE + 2.f * BOX_PADDING;
   float dy = (float)WIN_HEIHT / 12;
   float title_y = get_title_y(number_of_text_boxes, height, dy);
@@ -636,26 +627,19 @@ void set_pre_game_state_player_names(void) {
 
   g_pre_game_state.number_of_text_boxes = number_of_text_boxes;
   g_pre_game_state.selected_text_box = 0;
-  STRBUFFCPY(g_pre_game_state.title, "Choose Sitting Order");
+  STRBUFFCPY(g_pre_game_state.title, "Choose Player Name");
   g_pre_game_state.title_y = title_y;
-  STRBUFFCPY(g_pre_game_state.text_box_label[0], "Player 1:");
-  STRBUFFCPY(g_pre_game_state.text_box_label[1], "Player 2:");
-  STRBUFFCPY(g_pre_game_state.text_box_label[2], "Player 3 (you):");
-  STRBUFFCPY(g_pre_game_state.text_box_label[3], "Player 4:");
+  STRBUFFCPY(g_pre_game_state.text_box_label[0], "");
   g_pre_game_state.text_box[0] = (Rectangle){x, y, width, height};
-  g_pre_game_state.text_box[1] = (Rectangle){x, y + height + dy, width, height};
-  g_pre_game_state.text_box[2] =
-      (Rectangle){x, y + 2 * (height + dy), width, height};
-  g_pre_game_state.text_box[3] =
-      (Rectangle){x, y + 3 * (height + dy), width, height};
+
   for (int i = 0; i < number_of_text_boxes; ++i) {
     g_pre_game_state.text_box_input[i][0] = '\0';
     g_pre_game_state.input_char_counter[i] = 0;
   }
 
   int button_x = (float)WIN_WIDTH / 2 - (float)BUTTON_WIDTH / 2;
-  int button_y = g_pre_game_state.text_box[3].y +
-                 g_pre_game_state.text_box[3].height + BUTTON_PADDING_BOX;
+  int button_y = g_pre_game_state.text_box[0].y +
+                 g_pre_game_state.text_box[0].height + BUTTON_PADDING_BOX;
   g_pre_game_state.button =
       (Rectangle){button_x, button_y, BUTTON_WIDTH, BUTTON_HEIGHT};
   STRBUFFCPY(g_pre_game_state.button_text, "Next");
@@ -712,35 +696,36 @@ void set_new_pre_game_state_phase() {
     set_pre_game_state_player_names();
   } break;
   case PGS_TEAM_NAMES: {
-    for (int i = 0; i < NUM_PLAYERS; ++i) {
-      strip(g_pre_game_state.game_config.sitting_order[i],
-            g_pre_game_state.text_box_input[i],
-            sizeof(g_pre_game_state.game_config.sitting_order[i]));
-      if (strlen(g_pre_game_state.game_config.sitting_order[i]) == 0) {
-        error = "No empty player name allowed";
-        goto error;
-      }
+    // NOTE: Player index 2 is user
+    strip(g_pre_game_state.game_config.sitting_order[2],
+          g_pre_game_state.text_box_input[0],
+          sizeof(g_pre_game_state.game_config.sitting_order[2]));
+    STRBUFFCPY(g_pre_game_state.game_config.sitting_order[0], "Justus");
+    STRBUFFCPY(g_pre_game_state.game_config.sitting_order[1], "Peter");
+    STRBUFFCPY(g_pre_game_state.game_config.sitting_order[3], "Bob");
+    if (strlen(g_pre_game_state.game_config.sitting_order[2]) == 0) {
+      error = "No empty player name allowed";
+      goto error;
     }
     if (has_duplicates(g_pre_game_state.game_config.sitting_order,
                        LENGTH(g_pre_game_state.game_config.sitting_order))) {
-      error = "Choose unique player names";
+      error = "Don't choose the same name as the computer";
       goto error;
     }
     set_pre_game_state_team_names();
   } break;
   case PGS_MAX_SCORE: {
-    for (int i = 0; i < NUM_TEAMS; ++i) {
-      strip(g_pre_game_state.game_config.team_names[i],
-            g_pre_game_state.text_box_input[i],
-            sizeof(g_pre_game_state.game_config.team_names[i]));
-      if (strlen(g_pre_game_state.game_config.team_names[i]) == 0) {
-        error = "No empty team names allowed";
-        goto error;
-      }
+    strip(g_pre_game_state.game_config.team_names[0],
+          g_pre_game_state.text_box_input[0],
+          sizeof(g_pre_game_state.game_config.team_names[0]));
+    STRBUFFCPY(g_pre_game_state.game_config.team_names[1], "Zwei ??");
+    if (strlen(g_pre_game_state.game_config.team_names[0]) == 0) {
+      error = "No empty team names allowed";
+      goto error;
     }
     if (has_duplicates(g_pre_game_state.game_config.team_names,
                        LENGTH(g_pre_game_state.game_config.team_names))) {
-      error = "Choose unique team names";
+      error = "Don't choose same name as the computer";
       goto error;
     }
     set_pre_game_state_score_limit();
