@@ -316,7 +316,8 @@ Texture2D get_card_asset(Card card, bool show_front, bool rotated_back) {
 
 bool is_mouse_pressed(void) {
 #if WASM
-  return mouse_pressed > 0;
+  // return mouse_pressed > 0; TODO: Implement
+  return IsMouseButtonPressed(MOUSE_BUTTON_LEFT);
 #else
   return IsMouseButtonPressed(MOUSE_BUTTON_LEFT);
 #endif
@@ -342,7 +343,8 @@ bool should_game_restart(void) {
 
 bool is_mouse_down(void) {
 #if WASM
-  return mouse_down > 0;
+  return IsMouseButtonDown(MOUSE_BUTTON_LEFT);
+  // return mouse_down > 0; TODO: 
 #else
   return IsMouseButtonDown(MOUSE_BUTTON_LEFT);
 #endif
@@ -350,7 +352,8 @@ bool is_mouse_down(void) {
 
 Vector2 get_mouse_position(void) {
 #if WASM
-  return (Vector2){.x = (float)mouse_x, .y = (float)mouse_y};
+  return GetMousePosition();
+  // return (Vector2){.x = (float)mouse_x, .y = (float)mouse_y}; TODO: 
 #else
   return GetMousePosition();
 #endif

@@ -5,3 +5,5 @@ tichu-bot.cabal
 cbuild/
 .cache/
 compile_commands.json
+tichu_gui.js
+tichu_gui.wasm

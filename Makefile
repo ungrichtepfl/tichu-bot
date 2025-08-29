@@ -73,13 +73,22 @@ compiledb:
 	compiledb make c-build
 
 EMCC_FLAGS := -sUSE_GLFW=3 -sUSE_LIBPNG -sASYNCIFY -sMODULARIZE=1 -sEXPORT_ES6=1 -sWASM=1 -sINITIAL_HEAP=256mb
-EMCC_FLAGS := $(EMCC_FLAGS) --embed-file ./Lato-Regular.ttf --embed-file ./trained_network.txt
-EMCC_FLAGS := $(EMCC_FLAGS) -sEXPORT_NAME=createDitect
-EMCC_FLAGS := $(EMCC_FLAGS) -sEXPORTED_FUNCTIONS=_run_gui,_send_mouse_button_down,_send_mouse_button_released,_send_space_pressed,_send_rkey_pressed
+EMCC_FLAGS := $(EMCC_FLAGS) --embed-file ./gui/images/
+EMCC_FLAGS := $(EMCC_FLAGS) -sEXPORT_NAME=createTichuGui
+EMCC_FLAGS := $(EMCC_FLAGS) -sEXPORTED_FUNCTIONS=_get_user_action,_update_c_state_and_render_game,_update_draw_config,_init,_deinit,_new_round,_game_should_stop,_should_game_restart
+EXE_WEB := $(COUT)/tichu_gui.js
+CMAIN_WEB := $(CSRCDIR)/gui.c
 
-.PHONY: wasm-gui-build
-wasm-c-gui-build:
-	exit 1 # TODO:
+EMCC := emcc
+
+CINCLUDE_WEB := -I./$(CSRCDIR)/raylib-5.0/wasm/include/
+CLFLAGS_WEB := -L./$(CSRCDIR)/raylib-5.0/wasm/lib -l:libraylib.a
+CFLAGS_WEB := -Oz -Wno-limited-postlink-optimizations
+
+.PHONY: wasm-c-gui-build
+wasm-c-gui-build: | $(COUT)
+	$(EMCC) $(CFLAGS) $(CFLAGS_WEB) $(CMAIN_WEB) -o $(EXE_WEB) $(CINCLUDE_WEB) $(CLFLAGS_WEB) $(EMCC_FLAGS)
+	cp $(EXE_WEB) $(EXE_WEB:$(COUT)/%.js=$(COUT)/%.wasm) .
 
 .PHONY: clean
 clean:
