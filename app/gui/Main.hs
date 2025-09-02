@@ -95,37 +95,42 @@ getCurrentUserAction cAction = do
                 c_deinit
                 error $ "ERROR: Wrong players action.\nPlayer Action: " ++ cActionString
 
+configLoopStop :: (Maybe GameConfig, Bool) -> Bool
+configLoopStop configOutput = isJust (fst configOutput) || snd configOutput
+
+configLoopBody :: (Interface interface) => interface -> (Maybe GameConfig, Bool) -> IO (Maybe GameConfig, Bool)
+configLoopBody interface _ = do
+    conf <- updateDrawConfig interface
+    end <- gameShouldStop interface
+    return (conf, end)
+
 configLoop :: (Interface interface) => interface -> IO (Maybe GameConfig)
 configLoop interface =
-    let stop configOutput = isJust (fst configOutput) || snd configOutput
-        loop _ = do
-            conf <- updateDrawConfig interface
-            end <- gameShouldStop interface
-            return (conf, end)
-     in do
-            (config, _) <- iterateUntilM stop loop (Nothing, False)
-            return config
+    do
+        (config, _) <- iterateUntilM configLoopStop (configLoopBody interface) (Nothing, False)
+        return config
 
-gameLoop :: (Interface interface) => interface -> GameConfig -> IO ()
-gameLoop interface config =
+gameLoopBody ::
+    (Interface interface) =>
+    interface ->
+    (Game, Maybe (Map PlayerName [PlayerAction])) ->
+    IO (Game, Maybe (Map PlayerName [PlayerAction]))
+gameLoopBody interface toSend@(game, possibleActions) =
     let
-        restartStop (game, _) = shouldGameStop game || gamePhase game == Starting
-        restartLoop ::
+        restartStop (g, _) = shouldGameStop g || gamePhase g == Starting
+        restartLoopBody ::
             (Game, Maybe (Map PlayerName [PlayerAction])) ->
             IO (Game, Maybe (Map PlayerName [PlayerAction]))
-        restartLoop (game, _) = do
-            let toSend = (game, Nothing)
-            updateStateAndRenderGame interface toSend
+        restartLoopBody (g, _) = do
+            let toSend' = (g, Nothing)
+            updateStateAndRenderGame interface toSend'
             end <- gameShouldStop interface
             restart <- shouldGameRestart interface
             if restart && not end
-                then return (newGame (generator game) (gameConfig game), Nothing)
-                else return (game{shouldGameStop = end}, Nothing)
-        stop (game, _) = shouldGameStop game
-        loop ::
-            (Game, Maybe (Map PlayerName [PlayerAction])) ->
-            IO (Game, Maybe (Map PlayerName [PlayerAction]))
-        loop toSend@(game, possibleActions) = do
+                then return (newGame (generator g) (gameConfig g), Nothing)
+                else return (g{shouldGameStop = end}, Nothing)
+     in
+        do
             let currentPlayingPlayer = case gamePhase game of
                     Playing p _ _ -> p
                     _ -> ""
@@ -143,11 +148,15 @@ gameLoop interface config =
             let game''' = game''{shouldGameStop = end}
             case gamePhase game''' of
                 NextRound -> newRound interface >> return (game''', possibleActions')
-                Finished -> iterateUntilM restartStop restartLoop (game''', Nothing)
+                Finished -> iterateUntilM restartStop restartLoopBody (game''', Nothing)
                 _ -> return (game''', possibleActions')
-     in
-        do
-            iterateUntilM stop loop (initialGame config 0) >> return ()
+
+gameLoopStop :: (Game, Maybe (Map PlayerName [PlayerAction])) -> Bool
+gameLoopStop (game, _) = shouldGameStop game
+
+gameLoop :: (Interface interface) => interface -> GameConfig -> IO ()
+gameLoop interface config =
+    iterateUntilM gameLoopStop (gameLoopBody interface) (initialGame config 0) >> return ()
 
 main :: IO ()
 main =
