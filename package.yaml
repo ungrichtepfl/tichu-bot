@@ -118,7 +118,8 @@ executables:
       - -Wmissing-home-modules
       - -Wpartial-fields
       - -Wredundant-constraints
-      - -no-hs-main -optl-mexec-model=reactor -optl-Wl,--export=newGame,--export=updateGame
+      - -no-hs-main -optl-mexec-model=reactor 
+      - -optl-Wl,--export=gameLoopBody
     dependencies:
       - ghc-experimental
       - tichu-bot
