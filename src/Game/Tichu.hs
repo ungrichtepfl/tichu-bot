@@ -3,16 +3,18 @@
 module Game.Tichu (module Game.Tichu) where
 
 import Control.Exception (assert)
+import Control.Monad.Loops (iterateUntilM)
 import Data.List (elemIndex, sort, (\\))
 import Data.Map (Map)
 import Data.Maybe (fromJust, isJust, isNothing, mapMaybe)
-import Debug.Trace (traceShowId)
 import System.Random (StdGen, mkStdGen, uniformShuffleList)
 
 import qualified Data.Map as Map
 
+import Bots.Random
 import Game.Combinations
 import Game.Constants
+import Game.Interface
 import Game.Structures
 import Game.Utils
 
@@ -237,11 +239,11 @@ startGame game =
     let
         (initialDeck, gen') = uniformShuffleList orderedDeck (generator game)
         (shuffledPlayers, gen'') = uniformShuffleList (playerNames' game) gen'
-        randomPlayer = head shuffledPlayers
+        randomPlayerName = head shuffledPlayers
      in
         game
             { gamePhase = Dealing initialDeck
-            , currentDealer = randomPlayer
+            , currentDealer = randomPlayerName
             , generator = gen''
             }
 
@@ -317,7 +319,7 @@ score game =
         newGamePhase = if any (>= scoreLimit (gameConfig game)) (Map.elems newScore) then Finished else NextRound
         winnerTeams' = Map.keys $ Map.filter (>= scoreLimit (gameConfig game)) newScore
      in
-        game{scores = newScore, gamePhase = newGamePhase, winnerTeams = traceShowId winnerTeams'}
+        game{scores = newScore, gamePhase = newGamePhase, winnerTeams = winnerTeams'}
   where
     matchBonusForTeam :: TeamName -> Int
     matchBonusForTeam tn =
@@ -363,3 +365,89 @@ score game =
             tricksScorePerTeam
     scoreThisRound = Map.fromList $ zip teams scorePerTeam
     newScore = Map.mapWithKey (\k v -> v + scoreThisRound Map.! k) (scores game)
+
+configLoopStop :: (Maybe GameConfig, Bool) -> Bool
+configLoopStop configOutput = isJust (fst configOutput) || snd configOutput
+
+configLoopBody :: (Interface interface) => interface -> (Maybe GameConfig, Bool) -> IO (Maybe GameConfig, Bool)
+configLoopBody interface _ = do
+    conf <- updateDrawConfig interface
+    end <- gameShouldStop interface
+    return (conf, end)
+
+configLoop :: (Interface interface) => interface -> IO (Maybe GameConfig)
+configLoop interface =
+    do
+        (config, _) <- iterateUntilM configLoopStop (configLoopBody interface) (Nothing, False)
+        return config
+
+userPlayerIndex :: Int
+userPlayerIndex = 2 -- The third player is the user
+
+getUserPlayerName :: Game -> PlayerName
+getUserPlayerName game = playerNames' game !! userPlayerIndex
+
+getCurrentAction ::
+    (Interface interface) =>
+    interface -> Game -> Maybe (Map PlayerName [PlayerAction]) -> IO (Maybe (PlayerName, PlayerAction), Game)
+getCurrentAction _ game Nothing = return (Nothing, game)
+getCurrentAction interface game (Just playerActions) =
+    case gamePhase game of
+        Playing player _ _ ->
+            if player == getUserPlayerName game
+                then do
+                    userAction <- getUserAction interface
+                    return ((\a -> (player, a)) <$> userAction, game)
+                else
+                    let actions = playerActions Map.! player
+                        (botAction, g) = randomPlayer game actions player
+                     in return (Just (player, botAction), g)
+        _ -> return (Nothing, game)
+
+gameLoopBody ::
+    (Interface interface) =>
+    interface ->
+    (Game, Maybe (Map PlayerName [PlayerAction])) ->
+    IO (Game, Maybe (Map PlayerName [PlayerAction]))
+gameLoopBody interface toSend@(game, possibleActions) =
+    let
+        restartStop (g, _) = shouldGameStop g || gamePhase g == Starting
+        restartLoopBody ::
+            (Game, Maybe (Map PlayerName [PlayerAction])) ->
+            IO (Game, Maybe (Map PlayerName [PlayerAction]))
+        restartLoopBody (g, _) = do
+            let toSend' = (g, Nothing)
+            updateStateAndRenderGame interface toSend'
+            end <- gameShouldStop interface
+            restart <- shouldGameRestart interface
+            if restart && not end
+                then return (newGame (generator g) (gameConfig g), Nothing)
+                else return (g{shouldGameStop = end}, Nothing)
+     in
+        do
+            let currentPlayingPlayer = case gamePhase game of
+                    Playing p _ _ -> p
+                    _ -> ""
+            updateStateAndRenderGame interface toSend
+            (action, game') <- getCurrentAction interface game possibleActions
+            case action of
+                Just a -> putStrLn $ ">>> " ++ fst a ++ " played : " ++ show (snd a)
+                _ -> return ()
+            let (game'', possibleActions') =
+                    if isNothing action && currentPlayingPlayer == getUserPlayerName game'
+                        then (game', possibleActions)
+                        else
+                            updateGame game' action
+            end <- gameShouldStop interface
+            let game''' = game''{shouldGameStop = end}
+            case gamePhase game''' of
+                NextRound -> newRound interface >> return (game''', possibleActions')
+                Finished -> iterateUntilM restartStop restartLoopBody (game''', Nothing)
+                _ -> return (game''', possibleActions')
+
+gameLoopStop :: (Game, Maybe (Map PlayerName [PlayerAction])) -> Bool
+gameLoopStop (game, _) = shouldGameStop game
+
+gameLoop :: (Interface interface) => interface -> GameConfig -> IO ()
+gameLoop interface config =
+    iterateUntilM gameLoopStop (gameLoopBody interface) (initialGame config 0) >> return ()
