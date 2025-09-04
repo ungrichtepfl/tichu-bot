@@ -107,6 +107,10 @@ executables:
   tichu-wasm:
     main: Main.hs
     source-dirs: ./wasm/app/
+    c-sources:
+      - ./wasm/app/jsimports.c
+    cc-options:
+      - -std=c23
     ghc-options:
       - -O2
       - -Wall
