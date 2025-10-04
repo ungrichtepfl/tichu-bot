@@ -344,7 +344,7 @@ bool should_game_restart(void) {
 bool is_mouse_down(void) {
 #if WASM
   return IsMouseButtonDown(MOUSE_BUTTON_LEFT);
-  // return mouse_down > 0; TODO: 
+  // return mouse_down > 0; TODO:
 #else
   return IsMouseButtonDown(MOUSE_BUTTON_LEFT);
 #endif
@@ -353,7 +353,7 @@ bool is_mouse_down(void) {
 Vector2 get_mouse_position(void) {
 #if WASM
   return GetMousePosition();
-  // return (Vector2){.x = (float)mouse_x, .y = (float)mouse_y}; TODO: 
+  // return (Vector2){.x = (float)mouse_x, .y = (float)mouse_y}; TODO:
 #else
   return GetMousePosition();
 #endif
@@ -975,9 +975,10 @@ void draw_tichus(void) {
   }
 }
 
-#define GAME_PHASE_TEXT_PADDING 30
+#define GAME_PHASE_TEXT_PADDING 10
 void draw_current_playing_player(void) {
-  if (g_game_state.game.game_phase.type == Playing) {
+  if (g_game_state.game.game_phase.type == Playing &&
+      strlen(g_game_state.game.game_phase.player_name) != 0) {
     char *name = g_game_state.game.game_phase.player_name;
     char text[50 * MAX_BYTES_INPUT] = {0};
     STRBUFFCPY(text, name);
@@ -986,6 +987,21 @@ void draw_current_playing_player(void) {
              (float)WIN_WIDTH / 2 -
                  (float)MeasureText(text, FONT_SIZE_SMALL) / 2,
              g_render_state.playing_field.y + GAME_PHASE_TEXT_PADDING,
+             FONT_SIZE_SMALL, BLACK);
+  }
+}
+void draw_player_to_beat(void) {
+  if (g_game_state.game.game_phase.type == Playing &&
+      strlen(g_game_state.game.game_phase.player_to_beat) != 0) {
+    char *name = g_game_state.game.game_phase.player_to_beat;
+    char text[50 * MAX_BYTES_INPUT] = {0};
+    STRBUFFCPY(text, name);
+    STRBUFFCAT(text, " to beat");
+    DrawText(text,
+             (float)WIN_WIDTH / 2 -
+                 (float)MeasureText(text, FONT_SIZE_SMALL) / 2,
+             g_render_state.playing_field.y + GAME_PHASE_TEXT_PADDING +
+                 CHAR_SIZE_SMALL + 5,
              FONT_SIZE_SMALL, BLACK);
   }
 }
@@ -1443,6 +1459,7 @@ void update_c_state_and_render_game(const char *game_json) {
     draw_labels_and_buttons();
     draw_cards();
     draw_current_playing_player();
+    draw_player_to_beat();
     draw_tichus();
     draw_scores();
   } break;

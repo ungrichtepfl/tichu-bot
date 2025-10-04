@@ -521,11 +521,11 @@ ptrdiff_t parse_game_phase_content(Game *game, jsmntok_t *game_token,
     if (current_token->type == JSMN_PRIMITIVE) {
       assert(*(game_json + current_token->start) == 'n' &&
              "If it is a primitive it must be null");
-      game->game_phase.beatable_player[0] = '\0';
+      game->game_phase.player_to_beat[0] = '\0';
     } else {
       assert(current_token->type == JSMN_STRING &&
              "Current beatable player must be a string");
-      SAFECPY(game->game_phase.beatable_player,
+      SAFECPY(game->game_phase.player_to_beat,
               game_json + current_token->start,
               current_token->end - current_token->start);
     }

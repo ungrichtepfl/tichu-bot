@@ -96,7 +96,7 @@ typedef struct {
   Card cards[TOTAL_CARDS];
   PlayerName player_name[MAX_BYTES_INPUT];
   Passes num_passes;
-  PlayerName beatable_player[MAX_BYTES_INPUT];
+  PlayerName player_to_beat[MAX_BYTES_INPUT];
 } GamePhase;
 
 typedef enum { Tichu, GrandTichu, NoTichu } TichuType;
