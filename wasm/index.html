@@ -4,9 +4,24 @@
 <head>
   <meta charset="UTF-8" />
   <title>Tichu Bot</title>
+  <style>
+    body {
+      margin: 0px;
+      overflow: hidden;
+      background-color: black;
+    }
+
+    canvas.emscripten {
+      border: 0px none;
+      background-color: black;
+    }
+  </style>
 </head>
 
 <body>
+  <div>
+    <canvas class=emscripten id=canvas oncontextmenu=event.preventDefault() tabindex=-1></canvas>
+  </div>
   <script type="module" src="tichu-bot.js"></script>
 </body>
 

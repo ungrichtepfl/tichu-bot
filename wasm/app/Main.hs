@@ -5,6 +5,7 @@ module Main (main) where
 
 import Data.Aeson (FromJSON, ToJSON)
 import Data.Map (Map)
+import Foreign (free)
 import Foreign.C.String (CString)
 import GHC.Wasm.Prim (JSString)
 
@@ -132,7 +133,7 @@ getGameConfig :: CString -> IO (Maybe GameConfig)
 getGameConfig cGameConfig = do
     decoded <- makeHsTypeC cGameConfig
     case decoded of
-        Just gameConf -> return gameConf
+        Just gameConf -> free cGameConfig >> return gameConf
         Nothing ->
             do
                 cGameConfigString <- CS.peekCAString cGameConfig

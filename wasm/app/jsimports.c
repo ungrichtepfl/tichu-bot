@@ -20,18 +20,13 @@ char *_update_draw_config(void)
                    __import_name__("updateDrawConfig")));
 
 char *update_draw_config(void) {
-  char *res = _update_draw_config();
-  printf("update_draw_config: %s\n", res);
-  return res;
+  return _update_draw_config();
 }
 
 void _init(int user_player_index)
     __attribute__((__import_module__("env"), __import_name__("init")));
 
-void init(int user_player_index) {
-  printf("%d\n", user_player_index);
-  _init(user_player_index);
-}
+void init(int user_player_index) { _init(user_player_index); }
 
 void _deinit(void)
     __attribute__((__import_module__("env"), __import_name__("deinit")));

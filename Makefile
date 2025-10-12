@@ -41,7 +41,7 @@ gui-run: c-pp $(package).cabal
 	cabal run -w$(ghc_version) $(gui_exe)
 
 .PHONY: wasm-build
-wasm-build: $(package).cabal
+wasm-build: $(package).cabal wasm-c-gui-build
 	. $(ghc_wasm_env) && wasm32-wasi-cabal build $(wasm_exe)
 	cp "dist-newstyle/build/wasm32-wasi/ghc-$(ghc_wasm_version_num)/$(package)-$(pkg_version)/x/$(wasm_exe)/build/$(wasm_exe)/$(wasm_exe).wasm" $(wasm_dir)/
 	. $(ghc_wasm_env) && "$$(wasm32-wasi-ghc --print-libdir)"/post-link.mjs -i $(wasm_dir)/$(wasm_exe).wasm -o $(wasm_dir)/ghc_wasm_jsffi.js
@@ -76,6 +76,7 @@ EMCC_FLAGS := -sUSE_GLFW=3 -sUSE_LIBPNG -sASYNCIFY -sMODULARIZE=1 -sEXPORT_ES6=1
 EMCC_FLAGS := $(EMCC_FLAGS) --embed-file ./gui/images/
 EMCC_FLAGS := $(EMCC_FLAGS) -sEXPORT_NAME=createTichuGui
 EMCC_FLAGS := $(EMCC_FLAGS) -sEXPORTED_FUNCTIONS=_get_user_action,_update_c_state_and_render_game,_update_draw_config,_init,_deinit,_new_round,_game_should_stop,_should_game_restart
+EMCC_FLAGS := $(EMCC_FLAGS) -sEXPORTED_RUNTIME_METHODS=UTF8ToString,stringToUTF8
 EXE_WEB := $(COUT)/tichu_gui.js
 CMAIN_WEB := $(CSRCDIR)/gui.c
 
@@ -88,7 +89,7 @@ CFLAGS_WEB := -Oz -Wno-limited-postlink-optimizations
 .PHONY: wasm-c-gui-build
 wasm-c-gui-build: | $(COUT)
 	$(EMCC) $(CFLAGS) $(CFLAGS_WEB) $(CMAIN_WEB) -o $(EXE_WEB) $(CINCLUDE_WEB) $(CLFLAGS_WEB) $(EMCC_FLAGS)
-	cp $(EXE_WEB) $(EXE_WEB:$(COUT)/%.js=$(COUT)/%.wasm) .
+	cp $(EXE_WEB) $(EXE_WEB:$(COUT)/%.js=$(COUT)/%.wasm) $(wasm_dir)
 
 .PHONY: clean
 clean:

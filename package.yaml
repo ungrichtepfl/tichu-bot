@@ -123,7 +123,8 @@ executables:
       - -Wpartial-fields
       - -Wredundant-constraints
       - -no-hs-main -optl-mexec-model=reactor 
-      - -optl-Wl,--export=gameLoopBody
+      - -optl-Wl,--export=free
+      - -optl-Wl,--export=malloc
     dependencies:
       - ghc-experimental
       - tichu-bot
