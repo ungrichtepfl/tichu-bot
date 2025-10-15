@@ -3,33 +3,33 @@ import ghc_wasm_jsffi from "./ghc_wasm_jsffi.js";
 import createTichuGui from "./tichu_gui.js";
 
 function getScaledCanvasCoordinates(clientX, clientY, canvas) {
-  let rect = canvas.getBoundingClientRect(); // Get canvas position
-  let scaleX = canvas.width / rect.width;
-  let scaleY = canvas.height / rect.height;
+  const rect = canvas.getBoundingClientRect(); // Get canvas position
+  const scaleX = canvas.width / rect.width;
+  const scaleY = canvas.height / rect.height;
 
   // Convert touch to canvas coordinates
-  let canvasX = (clientX - rect.left) * scaleX;
-  let canvasY = (clientY - rect.top) * scaleY;
+  const canvasX = (clientX - rect.left) * scaleX;
+  const canvasY = (clientY - rect.top) * scaleY;
   return [canvasX, canvasY];
 }
 
-var Module = {
+let Module = {
   canvas: (function () {
-    var canvas = document.getElementById("canvas");
+    const canvas = document.getElementById("canvas");
     return canvas;
   })(),
 };
 
-var hs_tichu = undefined;
-var gui = undefined;
+let hs_tichu = undefined;
+let gui = undefined;
 
 document
   .getElementById("canvas")
   .addEventListener("touchstart", function (event) {
     if (event.touches.length > 0) {
       // Check if there is at least one touch point
-      let touch = event.touches[0]; // Get first touch
-      let [canvasX, canvasY] = getScaledCanvasCoordinates(
+      const touch = event.touches[0]; // Get first touch
+      const [canvasX, canvasY] = getScaledCanvasCoordinates(
         touch.clientX,
         touch.clientY,
         this,
@@ -44,7 +44,7 @@ document
   .addEventListener("mousedown", function (event) {
     if (event.button === 0) {
       // Left button pressed
-      let [canvasX, canvasY] = getScaledCanvasCoordinates(
+      const [canvasX, canvasY] = getScaledCanvasCoordinates(
         event.clientX,
         event.clientY,
         this,
@@ -65,7 +65,7 @@ async function main() {
 
   function getUserAction() {
     const res = gui._get_user_action();
-    var s = Module.UTF8ToString(res);
+    const s = Module.UTF8ToString(res);
     const encoder = new TextEncoder();
     const bytes = encoder.encode(s + "\0"); // null-terminate
     const ptr = hs_tichu.malloc(bytes.length);
@@ -75,7 +75,7 @@ async function main() {
 
   function updateCStateAndRenderGame(toSend) {
     const haskellMem = new Uint8Array(hs_tichu.memory.buffer);
-    var str_len = 0;
+    let str_len = 0;
     while (haskellMem[toSend + str_len] !== 0) str_len++;
     const guiPtr = gui._malloc(str_len + 1);
     const haskell_str = haskellMem.subarray(toSend, toSend + str_len + 1);
@@ -86,7 +86,7 @@ async function main() {
 
   function updateDrawConfig() {
     const res = gui._update_draw_config();
-    var s = Module.UTF8ToString(res);
+    const s = Module.UTF8ToString(res);
     const encoder = new TextEncoder();
     const bytes = encoder.encode(s + "\0"); // null-terminate
     const ptr = hs_tichu.malloc(bytes.length);
@@ -157,8 +157,8 @@ async function main() {
 
   async function tichuMain() {
     await hs_tichu.gameInit(userPlayerIndex);
-    var gameConfig = null;
-    var gameConfigArgs = initialGameConfigArgs;
+    let gameConfig = null;
+    let gameConfigArgs = initialGameConfigArgs;
     while (true) {
       gameConfigArgs = await hs_tichu.configLoopBody(gameConfigArgs);
       if (await hs_tichu.configLoopStop(gameConfigArgs)) {
@@ -166,7 +166,7 @@ async function main() {
         break;
       }
     }
-    var gameLoopArgs = await hs_tichu.initialGame(gameConfig, seed);
+    let gameLoopArgs = await hs_tichu.initialGame(gameConfig, seed);
     while (true) {
       gameLoopArgs = await hs_tichu.gameLoopBody(gameLoopArgs);
       if (await hs_tichu.gameLoopStop(gameLoopArgs)) {
