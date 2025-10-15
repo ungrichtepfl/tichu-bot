@@ -525,8 +525,7 @@ ptrdiff_t parse_game_phase_content(Game *game, jsmntok_t *game_token,
     } else {
       assert(current_token->type == JSMN_STRING &&
              "Current beatable player must be a string");
-      SAFECPY(game->game_phase.player_to_beat,
-              game_json + current_token->start,
+      SAFECPY(game->game_phase.player_to_beat, game_json + current_token->start,
               current_token->end - current_token->start);
     }
     ++current_token;
@@ -1077,9 +1076,6 @@ ptrdiff_t parse_game(Game *game, jsmntok_t *game_token, const char *game_json) {
 }
 
 void parse_game_and_actions(GameState *game_state, const char *game_json) {
-  FILE *f = fopen("test.txt", "w");
-  fprintf(f, "%s", game_json);
-  fclose(f);
 
   jsmn_init(&json_parser);
   int num_tokens = jsmn_parse(&json_parser, game_json, strlen(game_json),

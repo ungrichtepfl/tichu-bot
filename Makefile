@@ -72,11 +72,11 @@ c-run: c-build
 compiledb:
 	compiledb make c-build
 
-EMCC_FLAGS := -sUSE_GLFW=3 -sUSE_LIBPNG -sASYNCIFY -sMODULARIZE=1 -sEXPORT_ES6=1 -sWASM=1 -sINITIAL_HEAP=256mb
+EMCC_FLAGS := -sUSE_GLFW=3 -sUSE_LIBPNG -sMODULARIZE=1 -sEXPORT_ES6=1 -sWASM=1 -sINITIAL_HEAP=256mb
 EMCC_FLAGS := $(EMCC_FLAGS) --embed-file ./gui/images/
 EMCC_FLAGS := $(EMCC_FLAGS) -sEXPORT_NAME=createTichuGui
-EMCC_FLAGS := $(EMCC_FLAGS) -sEXPORTED_FUNCTIONS=_get_user_action,_update_c_state_and_render_game,_update_draw_config,_init,_deinit,_new_round,_game_should_stop,_should_game_restart
-EMCC_FLAGS := $(EMCC_FLAGS) -sEXPORTED_RUNTIME_METHODS=UTF8ToString,stringToUTF8
+EMCC_FLAGS := $(EMCC_FLAGS) -sEXPORTED_FUNCTIONS=_get_user_action,_update_c_state_and_render_game,_update_draw_config,_init,_deinit,_new_round,_game_should_stop,_should_game_restart,_malloc,_free,_send_mouse_button_pressed
+EMCC_FLAGS := $(EMCC_FLAGS) -sEXPORTED_RUNTIME_METHODS=UTF8ToString,writeArrayToMemory
 EXE_WEB := $(COUT)/tichu_gui.js
 CMAIN_WEB := $(CSRCDIR)/gui.c
 

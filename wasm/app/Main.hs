@@ -112,11 +112,19 @@ data CJInterface = CJInterface
 instance Interface CJInterface where
     gameInit _ = c_init
     gameDeinit _ = c_deinit
-    updateDrawConfig _ = c_updateDrawConfig >>= getGameConfig
+    updateDrawConfig _ = do
+        cString <- c_updateDrawConfig
+        conf <- getGameConfig cString
+        free cString
+        return conf
     gameShouldStop _ = c_gameShouldStop
     shouldGameRestart _ = c_shouldGameRestart
     updateStateAndRenderGame _ toSend = withCAString toSend c_updateCStateAndRenderGame
-    getUserAction _ = c_getUserAction >>= getCurrentUserAction
+    getUserAction _ = do
+        cString <- c_getUserAction
+        action <- getCurrentUserAction cString
+        free cString
+        return action
     newRound _ = c_newRound
 
 withCAString :: (ToJSON a) => a -> (CString -> IO b) -> IO b
@@ -133,7 +141,7 @@ getGameConfig :: CString -> IO (Maybe GameConfig)
 getGameConfig cGameConfig = do
     decoded <- makeHsTypeC cGameConfig
     case decoded of
-        Just gameConf -> free cGameConfig >> return gameConf
+        Just gameConf -> return gameConf
         Nothing ->
             do
                 cGameConfigString <- CS.peekCAString cGameConfig

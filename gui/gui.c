@@ -314,13 +314,31 @@ Texture2D get_card_asset(Card card, bool show_front, bool rotated_back) {
   }
 }
 
+#if WASM
+
+#include <stdatomic.h>
+atomic_int_fast8_t mouse_pressed = 0;
+atomic_int_fast32_t mouse_x = 0;
+atomic_int_fast32_t mouse_y = 0;
+
+void send_mouse_button_pressed(int32_t x, int32_t y) {
+  mouse_x = x;
+  mouse_y = y;
+  mouse_pressed = 1;
+}
+
+void reset_mouse_pressed(void) {
+  // Call at the end of event loop
+  mouse_pressed = 0;
+}
+#endif // WASM
+
 bool is_mouse_pressed(void) {
 #if WASM
-  // return mouse_pressed > 0; TODO: Implement
-  return IsMouseButtonPressed(MOUSE_BUTTON_LEFT);
+  return mouse_pressed;
 #else
   return IsMouseButtonPressed(MOUSE_BUTTON_LEFT);
-#endif
+#endif // WASM
 }
 
 bool game_should_stop(void) {
@@ -328,35 +346,41 @@ bool game_should_stop(void) {
   return false;
 #else
   return WindowShouldClose();
-#endif
+#endif // WASM
+}
+
+bool is_mouse_down(void) {
+#if WASM
+  assert(0 && "Not yet implemented");
+#else
+  return IsMouseButtonDown(MOUSE_BUTTON_LEFT);
+#endif // WASM
+}
+
+Vector2 get_mouse_position(void) {
+#if WASM
+  return (Vector2){.x = (float)mouse_x, .y = (float)mouse_y};
+#else
+  return GetMousePosition();
+#endif // WASM
+}
+
+void draw_loading(void) {
+  BeginDrawing();
+  char *load = "Loading...";
+  DrawText(load, WIN_WIDTH - 5 - MeasureText(load, FONT_SIZE_SMALL),
+           WIN_HEIHT - CHAR_SIZE_SMALL - 7, FONT_SIZE_SMALL, BLACK);
+  EndDrawing();
 }
 
 bool should_game_restart(void) {
   if (is_mouse_pressed()) {
-    Vector2 mouse_pos = GetMousePosition();
+    Vector2 mouse_pos = get_mouse_position();
     if (CheckCollisionPointRec(mouse_pos, g_render_state.restart_button)) {
       return true;
     }
   }
   return false;
-}
-
-bool is_mouse_down(void) {
-#if WASM
-  return IsMouseButtonDown(MOUSE_BUTTON_LEFT);
-  // return mouse_down > 0; TODO:
-#else
-  return IsMouseButtonDown(MOUSE_BUTTON_LEFT);
-#endif
-}
-
-Vector2 get_mouse_position(void) {
-#if WASM
-  return GetMousePosition();
-  // return (Vector2){.x = (float)mouse_x, .y = (float)mouse_y}; TODO:
-#else
-  return GetMousePosition();
-#endif
 }
 
 Rectangle get_card_rectangle(Card card, bool show_front, bool back_rotated) {
@@ -493,7 +517,7 @@ void update_card_position_mouse(void) {
 
 void select_card(void) {
   if (is_mouse_pressed()) {
-    Vector2 mouse_touch = GetMousePosition();
+    Vector2 mouse_touch = get_mouse_position();
     for (size_t i = 0; i < LENGTH(g_render_state.render_prio); ++i) {
       size_t idx = g_render_state.render_prio[i];
       Card card = get_card_from_index(idx);
@@ -977,18 +1001,19 @@ void draw_tichus(void) {
 
 #define GAME_PHASE_TEXT_PADDING 10
 void draw_current_playing_player(void) {
+  char text[50 * MAX_BYTES_INPUT] = {0};
   if (g_game_state.game.game_phase.type == Playing &&
       strlen(g_game_state.game.game_phase.player_name) != 0) {
     char *name = g_game_state.game.game_phase.player_name;
-    char text[50 * MAX_BYTES_INPUT] = {0};
     STRBUFFCPY(text, name);
     STRBUFFCAT(text, " is playing");
-    DrawText(text,
-             (float)WIN_WIDTH / 2 -
-                 (float)MeasureText(text, FONT_SIZE_SMALL) / 2,
-             g_render_state.playing_field.y + GAME_PHASE_TEXT_PADDING,
-             FONT_SIZE_SMALL, BLACK);
+  } else {
+    STRBUFFCPY(text, "Loading...");
   }
+  DrawText(text,
+           (float)WIN_WIDTH / 2 - (float)MeasureText(text, FONT_SIZE_SMALL) / 2,
+           g_render_state.playing_field.y + GAME_PHASE_TEXT_PADDING,
+           FONT_SIZE_SMALL, BLACK);
 }
 void draw_player_to_beat(void) {
   if (g_game_state.game.game_phase.type == Playing &&
@@ -1065,17 +1090,17 @@ const char *update_draw_config(void) {
     assert(0 && "Should not happen!");
   }
 
-  if ((IsMouseButtonPressed(MOUSE_BUTTON_LEFT) &&
-       CheckCollisionPointRec(GetMousePosition(), g_pre_game_state.button)) ||
+  if ((is_mouse_pressed() &&
+       CheckCollisionPointRec(get_mouse_position(), g_pre_game_state.button)) ||
       IsKeyPressed(KEY_ENTER)) {
     ++g_pre_game_state.phase;
     set_new_pre_game_state_phase();
   }
 
   // Check if a new textbox is selected
-  if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+  if (is_mouse_pressed()) {
     for (unsigned long i = 0; i < g_pre_game_state.number_of_text_boxes; ++i) {
-      if (CheckCollisionPointRec(GetMousePosition(),
+      if (CheckCollisionPointRec(get_mouse_position(),
                                  g_pre_game_state.text_box[i])) {
         g_pre_game_state.selected_text_box = i;
         g_pre_game_state.frame_counter = 0; // Trigger draw of blinking cursor
@@ -1094,7 +1119,7 @@ const char *update_draw_config(void) {
   static bool was_ibeam_cursor = false;
   bool is_ibeam_cursor = false;
   for (unsigned long i = 0; i < g_pre_game_state.number_of_text_boxes; ++i) {
-    if (CheckCollisionPointRec(GetMousePosition(),
+    if (CheckCollisionPointRec(get_mouse_position(),
                                g_pre_game_state.text_box[i])) {
       SetMouseCursor(MOUSE_CURSOR_IBEAM);
       is_ibeam_cursor = true;
@@ -1221,6 +1246,10 @@ const char *update_draw_config(void) {
 
   EndDrawing();
   //----------------------------------------------------------------------------------
+
+#if WASM
+  reset_mouse_pressed();
+#endif // WASM
   return g_pre_game_state.game_config_json;
 }
 
@@ -1270,38 +1299,43 @@ void draw_labels_and_buttons(void) {
 
   DrawRectangleRoundedLines(g_render_state.playing_field, 0.1, 0, 4, DARKBLUE);
 
-  PlayerAction tichu_action = {.type = CallTichu};
-  if (is_valid_player_action(USER_PLAYER_INDEX, &tichu_action)) {
-    DrawRectangleRounded(g_render_state.tichu_button, BUTTON_ROUNDNESS,
-                         BUTTON_SEGEMENTS, RED);
-    DrawRectangleRoundedLines(g_render_state.tichu_button, BUTTON_ROUNDNESS,
+  if (g_game_state.game.game_phase.type == Playing &&
+      strcmp(g_game_state.game.game_phase.player_name,
+             g_game_state.game.game_config.sitting_order[USER_PLAYER_INDEX]) ==
+          0) {
+    PlayerAction tichu_action = {.type = CallTichu};
+    if (is_valid_player_action(USER_PLAYER_INDEX, &tichu_action)) {
+      DrawRectangleRounded(g_render_state.tichu_button, BUTTON_ROUNDNESS,
+                           BUTTON_SEGEMENTS, RED);
+      DrawRectangleRoundedLines(g_render_state.tichu_button, BUTTON_ROUNDNESS,
+                                BUTTON_SEGEMENTS, BUTTON_LINE_THICKNESS,
+                                DARKBROWN);
+      const char *tichu_text = "Tichu";
+      DrawText(tichu_text,
+               g_render_state.tichu_button.x +
+                   g_render_state.tichu_button.width / 2.f -
+                   MeasureText(tichu_text, BUTTON_FONT_SIZE) / 2.f,
+               g_render_state.tichu_button.y +
+                   g_render_state.tichu_button.height / 2.f -
+                   BUTTON_CHAR_SIZE / 2.f,
+               BUTTON_FONT_SIZE, BLACK);
+    }
+
+    DrawRectangleRounded(g_render_state.play_button, BUTTON_ROUNDNESS,
+                         BUTTON_SEGEMENTS, DARKBLUE);
+    DrawRectangleRoundedLines(g_render_state.play_button, BUTTON_ROUNDNESS,
                               BUTTON_SEGEMENTS, BUTTON_LINE_THICKNESS,
-                              DARKBROWN);
-    const char *tichu_text = "Tichu";
-    DrawText(tichu_text,
-             g_render_state.tichu_button.x +
-                 g_render_state.tichu_button.width / 2.f -
-                 MeasureText(tichu_text, BUTTON_FONT_SIZE) / 2.f,
-             g_render_state.tichu_button.y +
-                 g_render_state.tichu_button.height / 2.f -
-                 BUTTON_CHAR_SIZE / 2.f,
-             BUTTON_FONT_SIZE, BLACK);
+                              DARKGRAY);
+    SelectedCards selected = get_selected_cards();
+    const char *play_text = selected.num_cards == 0 ? "Pass" : "Play";
+    DrawText(
+        play_text,
+        g_render_state.play_button.x + g_render_state.play_button.width / 2.f -
+            MeasureText(play_text, BUTTON_FONT_SIZE) / 2.f,
+        g_render_state.play_button.y + g_render_state.play_button.height / 2.f -
+            BUTTON_CHAR_SIZE / 2.f,
+        BUTTON_FONT_SIZE, BLACK);
   }
-
-  DrawRectangleRounded(g_render_state.play_button, BUTTON_ROUNDNESS,
-                       BUTTON_SEGEMENTS, DARKBLUE);
-  DrawRectangleRoundedLines(g_render_state.play_button, BUTTON_ROUNDNESS,
-                            BUTTON_SEGEMENTS, BUTTON_LINE_THICKNESS, DARKGRAY);
-
-  SelectedCards selected = get_selected_cards();
-  const char *play_text = selected.num_cards == 0 ? "Pass" : "Play";
-  DrawText(play_text,
-           g_render_state.play_button.x +
-               g_render_state.play_button.width / 2.f -
-               MeasureText(play_text, BUTTON_FONT_SIZE) / 2.f,
-           g_render_state.play_button.y +
-               g_render_state.play_button.height / 2.f - BUTTON_CHAR_SIZE / 2.f,
-           BUTTON_FONT_SIZE, BLACK);
 }
 
 bool contain_same_cards(SelectedCards *selected,
@@ -1343,9 +1377,10 @@ long long player_action_from_selected(SelectedCards *selected) {
 void check_buttons(void) {
 
   if (is_mouse_pressed()) {
-    Vector2 mouse_pos = GetMousePosition();
+    Vector2 mouse_pos = get_mouse_position();
 
     if (CheckCollisionPointRec(mouse_pos, g_render_state.play_button)) {
+
       SelectedCards selected = get_selected_cards();
       if (selected.num_cards == 0) {
         PlayerAction action = (PlayerAction){.type = Pass};
@@ -1354,6 +1389,7 @@ void check_buttons(void) {
           return;
         }
         serialize_player_action(&action, &g_game_state.current_action_json);
+        draw_loading();
         return;
       } else {
         long long player_action_idx = player_action_from_selected(&selected);
@@ -1366,6 +1402,7 @@ void check_buttons(void) {
             &g_game_state.player_actions[USER_PLAYER_INDEX][player_action_idx],
             &g_game_state.current_action_json);
         memset(g_render_state.selected, 0, LENGTH(g_render_state.selected));
+        draw_loading();
         return;
       }
     }
@@ -1376,6 +1413,7 @@ void check_buttons(void) {
         return;
       }
       serialize_player_action(&action, &g_game_state.current_action_json);
+      draw_loading();
       return;
     }
   }
@@ -1471,6 +1509,11 @@ const char *get_user_action() {
   ACTION_RESET();
   select_card();
   check_buttons();
+#if WASM
+  reset_mouse_pressed(); // This function is called after
+                         // update_c_state_and_render_game therefore reset it
+                         // here.
+#endif                   // WASM
   return g_game_state.current_action_json;
 }
 

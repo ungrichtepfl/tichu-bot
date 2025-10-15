@@ -27,7 +27,7 @@ dependencies:
   - vector >= 0.13 && < 1
   - monad-loops >= 0.4.3 && < 1
 ghc-options:
-  - -O2
+  - -O3
   - -Wall
   - -Wcompat
   - -Widentities
@@ -51,7 +51,7 @@ executables:
       - -threaded
       - -rtsopts
       - -with-rtsopts=-N
-      - -O2
+      - -O3
       - -Wall
       - -Wcompat
       - -Widentities
@@ -78,7 +78,7 @@ executables:
     extra-lib-dirs:
       - gui/raylib-5.0/linux_amd64/lib
     cc-options:
-      - -O2
+      - -O3
       - -Wall
       - -Werror
       - -Wextra
@@ -91,7 +91,7 @@ executables:
       - -threaded
       - -rtsopts
       - -with-rtsopts=-N
-      - -O2
+      - -O3
       - -Wall
       - -Wcompat
       - -Widentities
@@ -111,8 +111,9 @@ executables:
       - ./wasm/app/jsimports.c
     cc-options:
       - -std=c23
+      - -Os
     ghc-options:
-      - -O2
+      - -O3
       - -Wall
       - -Wcompat
       - -Widentities

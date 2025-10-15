@@ -2,6 +2,17 @@ import { WASI } from "https://cdn.jsdelivr.net/npm/@runno/wasi@0.7.0/dist/wasi.j
 import ghc_wasm_jsffi from "./ghc_wasm_jsffi.js";
 import createTichuGui from "./tichu_gui.js";
 
+function getScaledCanvasCoordinates(clientX, clientY, canvas) {
+  let rect = canvas.getBoundingClientRect(); // Get canvas position
+  let scaleX = canvas.width / rect.width;
+  let scaleY = canvas.height / rect.height;
+
+  // Convert touch to canvas coordinates
+  let canvasX = (clientX - rect.left) * scaleX;
+  let canvasY = (clientY - rect.top) * scaleY;
+  return [canvasX, canvasY];
+}
+
 var Module = {
   canvas: (function () {
     var canvas = document.getElementById("canvas");
@@ -10,28 +21,67 @@ var Module = {
 };
 
 var hs_tichu = undefined;
+var gui = undefined;
+
+document
+  .getElementById("canvas")
+  .addEventListener("touchstart", function (event) {
+    if (event.touches.length > 0) {
+      // Check if there is at least one touch point
+      let touch = event.touches[0]; // Get first touch
+      let [canvasX, canvasY] = getScaledCanvasCoordinates(
+        touch.clientX,
+        touch.clientY,
+        this,
+      );
+      gui._send_mouse_button_pressed(canvasX, canvasY);
+    }
+    event.preventDefault(); // Prevent scrolling while touching
+  });
+
+document
+  .getElementById("canvas")
+  .addEventListener("mousedown", function (event) {
+    if (event.button === 0) {
+      // Left button pressed
+      let [canvasX, canvasY] = getScaledCanvasCoordinates(
+        event.clientX,
+        event.clientY,
+        this,
+      );
+      gui._send_mouse_button_pressed(canvasX, canvasY);
+    }
+  });
 
 async function main() {
-  const gui = await createTichuGui(Module);
+  gui = await createTichuGui(Module);
   function deinit() {
-    console.log("deinit");
     gui._deinit();
   }
 
   function init(seed) {
-    console.log("init: ", seed);
     gui._init(seed);
   }
 
   function getUserAction() {
-    console.log("getUserAction");
-    return gui._get_user_action();
+    const res = gui._get_user_action();
+    var s = Module.UTF8ToString(res);
+    const encoder = new TextEncoder();
+    const bytes = encoder.encode(s + "\0"); // null-terminate
+    const ptr = hs_tichu.malloc(bytes.length);
+    new Uint8Array(hs_tichu.memory.buffer, ptr, bytes.length).set(bytes);
+    return ptr;
   }
 
   function updateCStateAndRenderGame(toSend) {
-    console.log(typeof toSend);
-    console.log("updateCStateAndRenderGame");
-    gui._update_c_state_and_render_game(toSend);
+    const haskellMem = new Uint8Array(hs_tichu.memory.buffer);
+    var str_len = 0;
+    while (haskellMem[toSend + str_len] !== 0) str_len++;
+    const guiPtr = gui._malloc(str_len + 1);
+    const haskell_str = haskellMem.subarray(toSend, toSend + str_len + 1);
+    Module.writeArrayToMemory(haskell_str, guiPtr);
+    gui._update_c_state_and_render_game(guiPtr);
+    gui._free(guiPtr);
   }
 
   function updateDrawConfig() {
@@ -45,7 +95,6 @@ async function main() {
   }
 
   function newRound() {
-    console.log("newRound");
     gui._new_round();
   }
 
@@ -54,7 +103,6 @@ async function main() {
   }
 
   function shouldGameRestart() {
-    console.log("shouldGameRestart");
     return gui._should_game_restart();
   }
 
@@ -118,14 +166,12 @@ async function main() {
         break;
       }
     }
-    console.log("End Config Loop");
     var gameLoopArgs = await hs_tichu.initialGame(gameConfig, seed);
     while (true) {
       gameLoopArgs = await hs_tichu.gameLoopBody(gameLoopArgs);
       if (await hs_tichu.gameLoopStop(gameLoopArgs)) {
         return;
       }
-      // setTimeout(() => {}, 10);
     }
   }
 
