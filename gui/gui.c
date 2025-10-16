@@ -1116,6 +1116,7 @@ const char *update_draw_config(void) {
   }
 
   // Check if the cursor is over a textbox
+#if !WASM
   static bool was_ibeam_cursor = false;
   bool is_ibeam_cursor = false;
   for (unsigned long i = 0; i < g_pre_game_state.number_of_text_boxes; ++i) {
@@ -1130,6 +1131,7 @@ const char *update_draw_config(void) {
     SetMouseCursor(MOUSE_CURSOR_DEFAULT);
   }
   was_ibeam_cursor = is_ibeam_cursor;
+#endif // ! WASM
 
   // Currently selected textbox and input
   Rectangle *selected_tb =
