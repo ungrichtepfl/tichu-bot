@@ -13,48 +13,48 @@ function getScaledCanvasCoordinates(clientX, clientY, canvas) {
   return [canvasX, canvasY];
 }
 
-let CModule = {
+const CModule = {
   canvas: (function () {
-    const canvas = document.getElementById("canvas");
-    return canvas;
+    return document.getElementById("canvas");
   })(),
 };
 
 let hsExports = undefined;
 let cExports = undefined;
 
-document
-  .getElementById("canvas")
-  .addEventListener("touchstart", function (event) {
-    if (event.touches.length > 0) {
-      // Check if there is at least one touch point
-      const touch = event.touches[0]; // Get first touch
-      const [canvasX, canvasY] = getScaledCanvasCoordinates(
-        touch.clientX,
-        touch.clientY,
-        this,
-      );
-      cExports._send_mouse_button_pressed(canvasX, canvasY);
-    }
-    event.preventDefault(); // Prevent scrolling while touching
-  });
-
-document
-  .getElementById("canvas")
-  .addEventListener("mousedown", function (event) {
-    if (event.button === 0) {
-      // Left button pressed
-      const [canvasX, canvasY] = getScaledCanvasCoordinates(
-        event.clientX,
-        event.clientY,
-        this,
-      );
-      cExports._send_mouse_button_pressed(canvasX, canvasY);
-    }
-  });
-
-async function main() {
+async function tichuMain() {
   cExports = await createTichuGui(CModule);
+
+  document
+    .getElementById("canvas")
+    .addEventListener("touchstart", function (event) {
+      if (event.touches.length > 0) {
+        // Check if there is at least one touch point
+        const touch = event.touches[0]; // Get first touch
+        const [canvasX, canvasY] = getScaledCanvasCoordinates(
+          touch.clientX,
+          touch.clientY,
+          this,
+        );
+        cExports._send_mouse_button_pressed(canvasX, canvasY);
+      }
+      event.preventDefault(); // Prevent scrolling while touching
+    });
+
+  document
+    .getElementById("canvas")
+    .addEventListener("mousedown", function (event) {
+      if (event.button === 0) {
+        // Left button pressed
+        const [canvasX, canvasY] = getScaledCanvasCoordinates(
+          event.clientX,
+          event.clientY,
+          this,
+        );
+        cExports._send_mouse_button_pressed(canvasX, canvasY);
+      }
+    });
+
   function deinit() {
     cExports._deinit();
   }
@@ -161,7 +161,7 @@ async function main() {
   const seed = Math.floor(Math.random() * randomStarts);
   const userPlayerIndex = 2;
 
-  async function tichuMain() {
+  async function tichuGameLoop() {
     await hsExports.gameInit(userPlayerIndex);
     let gameConfig = null;
     let gameConfigArgs = initialGameConfigArgs;
@@ -181,7 +181,7 @@ async function main() {
     }
   }
 
-  await tichuMain();
+  await tichuGameLoop();
 }
 
-main();
+tichuMain();
