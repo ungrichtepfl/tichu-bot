@@ -1,5 +1,5 @@
 import { WASI } from "https://cdn.jsdelivr.net/npm/@runno/wasi@0.7.0/dist/wasi.js";
-import ghc_wasm_jsffi from "./ghc_wasm_jsffi.js";
+import ghcWasmJsffi from "./ghc_wasm_jsffi.js";
 import createTichuGui from "./tichu_gui.js";
 
 function getScaledCanvasCoordinates(clientX, clientY, canvas) {
@@ -13,15 +13,15 @@ function getScaledCanvasCoordinates(clientX, clientY, canvas) {
   return [canvasX, canvasY];
 }
 
-let Module = {
+let CModule = {
   canvas: (function () {
     const canvas = document.getElementById("canvas");
     return canvas;
   })(),
 };
 
-let hs_tichu = undefined;
-let gui = undefined;
+let hsExports = undefined;
+let cExports = undefined;
 
 document
   .getElementById("canvas")
@@ -34,7 +34,7 @@ document
         touch.clientY,
         this,
       );
-      gui._send_mouse_button_pressed(canvasX, canvasY);
+      cExports._send_mouse_button_pressed(canvasX, canvasY);
     }
     event.preventDefault(); // Prevent scrolling while touching
   });
@@ -49,65 +49,69 @@ document
         event.clientY,
         this,
       );
-      gui._send_mouse_button_pressed(canvasX, canvasY);
+      cExports._send_mouse_button_pressed(canvasX, canvasY);
     }
   });
 
 async function main() {
-  gui = await createTichuGui(Module);
+  cExports = await createTichuGui(CModule);
   function deinit() {
-    gui._deinit();
+    cExports._deinit();
   }
 
   function init(seed) {
-    gui._init(seed);
+    cExports._init(seed);
   }
 
   function getUserAction() {
-    const res = gui._get_user_action();
-    const s = Module.UTF8ToString(res);
+    const cPtr = cExports._get_user_action();
+    const jsStr = CModule.UTF8ToString(cPtr);
     const encoder = new TextEncoder();
-    const bytes = encoder.encode(s + "\0"); // null-terminate
-    const ptr = hs_tichu.malloc(bytes.length);
-    new Uint8Array(hs_tichu.memory.buffer, ptr, bytes.length).set(bytes);
-    return ptr;
+    const strBytes = encoder.encode(jsStr + "\0"); // null-terminate
+    const hsPtr = hsExports.malloc(strBytes.length);
+    new Uint8Array(hsExports.memory.buffer, hsPtr, strBytes.length).set(
+      strBytes,
+    );
+    return hsPtr;
   }
 
   function updateCStateAndRenderGame(toSend) {
-    const haskellMem = new Uint8Array(hs_tichu.memory.buffer);
-    let str_len = 0;
-    while (haskellMem[toSend + str_len] !== 0) str_len++;
-    const guiPtr = gui._malloc(str_len + 1);
-    const haskell_str = haskellMem.subarray(toSend, toSend + str_len + 1);
-    Module.writeArrayToMemory(haskell_str, guiPtr);
-    gui._update_c_state_and_render_game(guiPtr);
-    gui._free(guiPtr);
+    const hsMemory = new Uint8Array(hsExports.memory.buffer);
+    let strLen = 0;
+    while (hsMemory[toSend + strLen] !== 0) strLen++;
+    const cPtr = cExports._malloc(strLen + 1);
+    const hsBytes = hsMemory.subarray(toSend, toSend + strLen + 1);
+    CModule.writeArrayToMemory(hsBytes, cPtr);
+    cExports._update_c_state_and_render_game(cPtr);
+    cExports._free(cPtr);
   }
 
   function updateDrawConfig() {
-    const res = gui._update_draw_config();
-    const s = Module.UTF8ToString(res);
+    const cPtr = cExports._update_draw_config();
+    const jsStr = CModule.UTF8ToString(cPtr);
     const encoder = new TextEncoder();
-    const bytes = encoder.encode(s + "\0"); // null-terminate
-    const ptr = hs_tichu.malloc(bytes.length);
-    new Uint8Array(hs_tichu.memory.buffer, ptr, bytes.length).set(bytes);
-    return ptr;
+    const strBytes = encoder.encode(jsStr + "\0"); // null-terminate
+    const hsPtr = hsExports.malloc(strBytes.length);
+    new Uint8Array(hsExports.memory.buffer, hsPtr, strBytes.length).set(
+      strBytes,
+    );
+    return hsPtr;
   }
 
   function newRound() {
-    gui._new_round();
+    cExports._new_round();
   }
 
   function gameShouldStop() {
-    return gui._game_should_stop();
+    return cExports._game_should_stop();
   }
 
   function shouldGameRestart() {
-    return gui._should_game_restart();
+    return cExports._should_game_restart();
   }
 
-  const jsffiExports = {};
-  const customExports = {
+  const hsJsffiExports = {};
+  const hsCustomExports = {
     env: {
       init,
       deinit,
@@ -121,7 +125,7 @@ async function main() {
   };
 
   // Set up WASI
-  const wasi = new WASI({
+  const hsWasi = new WASI({
     stdout: (out) => {
       console.log(out);
     },
@@ -137,39 +141,41 @@ async function main() {
   });
 
   // Run WASM
-  const wasm = await WebAssembly.instantiateStreaming(
+  const hsWasm = await WebAssembly.instantiateStreaming(
     fetch("./tichu-wasm.wasm"),
     {
-      ghc_wasm_jsffi: ghc_wasm_jsffi(jsffiExports),
-      ...wasi.getImportObject(),
-      ...customExports,
+      ghc_wasm_jsffi: ghcWasmJsffi(hsJsffiExports),
+      ...hsWasi.getImportObject(),
+      ...hsCustomExports,
     },
   );
-  Object.assign(jsffiExports, wasm.instance.exports);
-  wasi.initialize(wasm, {
-    ghc_wasm_jsffi: ghc_wasm_jsffi(jsffiExports),
+  Object.assign(hsJsffiExports, hsWasm.instance.exports);
+  hsWasi.initialize(hsWasm, {
+    ghc_wasm_jsffi: ghcWasmJsffi(hsJsffiExports),
   });
 
-  hs_tichu = wasi.instance.exports;
+  hsExports = hsWasi.instance.exports;
+
   const initialGameConfigArgs = JSON.stringify([null, false]);
-  const seed = 0;
+  const randomStarts = 100_000;
+  const seed = Math.floor(Math.random() * randomStarts);
   const userPlayerIndex = 2;
 
   async function tichuMain() {
-    await hs_tichu.gameInit(userPlayerIndex);
+    await hsExports.gameInit(userPlayerIndex);
     let gameConfig = null;
     let gameConfigArgs = initialGameConfigArgs;
     while (true) {
-      gameConfigArgs = await hs_tichu.configLoopBody(gameConfigArgs);
-      if (await hs_tichu.configLoopStop(gameConfigArgs)) {
+      gameConfigArgs = await hsExports.configLoopBody(gameConfigArgs);
+      if (await hsExports.configLoopStop(gameConfigArgs)) {
         gameConfig = JSON.stringify(JSON.parse(gameConfigArgs)[0]);
         break;
       }
     }
-    let gameLoopArgs = await hs_tichu.initialGame(gameConfig, seed);
+    let gameLoopArgs = await hsExports.initialGame(gameConfig, seed);
     while (true) {
-      gameLoopArgs = await hs_tichu.gameLoopBody(gameLoopArgs);
-      if (await hs_tichu.gameLoopStop(gameLoopArgs)) {
+      gameLoopArgs = await hsExports.gameLoopBody(gameLoopArgs);
+      if (await hsExports.gameLoopStop(gameLoopArgs)) {
         return;
       }
     }
