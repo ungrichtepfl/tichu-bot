@@ -4,6 +4,7 @@ module Main (main) where
 
 import Data.Aeson (FromJSON, ToJSON)
 import Foreign.C.String (CString)
+import System.Random (randomRIO)
 
 import qualified Data.Aeson as AS
 import qualified Data.ByteString.Lazy.Char8 as BL
@@ -66,13 +67,17 @@ getCurrentUserAction cAction = do
                 c_deinit
                 error $ "ERROR: Wrong players action.\nPlayer Action: " ++ cActionString
 
+randomStarts :: Int
+randomStarts = 100000
+
 main :: IO ()
 main =
     do
         let interface = CInterface
         gameInit interface userPlayerIndex
         mConfig <- configLoop interface
+        seed <- randomRIO (0, randomStarts)
         case mConfig of
             Just config ->
-                gameLoop interface config >> gameDeinit interface
+                gameLoop interface seed config >> gameDeinit interface
             Nothing -> gameDeinit interface

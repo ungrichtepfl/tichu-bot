@@ -448,6 +448,6 @@ gameLoopBody interface toSend@(game, possibleActions) =
 gameLoopStop :: (Game, Maybe (Map PlayerName [PlayerAction])) -> Bool
 gameLoopStop (game, _) = shouldGameStop game
 
-gameLoop :: (Interface interface) => interface -> GameConfig -> IO ()
-gameLoop interface config =
-    iterateUntilM gameLoopStop (gameLoopBody interface) (initialGame config 0) >> return ()
+gameLoop :: (Interface interface) => interface -> Int -> GameConfig -> IO ()
+gameLoop interface seed config =
+    iterateUntilM gameLoopStop (gameLoopBody interface) (initialGame config seed) >> return ()
