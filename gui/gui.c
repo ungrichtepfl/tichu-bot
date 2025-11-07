@@ -320,6 +320,9 @@ Texture2D get_card_asset(Card card, bool show_front, bool rotated_back) {
 atomic_int_fast8_t mouse_pressed = 0;
 atomic_int_fast32_t mouse_x = 0;
 atomic_int_fast32_t mouse_y = 0;
+atomic_int_fast8_t stop_game = 0;
+
+void send_game_should_stop(void) { stop_game = 1; }
 
 void send_mouse_button_pressed(int32_t x, int32_t y) {
   mouse_x = x;
@@ -343,7 +346,7 @@ bool is_mouse_pressed(void) {
 
 bool game_should_stop(void) {
 #if WASM
-  return false;
+  return stop_game;
 #else
   return WindowShouldClose();
 #endif // WASM
